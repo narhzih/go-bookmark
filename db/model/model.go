@@ -21,7 +21,6 @@ type CoverPhoto struct {
 type UserAuth struct {
 	User           User
 	HashedPassword string
-	HashedPin      string
 	CreatedAt      time.Time
 	ModifiedAt     time.Time
 }
