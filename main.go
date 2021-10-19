@@ -13,12 +13,14 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"gitlab.com/gowagr/mypipe-api/db"
+	"gitlab.com/gowagr/mypipe-api/pkg/api"
+	"gitlab.com/gowagr/mypipe-api/pkg/service"
 )
 
 func main() {
 	godotenv.Load(".env")
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
-	_, err := initDb(logger)
+	db, err := initDb(logger)
 	if err != nil {
 		logger.Err(err).Msg("An error occurred")
 		os.Exit(1)
@@ -28,9 +30,12 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	apiService := service.NewService(db)
+	apiHandler := api.NewHandler(apiService, logger)
 	router := gin.Default()
 	rg := router.Group("/v1")
-	rg.GET("/test", FirstCall)
+	apiHandler.Register(rg)
+
 	addr := fmt.Sprintf(":%d", 5555)
 	srv := &http.Server{
 		Addr:    addr,
@@ -63,11 +68,4 @@ func initDb(logger zerolog.Logger) (db.Database, error) {
 	}
 
 	return db.Connect(dbConfig)
-}
-
-func FirstCall(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Connection successful",
-	})
-
 }
