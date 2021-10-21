@@ -23,6 +23,8 @@ func NewHandler(service service.Service, logger zerolog.Logger) Handler {
 func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	// This is where all routes will be registered
 	routeGroup.GET("/test-route", TestCaller)
+	routeGroup.POST("/google/signup", h.SingUpWithGoogle)
+	routeGroup.POST("/google/singin", h.SignInWithGoogle)
 }
 
 func TestCaller(c *gin.Context) {

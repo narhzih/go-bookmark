@@ -6,13 +6,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) SignIn(c *gin.Context) {
+func (h *Handler) SignInWithGoogle(c *gin.Context) {
 	c.JSON(http.StatusAccepted, gin.H{
 		"message": "All good",
 	})
 }
 
-func (h *Handler) SingUp(c *gin.Context) {
+func (h *Handler) SingUpWithGoogle(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Implement route to sign user up",
 	})
