@@ -72,7 +72,7 @@ func (s Service) generateTokenPair(user model.User) (accessToken, refreshToken s
 	return accessToken, refreshToken, nil
 }
 
-func ValidateGoogleJWT(tokenString string) (GoogleClaims, error) {
+func (s Service) ValidateGoogleJWT(tokenString string) (GoogleClaims, error) {
 	claimStruct := GoogleClaims{}
 	token, err := jwt.ParseWithClaims(
 		tokenString,
