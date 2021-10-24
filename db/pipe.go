@@ -117,6 +117,5 @@ func (db Database) DeletePipe(userID, pipeID int64) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	// deleteQuery = "DEL"
 	return true, nil
 }
