@@ -3,6 +3,10 @@ include .env
 PG_URL ?= postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost${PG_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB}?sslmode=disable
 MIGRATIONS_PATH ?= $(shell pwd)/sql
 
+migrate-version:
+	migrate -database ${PG_URL} -path ./migrations version
+migrate-rollback:
+	migrate -database ${PG_URL} -path ./migrations force $(v)
 migrate-up:
 	migrate -database ${PG_URL} -path ./migrations up
 migrate-down:
