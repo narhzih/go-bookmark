@@ -8,8 +8,8 @@ import (
 )
 
 func (db Database) CreateUserByEmail(user model.User, password string) (newUser model.User, err error) {
-	query := `INSERT INTO users (username, email) VALUES ($1) RETURNING id, username, email`
-	err = db.Conn.QueryRow(query, user.Email).Scan(
+	query := `INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id, username, email`
+	err = db.Conn.QueryRow(query, user.Username, user.Email).Scan(
 		&newUser.ID,
 		&newUser.Username,
 		&newUser.Email,
@@ -24,9 +24,10 @@ func (db Database) CreateUserByEmail(user model.User, password string) (newUser 
 		return model.User{}, err
 	}
 
-	authQuery := "INSERT INTO users_auth (user_id, password) VALUES ($1, $2)"
+	authQuery := "INSERT INTO user_auth (user_id, hashed_password) VALUES ($1, $2)"
 	_, err = db.Conn.Exec(authQuery, user.ID, password)
 	if err != nil {
+		db.Logger.Err(err).Msg("Could not create user for auth")
 		return model.User{}, err
 	}
 

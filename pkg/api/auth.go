@@ -18,7 +18,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 	}{}
 
 	if err := c.ShouldBindJSON(&singUpReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request body",
 		})
 		return
@@ -26,9 +26,10 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 	hashedPassword, err := hashPassword(singUpReq.Password)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went very wrong",
 		})
+		return
 	}
 
 	userStruct := model.User{
@@ -38,14 +39,22 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		if err == db.ErrRecordExists {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "Email has already been taken",
+			})
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying to register user",
+			"err":     err.Error(),
 		})
+		return
 	}
 
 	authToken, err := h.service.IssueAuthToken(user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to sign user in",
 		})
 		return

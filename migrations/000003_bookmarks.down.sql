@@ -1,1 +1,1 @@
-DROP TABLE IF NOT EXISTS bookmarks;
+DROP TABLE IF EXISTS bookmarks;
