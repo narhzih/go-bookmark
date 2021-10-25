@@ -7,33 +7,44 @@ import (
 	"gitlab.com/gowagr/mypipe-api/db/model"
 )
 
-func (db Database) CreateUser(email, password string) (userID int64, err error) {
-	var id int64
-	query := `INSERT INTO users (email) VALUES ($1) RETURNING id`
-	err = db.Conn.QueryRow(query, email).Scan(&id)
+func (db Database) CreateUser(user model.User) (newUser model.User, err error) {
+	query := `INSERT INTO users (username, email) VALUES ($1) RETURNING id, username, email`
+	err = db.Conn.QueryRow(query, user.Email).Scan(
+		&newUser.ID,
+		&newUser.Username,
+		&newUser.Email,
+	)
 	if err != nil {
-		return id, err
-	}
-
-	authQuery := `INSERT INTO user_auth (user_id, password) VALUES ($1, $2)`
-	_, err = db.Conn.Exec(authQuery, id, password)
-	if err != nil {
-		// Check if the error is due to duplicate recoreds
 		if dbErr, ok := err.(*pq.Error); ok {
-			if dbErr.Code == "25505" {
-				db.Logger.Err(dbErr).Msg("Duplicate record")
-				return id, ErrRecordExists
+			if dbErr.Code == "23505" {
+				db.Logger.Err(dbErr).Msg("duplicate record")
+				return newUser, ErrRecordExists
 			}
 		}
-		return id, err
+		return model.User{}, err
 	}
 
-	return id, err
+	return newUser, err
 }
 
 func (db Database) GetUserById(userId int) (user model.User, err error) {
-	query := `SELECT * FROM users where id=$1 LIMIT 1`
+	query := `SELECT id, username, email FROM users where id=$1 LIMIT 1`
 	if err = db.Conn.QueryRow(query, userId).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+	); err != nil {
+		if err == sql.ErrNoRows {
+			return model.User{}, ErrNoRecord
+		}
+		return model.User{}, err
+	}
+	return user, err
+}
+
+func (db Database) GetUserByEmail(userEmail string) (user model.User, err error) {
+	query := `SELECT id, username, email FROM users where email=$1 LIMIT 1`
+	if err = db.Conn.QueryRow(query, userEmail).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
