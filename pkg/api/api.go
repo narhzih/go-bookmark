@@ -25,6 +25,9 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	routeGroup.GET("/test-route", TestCaller)
 	routeGroup.POST("/google/signup", h.SingUpWithGoogle)
 	routeGroup.POST("/google/singin", h.SignInWithGoogle)
+	authApi := routeGroup.Group("/auth")
+	authApi.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
+	authApi.GET("/auth-test", TestCaller)
 }
 
 func TestCaller(c *gin.Context) {
