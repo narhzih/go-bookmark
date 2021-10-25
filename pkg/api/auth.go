@@ -66,6 +66,74 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 }
 
+func (h *Handler) EmailLogin(c *gin.Context) {
+	loginReq := struct {
+		Email    string `json:"email" binding:"required"`
+		Password string `json:"password" binding:"required"`
+	}{}
+
+	if err := c.ShouldBindJSON(&loginReq); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+		})
+		return
+	}
+
+	user, err := h.service.DB.GetUserByEmail(loginReq.Email)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"message": "User with specified email not found",
+		})
+		return
+	}
+
+	userAndAuth, err := h.service.DB.GetUserAndAuth(user)
+	if err != nil {
+		if err == db.ErrNoRecord {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"message": "You cannot be logged in! Your account was either created through google sign up or apple sign up. Please use either of those to sign in to your account",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"message": "Error occurred while trying to sign in user",
+		})
+		return
+	}
+
+	if verifyPassword(loginReq.Password, userAndAuth.HashedPassword) {
+		authToken, err := h.service.IssueAuthToken(userAndAuth.User)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": "Error occurred while trying to sign user in",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Sign in successful!",
+			"data": map[string]interface{}{
+				"token":         authToken.AccessToken,
+				"refresh_token": authToken.RefreshToken,
+				"user": map[string]interface{}{
+					"id":       user.ID,
+					"username": user.Username,
+					"email":    user.Email,
+				},
+			},
+		})
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"message": "Password incorrect",
+		})
+		return
+	}
+
+	// Validate the password provided by the user
+
+}
+
 func (h *Handler) SignInWithGoogle(c *gin.Context) {
 	var user model.User
 
@@ -185,4 +253,9 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 func hashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	return string(bytes), err
+}
+
+func verifyPassword(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
 }

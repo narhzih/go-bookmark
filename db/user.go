@@ -82,3 +82,16 @@ func (db Database) GetUserByEmail(userEmail string) (user model.User, err error)
 	}
 	return user, err
 }
+
+func (db Database) GetUserAndAuth(user model.User) (userAndAuth model.UserAuth, err error) {
+	query := "SELECT  hashed_password FROM users WHERE user_id=$1"
+	err = db.Conn.QueryRow(query, user.ID).Scan(
+		&userAndAuth.HashedPassword,
+	)
+	if err != nil {
+		return model.UserAuth{}, err
+	}
+	userAndAuth.User = user
+
+	return userAndAuth, nil
+}
