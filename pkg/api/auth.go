@@ -94,7 +94,7 @@ func (h *Handler) SingUpWithGoogle(c *gin.Context) {
 	if err != nil {
 		if err == db.ErrRecordExists {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "Email has already been taken by another user",
+				"message": "Email has already been taken.",
 			})
 			return
 		}
