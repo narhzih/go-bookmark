@@ -23,7 +23,13 @@ func NewHandler(service service.Service, logger zerolog.Logger) Handler {
 func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	// This is where all routes will be registered
 	routeGroup.GET("/test-route", TestCaller)
-	routeGroup.POST("/google/signup", h.SingUpWithGoogle)
+
+	// This particular route is just for testing purposes
+	// it will be removed later when the front end starts
+	// sending in actual GoogleJWT
+	routeGroup.POST("/sign-up", h.EmailSignUp)
+
+	routeGroup.POST("/google/signup", h.SignUpWithGoogle)
 	routeGroup.POST("/google/singin", h.SignInWithGoogle)
 
 	authApi := routeGroup.Group("/auth")

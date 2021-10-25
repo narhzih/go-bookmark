@@ -7,9 +7,35 @@ import (
 	"gitlab.com/gowagr/mypipe-api/db/model"
 )
 
-func (db Database) CreateUser(user model.User) (newUser model.User, err error) {
+func (db Database) CreateUserByEmail(user model.User, password string) (newUser model.User, err error) {
 	query := `INSERT INTO users (username, email) VALUES ($1) RETURNING id, username, email`
 	err = db.Conn.QueryRow(query, user.Email).Scan(
+		&newUser.ID,
+		&newUser.Username,
+		&newUser.Email,
+	)
+	if err != nil {
+		if dbErr, ok := err.(*pq.Error); ok {
+			if dbErr.Code == "23505" {
+				db.Logger.Err(dbErr).Msg("duplicate record")
+				return newUser, ErrRecordExists
+			}
+		}
+		return model.User{}, err
+	}
+
+	authQuery := "INSERT INTO users_auth (user_id, password) VALUES ($1, $2)"
+	_, err = db.Conn.Exec(authQuery, user.ID, password)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	return newUser, err
+}
+
+func (db Database) CreateUser(user model.User) (newUser model.User, err error) {
+	query := `INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id, username, email`
+	err = db.Conn.QueryRow(query, user.Username, user.Email).Scan(
 		&newUser.ID,
 		&newUser.Username,
 		&newUser.Email,
