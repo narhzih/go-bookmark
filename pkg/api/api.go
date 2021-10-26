@@ -28,6 +28,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	// it will be removed later when the front end starts
 	// sending in actual GoogleJWT
 	routeGroup.POST("/sign-up", h.EmailSignUp)
+	routeGroup.POST("/sign-in", h.EmailLogin)
 
 	routeGroup.POST("/google/signup", h.SignUpWithGoogle)
 	routeGroup.POST("/google/singin", h.SignInWithGoogle)

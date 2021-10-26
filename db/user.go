@@ -25,7 +25,7 @@ func (db Database) CreateUserByEmail(user model.User, password string) (newUser 
 	}
 
 	authQuery := "INSERT INTO user_auth (user_id, hashed_password) VALUES ($1, $2)"
-	_, err = db.Conn.Exec(authQuery, user.ID, password)
+	_, err = db.Conn.Exec(authQuery, newUser.ID, password)
 	if err != nil {
 		db.Logger.Err(err).Msg("Could not create user for auth")
 		return model.User{}, err
@@ -85,7 +85,7 @@ func (db Database) GetUserByEmail(userEmail string) (user model.User, err error)
 }
 
 func (db Database) GetUserAndAuth(user model.User) (userAndAuth model.UserAuth, err error) {
-	query := "SELECT  hashed_password FROM users WHERE user_id=$1"
+	query := "SELECT hashed_password FROM user_auth WHERE user_id=$1"
 	err = db.Conn.QueryRow(query, user.ID).Scan(
 		&userAndAuth.HashedPassword,
 	)

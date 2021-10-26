@@ -40,11 +40,13 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
 	if err != nil {
 		if err == db.ErrRecordExists {
+			h.logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Email has already been taken",
 			})
 			return
 		}
+		h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying to register user",
 			"err":     err.Error(),
@@ -54,6 +56,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 	authToken, err := h.service.IssueAuthToken(user)
 	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to sign user in",
 		})
@@ -82,7 +85,8 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 	}{}
 
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		h.logger.Err(err).Msg(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request body",
 		})
 		return
@@ -90,7 +94,8 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 
 	user, err := h.service.DB.GetUserByEmail(loginReq.Email)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
+		h.logger.Err(err).Msg(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "User with specified email not found",
 		})
 		return
@@ -98,14 +103,15 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 
 	userAndAuth, err := h.service.DB.GetUserAndAuth(user)
 	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
 		if err == db.ErrNoRecord {
-			c.JSON(http.StatusBadRequest, gin.H{
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "You cannot be logged in! Your account was either created through google sign up or apple sign up. Please use either of those to sign in to your account",
 			})
 			return
 		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to sign in user",
 		})
 		return
@@ -114,7 +120,8 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 	if verifyPassword(loginReq.Password, userAndAuth.HashedPassword) {
 		authToken, err := h.service.IssueAuthToken(userAndAuth.User)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
+			h.logger.Err(err).Msg(err.Error())
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Error occurred while trying to sign user in",
 			})
 			return
@@ -133,6 +140,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 			},
 		})
 	} else {
+		h.logger.Err(err).Msg(err.Error())
 		c.JSON(http.StatusUnauthorized, gin.H{
 			"message": "Password incorrect",
 		})
