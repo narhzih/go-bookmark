@@ -23,6 +23,32 @@ func NewHandler(service service.Service, logger zerolog.Logger) Handler {
 func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	// This is where all routes will be registered
 	routeGroup.GET("/test-route", TestCaller)
+
+	// This particular route is just for testing purposes
+	// it will be removed later when the front end starts
+	// sending in actual GoogleJWT
+	routeGroup.POST("/sign-up", h.EmailSignUp)
+	routeGroup.POST("/sign-in", h.EmailLogin)
+
+	routeGroup.POST("/google/signup", h.SignUpWithGoogle)
+	routeGroup.POST("/google/singin", h.SignInWithGoogle)
+
+	authApi := routeGroup.Group("/auth")
+	authApi.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
+	authApi.GET("/auth-test", TestCaller)
+
+	pipe := routeGroup.Group("/pipe")
+	pipe.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
+	pipe.POST("/", h.CreatePipe)
+	pipe.GET("/:id", h.GetPipe)
+	pipe.PUT("/:id", h.UpdatePipe)
+	pipe.GET("/all", h.GetPipes)
+
+	pipe.GET("/:id/bookmarks", h.GetBookmarks)
+	pipe.POST("/:id/bookmark", h.CreateBookmark)
+	pipe.GET("/:id/bookmark/:bmId", h.GetBookmark)
+	pipe.DELETE("/:id/bookmark/:bmId", h.DeleteBookmark)
+
 }
 
 func TestCaller(c *gin.Context) {

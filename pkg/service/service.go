@@ -6,11 +6,13 @@ import (
 
 // More fields will be added to the service struct later in the future
 type Service struct {
-	DB db.Database
+	DB        db.Database
+	JWTConfig JWTConfig
 }
 
-func NewService(dbHandle db.Database) Service {
+func NewService(dbHandle db.Database, jwtConfig JWTConfig) Service {
 	return Service{
-		DB: dbHandle,
+		DB:        dbHandle,
+		JWTConfig: jwtConfig,
 	}
 }

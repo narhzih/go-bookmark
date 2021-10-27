@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"gitlab.com/gowagr/mypipe-api/db"
@@ -29,8 +30,12 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+	jwtConfig, err := initJWTConfig()
+	if err != nil {
+		logger.Err(err).Msg("jwt config")
+	}
 
-	apiService := service.NewService(db)
+	apiService := service.NewService(db, jwtConfig)
 	apiHandler := api.NewHandler(apiService, logger)
 	router := gin.Default()
 	rg := router.Group("/v1")
@@ -49,6 +54,7 @@ func main() {
 	}()
 
 	<-ctx.Done()
+	stop()
 }
 
 func initDb(logger zerolog.Logger) (db.Database, error) {
@@ -68,4 +74,29 @@ func initDb(logger zerolog.Logger) (db.Database, error) {
 	}
 
 	return db.Connect(dbConfig)
+}
+
+func initJWTConfig() (service.JWTConfig, error) {
+	var expiresIn int
+	var key string
+	var err error
+	var cfg service.JWTConfig
+
+	expiresIn, err = strconv.Atoi(os.Getenv("JWT_EXPIRES_IN"))
+	if err != nil {
+		return cfg, err
+	}
+
+	key = os.Getenv("JWT_SECRET")
+
+	// enforce minimum length for JWT secret
+	if len(key) < 64 {
+		return cfg, fmt.Errorf("JWT_SECRET too short")
+	}
+
+	cfg.ExpiresIn = expiresIn
+	cfg.Key = key
+	cfg.Algo = jwt.SigningMethodHS256
+
+	return cfg, nil
 }
