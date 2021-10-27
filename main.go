@@ -54,6 +54,7 @@ func main() {
 	}()
 
 	<-ctx.Done()
+	stop()
 }
 
 func initDb(logger zerolog.Logger) (db.Database, error) {

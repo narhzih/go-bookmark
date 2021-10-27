@@ -46,8 +46,8 @@ func (s Service) IssueAuthToken(user model.User) (AuthToken, error) {
 	return authTokens, nil
 }
 func (s Service) generateTokenPair(user model.User) (accessToken, refreshToken string, err error) {
-	atExpiresIn := time.Now().Add(time.Duration(s.JWTConfig.ExpiresIn) * time.Second)
-	rtExpiresIn := time.Now().Add(30 * (24 * time.Hour))
+	atExpiresIn := time.Now().Add(time.Duration(s.JWTConfig.ExpiresIn) * time.Second).Unix()
+	rtExpiresIn := time.Now().Add(30 * (24 * time.Hour)).Unix()
 
 	at := jwt.NewWithClaims(s.JWTConfig.Algo, jwt.MapClaims{
 		"sub":      user.ID,

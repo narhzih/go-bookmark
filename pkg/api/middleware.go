@@ -25,10 +25,6 @@ func AuthRequired(jwtSecret string, logger zerolog.Logger) gin.HandlerFunc {
 		authHeader := c.Request.Header.Get("Authorization")
 		if authHeader != "" {
 			authToken := strings.Split(authHeader, " ")[1]
-			logger.Info().Msg(authToken)
-			// token, err := request.ParseFromRequest(c.Request, request.AuthorizationHeaderExtractor, func(t *jwt.Token) (interface{}, error) {
-			// 	return []byte(jwtSecret), nil
-			// })
 			token, err := jwt.Parse(authToken, func(t *jwt.Token) (interface{}, error) {
 				return []byte(jwtSecret), nil
 			})
@@ -41,6 +37,7 @@ func AuthRequired(jwtSecret string, logger zerolog.Logger) gin.HandlerFunc {
 					})
 					return
 				}
+				logger.Info().Msg("Error is from here")
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"message": fmt.Sprintf("could not parse authorization token: %s", err),
 				})
