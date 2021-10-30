@@ -1,11 +1,17 @@
 package db
 
-import "gitlab.com/gowagr/mypipe-api/db/model"
+import (
+	"database/sql"
+	"time"
+
+	"gitlab.com/gowagr/mypipe-api/db/model"
+)
 
 func (db Database) CreatePipe(pipe model.Pipe) (model.Pipe, error) {
 	var newPipe model.Pipe
-	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING name, cover_photo"
+	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo"
 	err := db.Conn.QueryRow(query, pipe.UserID, pipe.Name, pipe.CoverPhoto).Scan(
+		&newPipe.ID,
 		&newPipe.Name,
 		&newPipe.CoverPhoto,
 	)
@@ -19,7 +25,7 @@ func (db Database) CreatePipe(pipe model.Pipe) (model.Pipe, error) {
 
 func (db Database) GetPipe(pipeID, userID int64) (model.Pipe, error) {
 	var pipe model.Pipe
-	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1, user_id=$2"
+	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1 AND user_id=$2 LIMIT 1"
 	err := db.Conn.QueryRow(query, pipeID, userID).Scan(
 		&pipe.ID,
 		&pipe.Name,
@@ -28,9 +34,33 @@ func (db Database) GetPipe(pipeID, userID int64) (model.Pipe, error) {
 		&pipe.UserID,
 	)
 	if err != nil {
-		return model.Pipe{}, nil
+		if err == sql.ErrNoRows {
+			return model.Pipe{}, ErrNoRecord
+		}
+		return model.Pipe{}, err
 	}
 	return pipe, nil
+}
+
+func (db Database) GetPipeAndResource(pipeID, userID int64) (model.PipeAndResource, error) {
+	var pipeAndR model.PipeAndResource
+	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1 AND user_id=$2"
+	err := db.Conn.QueryRow(query, pipeID, userID).Scan(
+		&pipeAndR.Pipe.ID,
+		&pipeAndR.Pipe.Name,
+		&pipeAndR.Pipe.CoverPhoto,
+		&pipeAndR.Pipe.CreatedAt,
+		&pipeAndR.Pipe.UserID,
+	)
+	if err != nil {
+		return model.PipeAndResource{}, nil
+	}
+	// get bookmarks
+	pipeAndR.Bookmarks, err = db.GetBookmarks(userID, pipeID)
+	if err != nil {
+		return model.PipeAndResource{}, nil
+	}
+	return pipeAndR, nil
 }
 
 func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
@@ -56,6 +86,58 @@ func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
 	return pipes, nil
 }
 
+func (db Database) UpdatePipe(userID int64, pipeID int64, updatedBody model.Pipe) (model.Pipe, error) {
+	var pipe model.Pipe
+	selectQuery := "SELECT id, name, cover_photo FROM pipes WHERE id=$1 AND user_id=$2 LIMIT 1"
+	err := db.Conn.QueryRow(selectQuery, pipeID, userID).Scan(
+		&pipe.ID,
+		&pipe.Name,
+		&pipe.CoverPhoto,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return model.Pipe{}, ErrNoRecord
+		}
+		return model.Pipe{}, err
+	}
+
+	if len(updatedBody.Name) <= 0 && len(updatedBody.CoverPhoto) <= 0 {
+		return pipe, nil
+	} else {
+		if len(updatedBody.Name) > 0 && len(updatedBody.CoverPhoto) > 0 {
+			query := "UPDATE pipes SET name=$1,cover_photo=$2, modified_at=$3 WHERE id=$4 AND user_id=$5 RETURNING id, name, cover_photo"
+			err = db.Conn.QueryRow(query, updatedBody.Name, updatedBody.CoverPhoto, time.Now(), pipeID, userID).Scan(
+				&pipe.ID,
+				&pipe.Name,
+				&pipe.CoverPhoto,
+			)
+		} else if len(updatedBody.Name) > 0 {
+			query := "UPDATE pipes SET name=$1, modified_at=$2 WHERE id=$3 AND user_id=$4 RETURNING id, name, cover_photo"
+			err = db.Conn.QueryRow(query, updatedBody.Name, time.Now(), pipeID, userID).Scan(
+				&pipe.ID,
+				&pipe.Name,
+				&pipe.CoverPhoto,
+			)
+		} else if len(updatedBody.CoverPhoto) > 0 {
+			query := "UPDATE pipes SET cover_photo=$1, modified_at=$2 WHERE id=$3 AND user_id=$4 RETURNING id, name, cover_photo"
+			err = db.Conn.QueryRow(query, updatedBody.CoverPhoto, time.Now(), pipeID, userID).Scan(
+				&pipe.ID,
+				&pipe.Name,
+				&pipe.CoverPhoto,
+			)
+		}
+
+		if err != nil {
+
+			return pipe, err
+		}
+
+		return pipe, nil
+
+	}
+
+}
+
 func (db Database) UpdatePipeName(userID int64, pipeID int64, pipeName string) (model.Pipe, error) {
 	var pipe model.Pipe
 	selectQuery := "SELECT id, name FROM pipes WHERE user_id=$1, id=$2 LIMIT 1"
@@ -64,7 +146,10 @@ func (db Database) UpdatePipeName(userID int64, pipeID int64, pipeName string) (
 		&pipe.Name,
 	)
 	if err != nil {
-		return model.Pipe{}, nil
+		if err == sql.ErrNoRows {
+			return model.Pipe{}, ErrNoRecord
+		}
+		return model.Pipe{}, err
 	}
 
 	// Update the pipe
@@ -112,7 +197,7 @@ func (db Database) UpdatePipeCoverPhoto(userID int64, pipeID int64, pipeCp strin
 // along with the pipe. This has a already been taken care of by enabling
 // ON DELETE CASCADE in the bookmarks table
 func (db Database) DeletePipe(userID, pipeID int64) (bool, error) {
-	deleteQuery := "DELETE FROM pipes WHERE id=$1, user_id=$2"
+	deleteQuery := "DELETE FROM pipes WHERE id=$1 AND user_id=$2"
 	_, err := db.Conn.Exec(deleteQuery, pipeID, userID)
 	if err != nil {
 		return false, err

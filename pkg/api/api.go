@@ -42,6 +42,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	pipe.POST("/", h.CreatePipe)
 	pipe.GET("/:id", h.GetPipe)
 	pipe.PUT("/:id", h.UpdatePipe)
+	pipe.DELETE("/:id", h.DeletePipe)
 	pipe.GET("/all", h.GetPipes)
 
 	pipe.GET("/:id/bookmarks", h.GetBookmarks)

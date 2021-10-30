@@ -46,9 +46,8 @@ func AuthRequired(jwtSecret string, logger zerolog.Logger) gin.HandlerFunc {
 
 			claims := token.Claims.(jwt.MapClaims)
 			username := claims["username"].(string)
-			userId := int(claims["sub"].(float64))
+			userId := int64(claims["sub"].(float64))
 
-			logger.Info().Msgf("%+v", claims)
 			if username == "" || userId == 0 {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"message": "invalid user data in provided token",
@@ -61,7 +60,7 @@ func AuthRequired(jwtSecret string, logger zerolog.Logger) gin.HandlerFunc {
 			c.Next()
 		} else {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "Invalid token",
+				"message": "You're not logged in!. Please login to perform this operation.",
 			})
 			return
 		}
