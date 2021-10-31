@@ -43,6 +43,6 @@ type Bookmark struct {
 }
 
 type PipeAndResource struct {
-	Pipe      Pipe
-	Bookmarks []Bookmark
+	Pipe      Pipe       `json:"pipe"`
+	Bookmarks []Bookmark `json:"bookmarks"`
 }

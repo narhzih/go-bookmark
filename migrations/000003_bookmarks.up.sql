@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS bookmarks (
     platform VARCHAR(100) NOT NULL,
     url TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (pipe_id) REFERENCES public.pipes (id) ON DELETE CASCADE
+    FOREIGN KEY (pipe_id) REFERENCES public.pipes  ON DELETE CASCADE
 )
