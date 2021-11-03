@@ -50,6 +50,10 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	pipe.GET("/:id/bookmark/:bmId", h.GetBookmark)
 	pipe.DELETE("/:id/bookmark/:bmId", h.DeleteBookmark)
 
+	user := routeGroup.Group("/user")
+	user.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
+	user.GET("/profile", h.UserProfile)
+
 }
 
 func TestCaller(c *gin.Context) {

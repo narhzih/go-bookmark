@@ -63,6 +63,17 @@ func (db Database) GetBookmarks(userID, pipeID int64) ([]model.Bookmark, error) 
 	return bookmarks, nil
 }
 
+func (db Database) GetBookmarksCount(userID int64) (int, error) {
+	var bmCount int
+	query := "SELECT COUNT(id) FROM bookmarks WHERE user_id=$1"
+	err := db.Conn.QueryRow(query, userID).Scan(&bmCount)
+	if err != nil {
+		return bmCount, err
+	}
+
+	return bmCount, nil
+}
+
 func (db Database) DeleteBookmark(bmID, userID int64) (bool, error) {
 	deleteQuery := "DELETE FROM bookmarks WHERE id=$1 AND user_id=$2"
 	_, err := db.Conn.Exec(deleteQuery, bmID, userID)

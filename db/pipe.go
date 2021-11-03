@@ -86,6 +86,17 @@ func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
 	return pipes, nil
 }
 
+func (db Database) GetPipesCount(userID int64) (int, error) {
+	var pipesCount int
+	query := "SELECT COUNT(id) FROM pipes WHERE user_id=$1"
+	err := db.Conn.QueryRow(query, userID).Scan(&pipesCount)
+	if err != nil {
+		return pipesCount, err
+	}
+
+	return pipesCount, nil
+}
+
 func (db Database) UpdatePipe(userID int64, pipeID int64, updatedBody model.Pipe) (model.Pipe, error) {
 	var pipe model.Pipe
 	selectQuery := "SELECT id, name, cover_photo FROM pipes WHERE id=$1 AND user_id=$2 LIMIT 1"

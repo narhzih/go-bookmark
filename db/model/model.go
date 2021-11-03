@@ -3,11 +3,11 @@ package model
 import "time"
 
 type User struct {
-	ID         int64
-	Username   string
-	Email      string
-	CreatedAt  time.Time
-	ModifiedAt time.Time
+	ID         int64     `json:"id"`
+	Username   string    `json:"username"`
+	Email      string    `json:"email"`
+	CreatedAt  time.Time `json:"created_at"`
+	ModifiedAt time.Time `json:"modified_at"`
 }
 
 type CoverPhoto struct {
@@ -45,4 +45,10 @@ type Bookmark struct {
 type PipeAndResource struct {
 	Pipe      Pipe       `json:"pipe"`
 	Bookmarks []Bookmark `json:"bookmarks"`
+}
+
+type Profile struct {
+	User      User
+	Pipes     int
+	Bookmarks int
 }
