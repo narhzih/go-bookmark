@@ -25,19 +25,24 @@ type UserAuth struct {
 }
 
 type Pipe struct {
-	ID         int64
-	Name       string
-	UserID     int64
-	CoverPhoto string
-	CreatedAt  time.Time
-	ModifiedAt time.Time
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	UserID     int64     `json:"user_id"`
+	CoverPhoto string    `json:"cover_photo"`
+	CreatedAt  time.Time `json:"created_at"`
+	ModifiedAt time.Time `json:"modified_at"`
 }
 
 type Bookmark struct {
-	ID        int64
-	UserID    int64
-	PipeID    int64
-	Platform  string
-	Url       string
-	CreatedAt time.Time
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	PipeID    int64     `json:"pipe_id"`
+	Platform  string    `json:"platform"`
+	Url       string    `json:"url"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type PipeAndResource struct {
+	Pipe      Pipe       `json:"pipe"`
+	Bookmarks []Bookmark `json:"bookmarks"`
 }

@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strconv"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -55,6 +56,17 @@ func main() {
 
 	<-ctx.Done()
 	stop()
+
+	logger.Info().Msg("shutting down gracefully, press Ctrl+C again to force")
+
+	// The context is used to inform the server it has 5 seconds to finish
+	// the request it is currently handling
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Fatal().Msg(fmt.Sprintf("Server forced to shutdown: %s", err))
+	}
+	logger.Info().Msg("exiting server")
 }
 
 func initDb(logger zerolog.Logger) (db.Database, error) {

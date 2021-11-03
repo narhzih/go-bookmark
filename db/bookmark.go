@@ -7,8 +7,9 @@ import (
 func (db Database) CreateBookmark(bm model.Bookmark) (model.Bookmark, error) {
 	var newBm model.Bookmark
 
-	query := "INSERT INTO bookmarks (user_id, pipe_id, platform, url) VALUES($1, $2, $3, $4) RETURNING user_id, pipe_id, platform, url"
+	query := "INSERT INTO bookmarks (user_id, pipe_id, platform, url) VALUES($1, $2, $3, $4) RETURNING id, user_id, pipe_id, platform, url"
 	err := db.Conn.QueryRow(query, bm.UserID, bm.PipeID, bm.Platform, bm.Url).Scan(
+		&newBm.ID,
 		&newBm.UserID,
 		&newBm.PipeID,
 		&newBm.Platform,
@@ -25,11 +26,12 @@ func (db Database) CreateBookmark(bm model.Bookmark) (model.Bookmark, error) {
 func (db Database) GetBookmark(bmID, userID int64) (model.Bookmark, error) {
 	var bookmark model.Bookmark
 
-	query := "SELECT id, user_id, pipe_id, platform, url FROM bookmarks WHERE id=$1, user_id=$2 LIMIT 1"
+	query := "SELECT id, user_id, pipe_id, platform, url FROM bookmarks WHERE id=$1 AND user_id=$2 LIMIT 1"
 	err := db.Conn.QueryRow(query, bmID, userID).Scan(
 		&bookmark.ID,
 		&bookmark.UserID,
 		&bookmark.PipeID,
+		&bookmark.Platform,
 		&bookmark.Url,
 	)
 	if err != nil {
@@ -40,7 +42,7 @@ func (db Database) GetBookmark(bmID, userID int64) (model.Bookmark, error) {
 
 func (db Database) GetBookmarks(userID, pipeID int64) ([]model.Bookmark, error) {
 	var bookmarks []model.Bookmark
-	query := "SELECT id, user_id, pipe_id, url FROM bookmarks WHERE user_id=$1, pipe_id=$2"
+	query := "SELECT id, user_id, pipe_id, url, platform FROM bookmarks WHERE user_id=$1 AND pipe_id=$2"
 	rows, err := db.Conn.Query(query, userID, pipeID)
 	if err != nil {
 		return bookmarks, nil
@@ -49,7 +51,7 @@ func (db Database) GetBookmarks(userID, pipeID int64) ([]model.Bookmark, error) 
 
 	for rows.Next() {
 		var bookmark model.Bookmark
-		if err := rows.Scan(&bookmark.ID, &bookmark.UserID, &bookmark.PipeID, &bookmark.Url); err != nil {
+		if err := rows.Scan(&bookmark.ID, &bookmark.UserID, &bookmark.PipeID, &bookmark.Url, &bookmark.Platform); err != nil {
 			return bookmarks, nil
 		}
 		bookmarks = append(bookmarks, bookmark)
@@ -62,7 +64,7 @@ func (db Database) GetBookmarks(userID, pipeID int64) ([]model.Bookmark, error) 
 }
 
 func (db Database) DeleteBookmark(bmID, userID int64) (bool, error) {
-	deleteQuery := "DELETE FROM pipes WHERE id=$1, user_id=$2"
+	deleteQuery := "DELETE FROM bookmarks WHERE id=$1 AND user_id=$2"
 	_, err := db.Conn.Exec(deleteQuery, bmID, userID)
 	if err != nil {
 		return false, err
