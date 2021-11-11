@@ -8,6 +8,54 @@ import (
 	"gitlab.com/gowagr/mypipe-api/db/model"
 )
 
+func (h *Handler) OnboardUser(c *gin.Context) {
+	// TODO : Implement route to onboard user
+	// i.e Set username and twitter_handle
+	var user model.User
+	var err error
+
+	onboardRequest := struct {
+		Username      string `json:"username" binding:"required"`
+		TwitterHandle string `json:"twitter_handle"`
+	}{}
+
+	if err := c.ShouldBindJSON(&onboardRequest); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid request body",
+		})
+		return
+	}
+
+	user, err = h.service.DB.GetUserById(int(c.GetInt64(KeyUserId)))
+	if err != nil {
+		if err == db.ErrNoRecord {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "User not found",
+			})
+			return
+		}
+	}
+
+	user, err = h.service.DB.UpdateUser(user)
+	if err != nil {
+		// Other error checks will be implemented soon
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while trying to update user",
+		})
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Profile updated successfully",
+		"data": map[string]interface{}{
+			"user": map[string]interface{}{
+				"id":          user.ID,
+				"username":    user.Username,
+				"cover_photo": user.CovertPhoto,
+			},
+		},
+	})
+}
+
 func (h *Handler) UserProfile(c *gin.Context) {
 	var userProfile model.Profile
 	var err error
