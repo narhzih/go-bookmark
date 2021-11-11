@@ -131,7 +131,15 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 	if len(updatedBody.Username) <= 0 && len(updatedBody.CovertPhoto) <= 0 {
 		return user, nil
 	} else {
-		if len(updatedBody.Username) > 0 && len(updatedBody.CovertPhoto) > 0 {
+		// This takes care of onbaoarding process also
+		if len(updatedBody.Username) > 0 && len(updatedBody.TwitterHandle) > 0 {
+			query := "UPDATE users SET username=$1, twitter_handle=$2 WHERE id=$3 RETURNING id, username, email"
+			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.TwitterHandle, updatedBody.ID).Scan(
+				&user.ID,
+				&user.Username,
+				&user.Email,
+			)
+		} else if len(updatedBody.Username) > 0 && len(updatedBody.CovertPhoto) > 0 {
 			query := "UPDATE users SET username=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email"
 			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,

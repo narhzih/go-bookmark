@@ -36,7 +36,13 @@ func (h *Handler) OnboardUser(c *gin.Context) {
 		}
 	}
 
-	user, err = h.service.DB.UpdateUser(user)
+	updatedBody := model.User{
+		ID:            c.GetInt64(KeyUserId),
+		Username:      onboardRequest.Username,
+		TwitterHandle: onboardRequest.TwitterHandle,
+	}
+
+	user, err = h.service.DB.UpdateUser(updatedBody)
 	if err != nil {
 		// Other error checks will be implemented soon
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

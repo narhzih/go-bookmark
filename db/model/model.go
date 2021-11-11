@@ -3,12 +3,13 @@ package model
 import "time"
 
 type User struct {
-	ID          int64     `json:"id"`
-	Username    string    `json:"username"`
-	Email       string    `json:"email"`
-	CovertPhoto string    `json:"cover_photo"`
-	CreatedAt   time.Time `json:"created_at"`
-	ModifiedAt  time.Time `json:"modified_at"`
+	ID            int64     `json:"id"`
+	Username      string    `json:"username"`
+	Email         string    `json:"email"`
+	TwitterHandle string    `json:"twitter_handle"`
+	CovertPhoto   string    `json:"cover_photo"`
+	CreatedAt     time.Time `json:"created_at"`
+	ModifiedAt    time.Time `json:"modified_at"`
 }
 
 type UserAuth struct {
