@@ -106,12 +106,14 @@ func (h *Handler) EditProfile(c *gin.Context) {
 	}
 	user, err := h.service.DB.UpdateUser(updatedUser)
 	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Could not  update user because user was not found",
 			})
 			return
 		}
+
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred when trying to update user",
 		})

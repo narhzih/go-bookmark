@@ -163,6 +163,13 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 				&user.Username,
 				&user.CovertPhoto,
 			)
+		} else if len(updatedBody.TwitterHandle) > 0 {
+			query := "UPDATE users SET twitter_handle=$1 WHERE id=$2 RETURNING id, username, email"
+			err = db.Conn.QueryRow(query, updatedBody.TwitterHandle, updatedBody.ID).Scan(
+				&user.ID,
+				&user.Username,
+				&user.CovertPhoto,
+			)
 		}
 
 		if err != nil {
