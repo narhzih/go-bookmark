@@ -128,11 +128,13 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 		return model.User{}, err
 	}
 
-	if len(updatedBody.Username) <= 0 && len(updatedBody.CovertPhoto) <= 0 {
+	if len(updatedBody.Username) <= 0 && len(updatedBody.CovertPhoto) <= 0 && len(updatedBody.TwitterHandle) <= 0 {
+		// Just return the original user if there's nothing to udpate
 		return user, nil
 	} else {
 		// This takes care of onbaoarding process also
 		if len(updatedBody.Username) > 0 && len(updatedBody.TwitterHandle) > 0 {
+			// For onboarding process
 			query := "UPDATE users SET username=$1, twitter_handle=$2 WHERE id=$3 RETURNING id, username, email"
 			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.TwitterHandle, updatedBody.ID).Scan(
 				&user.ID,
@@ -140,6 +142,7 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 				&user.Email,
 			)
 		} else if len(updatedBody.Username) > 0 && len(updatedBody.CovertPhoto) > 0 {
+			// For usual edit
 			query := "UPDATE users SET username=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email"
 			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,

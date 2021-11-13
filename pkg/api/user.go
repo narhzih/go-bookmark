@@ -87,8 +87,9 @@ func (h *Handler) UserProfile(c *gin.Context) {
 
 func (h *Handler) EditProfile(c *gin.Context) {
 	updateReq := struct {
-		Username   string `json:"username"`
-		CoverPhoto string `json:"cover_photo"`
+		Username      string `json:"username"`
+		CoverPhoto    string `json:"cover_photo"`
+		TwitterHandle string `json:"twitter_handle"`
 	}{}
 
 	if err := c.ShouldBindJSON(&updateReq); err != nil {
