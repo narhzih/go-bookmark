@@ -55,11 +55,12 @@ func (db Database) CreateUser(user model.User) (newUser model.User, err error) {
 }
 
 func (db Database) GetUserById(userId int) (user model.User, err error) {
-	query := `SELECT id, username, email FROM users where id=$1 LIMIT 1`
+	query := `SELECT id, username, email, twitter_handler FROM users where id=$1 LIMIT 1`
 	if err = db.Conn.QueryRow(query, userId).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.TwitterHandle,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return model.User{}, ErrNoRecord
@@ -114,7 +115,7 @@ func (db Database) GetUserAndAuth(user model.User) (userAndAuth model.UserAuth, 
 
 func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 	var user model.User
-	selectQuery := "SELECT id, username, email FROM user WHERE id=$1 LIMIT 1"
+	selectQuery := "SELECT id, username, email FROM users WHERE id=$1 LIMIT 1"
 	err := db.Conn.QueryRow(selectQuery, updatedBody.ID).Scan(
 		&user.ID,
 		&user.Username,
@@ -122,6 +123,7 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 	)
 
 	if err != nil {
+
 		if err == sql.ErrNoRows {
 			return model.User{}, ErrNoRecord
 		}
@@ -130,12 +132,14 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 
 	if len(updatedBody.Username) <= 0 && len(updatedBody.CovertPhoto) <= 0 && len(updatedBody.TwitterHandle) <= 0 {
 		// Just return the original user if there's nothing to udpate
+
 		return user, nil
 	} else {
 		// This takes care of onbaoarding process also
 		if len(updatedBody.Username) > 0 && len(updatedBody.TwitterHandle) > 0 {
 			// For onboarding process
-			query := "UPDATE users SET username=$1, twitter_handle=$2 WHERE id=$3 RETURNING id, username, email"
+
+			query := "UPDATE users SET username=$1, twitter_handler=$2 WHERE id=$3 RETURNING id, username, email"
 			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.TwitterHandle, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,
@@ -143,6 +147,7 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 			)
 		} else if len(updatedBody.Username) > 0 && len(updatedBody.CovertPhoto) > 0 {
 			// For usual edit
+
 			query := "UPDATE users SET username=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email"
 			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,
@@ -150,6 +155,7 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 				&user.Email,
 			)
 		} else if len(updatedBody.Username) > 0 {
+
 			query := "UPDATE users SET username=$1 WHERE id=$2 RETURNING id, username, email"
 			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.ID).Scan(
 				&user.ID,
@@ -157,6 +163,7 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 				&user.CovertPhoto,
 			)
 		} else if len(updatedBody.CovertPhoto) > 0 {
+
 			query := "UPDATE users SET cover_photo=$1 WHERE id=$2 RETURNING id, username, email"
 			err = db.Conn.QueryRow(query, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,
@@ -164,7 +171,8 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 				&user.CovertPhoto,
 			)
 		} else if len(updatedBody.TwitterHandle) > 0 {
-			query := "UPDATE users SET twitter_handle=$1 WHERE id=$2 RETURNING id, username, email"
+
+			query := "UPDATE users SET twitter_handler=$1 WHERE id=$2 RETURNING id, username, email"
 			err = db.Conn.QueryRow(query, updatedBody.TwitterHandle, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,

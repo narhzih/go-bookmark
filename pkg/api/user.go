@@ -100,9 +100,10 @@ func (h *Handler) EditProfile(c *gin.Context) {
 	}
 
 	updatedUser := model.User{
-		ID:          c.GetInt64(KeyUserId),
-		Username:    updateReq.Username,
-		CovertPhoto: updateReq.CoverPhoto,
+		ID:            c.GetInt64(KeyUserId),
+		Username:      updateReq.Username,
+		CovertPhoto:   updateReq.CoverPhoto,
+		TwitterHandle: updateReq.TwitterHandle,
 	}
 	user, err := h.service.DB.UpdateUser(updatedUser)
 	if err != nil {
