@@ -1,6 +1,6 @@
 include .env.staging
 
-PG_URL ?= postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost${PG_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB}?sslmode=disable
+PG_URL ?= postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${PG_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB}?sslmode=disable
 MIGRATIONS_PATH ?= $(shell pwd)/sql
 
 migrate-version:
