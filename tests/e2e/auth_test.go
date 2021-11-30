@@ -5,7 +5,7 @@ import (
 )
 
 func TestAuth(t *testing.T) {
-	t.Run("/test signup", func(t *testing.T) {
+	t.Run("/test signup url", func(t *testing.T) {
 		// resp := http.Request()
 	})
 }
