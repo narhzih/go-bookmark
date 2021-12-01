@@ -30,7 +30,7 @@ type Config struct {
 
 func Connect(config Config) (Database, error) {
 	db := Database{}
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require",
 		config.Host, config.Port, config.Username, config.Password, config.DbName)
 	conn, err := sql.Open("postgres", dsn)
 	if err != nil {
