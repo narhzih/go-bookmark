@@ -42,8 +42,11 @@ func main() {
 	router := gin.Default()
 	rg := router.Group("/v1")
 	apiHandler.Register(rg)
-
-	addr := fmt.Sprintf(":%d", 5555)
+	appPort, err := strconv.Atoi(os.Getenv("PORT"))
+	if err != nil {
+		logger.Err(err).Msg("Unable to bind port")
+	}
+	addr := fmt.Sprintf(":%d", appPort)
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
