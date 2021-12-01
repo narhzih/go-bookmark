@@ -43,9 +43,7 @@ func main() {
 	rg := router.Group("/v1")
 	apiHandler.Register(rg)
 
-	var appPort interface{}
-	appPort = os.Getenv("PORT")
-	addr := fmt.Sprintf(":%d", appPort)
+	addr := fmt.Sprintf(":%d", 5555)
 	srv := &http.Server{
 		Addr:    addr,
 		Handler: router,
