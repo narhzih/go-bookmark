@@ -1,1 +1,1 @@
-web: bin/mypipe-api
+web: currency
