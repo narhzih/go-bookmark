@@ -12,9 +12,10 @@ import (
 
 func (h *Handler) EmailSignUp(c *gin.Context) {
 	singUpReq := struct {
-		Username string `json:"username" binding:"required"`
-		Email    string `json:"email" binding:"required"`
-		Password string `json:"password" binding:"required"`
+		Username    string `json:"username" binding:"required"`
+		ProfileName string `json:"profile_name" binding:"required"`
+		Email       string `json:"email" binding:"required"`
+		Password    string `json:"password" binding:"required"`
 	}{}
 
 	if err := c.ShouldBindJSON(&singUpReq); err != nil {
@@ -33,11 +34,12 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 	}
 
 	userStruct := model.User{
-		Username: singUpReq.Username,
-		Email:    singUpReq.Email,
+		Username:    singUpReq.Username,
+		ProfileName: singUpReq.ProfileName,
+		Email:       singUpReq.Email,
 	}
 
-	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
+	_, err = h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
 	if err != nil {
 		if err == db.ErrRecordExists {
 			h.logger.Err(err).Msg(err.Error())
@@ -53,28 +55,36 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		})
 		return
 	}
-
-	authToken, err := h.service.IssueAuthToken(user)
-	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Error occurred while trying to sign user in",
-		})
-		return
-	}
+	/**
+	* TODO @narhzih
+	* Implement verification email step after registration
+	 */
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Sign up successful!",
-		"data": map[string]interface{}{
-			"token":         authToken.AccessToken,
-			"refresh_token": authToken.RefreshToken,
-			"user": map[string]interface{}{
-				"id":       user.ID,
-				"username": user.Username,
-				"email":    user.Email,
-			},
-		},
+		"message": "Account created succesfully. Please check your email for verification code",
 	})
+
+	// authToken, err := h.service.IssueAuthToken(user)
+	// if err != nil {
+	// 	h.logger.Err(err).Msg(err.Error())
+	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+	// 		"message": "Error occurred while trying to sign user in",
+	// 	})
+	// 	return
+	// }
+
+	// c.JSON(http.StatusOK, gin.H{
+	// 	"message": "Sign up successful!",
+	// 	"data": map[string]interface{}{
+	// 		"token":         authToken.AccessToken,
+	// 		"refresh_token": authToken.RefreshToken,
+	// 		"user": map[string]interface{}{
+	// 			"id":       user.ID,
+	// 			"username": user.Username,
+	// 			"email":    user.Email,
+	// 		},
+	// 	},
+	// })
 
 }
 
