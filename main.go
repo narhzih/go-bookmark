@@ -12,7 +12,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"github.com/joho/godotenv"
+
+	// "github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"gitlab.com/gowagr/mypipe-api/db"
 	"gitlab.com/gowagr/mypipe-api/pkg/api"
@@ -20,7 +21,7 @@ import (
 )
 
 func main() {
-	godotenv.Load(".env")
+	// godotenv.Load(".env")
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	db, err := initDb(logger)
 	if err != nil {
