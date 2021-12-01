@@ -3,20 +3,20 @@ package model
 import "time"
 
 type User struct {
-	ID            int64     `json:"id"`
-	Username      string    `json:"username"`
-	Email         string    `json:"email"`
-	TwitterHandle string    `json:"twitter_handle"`
-	CovertPhoto   string    `json:"cover_photo"`
-	CreatedAt     time.Time `json:"created_at"`
-	ModifiedAt    time.Time `json:"modified_at"`
+	ID          int64     `json:"id"`
+	Username    string    `json:"username"`
+	Email       string    `json:"email"`
+	ProfileName string    `json:"profile_name"`
+	CovertPhoto string    `json:"cover_photo"`
+	CreatedAt   time.Time `json:"created_at"`
+	ModifiedAt  time.Time `json:"modified_at"`
 }
 
 type UserAuth struct {
 	User           User
-	HashedPassword string
-	CreatedAt      time.Time
-	ModifiedAt     time.Time
+	HashedPassword string    `json:"hashed_password"`
+	CreatedAt      time.Time `json:"created_at"`
+	ModifiedAt     time.Time `json:"modified_at"`
 }
 
 type Pipe struct {
