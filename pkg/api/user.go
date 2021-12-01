@@ -76,9 +76,9 @@ func (h *Handler) UserProfile(c *gin.Context) {
 
 func (h *Handler) EditProfile(c *gin.Context) {
 	updateReq := struct {
-		Username      string `json:"username"`
-		CoverPhoto    string `json:"cover_photo"`
-		TwitterHandle string `json:"twitter_handle"`
+		Username    string `json:"username"`
+		CoverPhoto  string `json:"cover_photo"`
+		ProfileName string `json:"profile_name"`
 	}{}
 
 	if err := c.ShouldBindJSON(&updateReq); err != nil {
@@ -89,10 +89,10 @@ func (h *Handler) EditProfile(c *gin.Context) {
 	}
 
 	updatedUser := model.User{
-		ID:            c.GetInt64(KeyUserId),
-		Username:      updateReq.Username,
-		CovertPhoto:   updateReq.CoverPhoto,
-		TwitterHandle: updateReq.TwitterHandle,
+		ID:          c.GetInt64(KeyUserId),
+		Username:    updateReq.Username,
+		CovertPhoto: updateReq.CoverPhoto,
+		ProfileName: updateReq.ProfileName,
 	}
 	user, err := h.service.DB.UpdateUser(updatedUser)
 	if err != nil {
