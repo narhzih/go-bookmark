@@ -21,11 +21,13 @@ import (
 )
 
 func main() {
+	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+
 	// ONly require .env file on local machine
-	if os.Getenv("PORT") != "" && os.Getenv("production") != "staging" {
+	if os.Getenv("PORT") == "" || len(os.Getenv("PORT")) <= 0 {
+		logger.Info().Msg("The dataabase part of the application was executed")
 		godotenv.Load(".env")
 	}
-	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	db, err := initDb(logger)
 	if err != nil {
 		logger.Err(err).Msg("An error occurred")
@@ -81,6 +83,7 @@ func initDb(logger zerolog.Logger) (db.Database, error) {
 	var err error
 	postgresPort, err = strconv.Atoi(os.Getenv("POSTGRES_DB_PORT"))
 	if err != nil {
+		logger.Err(err).Msg("Error coming from parsing DB_PORT")
 		return db.Database{}, err
 	}
 	dbConfig := db.Config{

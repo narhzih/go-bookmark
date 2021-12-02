@@ -35,6 +35,7 @@ func Connect(config Config) (Database, error) {
 		config.Host, config.Port, config.Username, config.Password, config.DbName, config.ConnectionMode)
 	conn, err := sql.Open("postgres", dsn)
 	if err != nil {
+		config.Logger.Err(err).Msg("Error was coming from database initialization")
 		return db, err
 	}
 	db.Conn = conn
