@@ -1,8 +1,6 @@
 package service
 
-import (
-	"gitlab.com/gowagr/mypipe-api/db"
-)
+import "gitlab.com/t5778/mypipe/mypipe-api/db"
 
 // More fields will be added to the service struct later in the future
 type Service struct {

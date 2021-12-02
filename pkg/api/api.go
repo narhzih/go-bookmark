@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
-	"gitlab.com/gowagr/mypipe-api/pkg/service"
+	"gitlab.com/t5778/mypipe/mypipe-api/pkg/service"
 )
 
 type Handler struct {

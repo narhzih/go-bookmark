@@ -1,8 +1,6 @@
 package db
 
-import (
-	"gitlab.com/gowagr/mypipe-api/db/model"
-)
+import "gitlab.com/t5778/mypipe/mypipe-api/db/model"
 
 func (db Database) CreateBookmark(bm model.Bookmark) (model.Bookmark, error) {
 	var newBm model.Bookmark

@@ -12,16 +12,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
+	"gitlab.com/t5778/mypipe/mypipe-api/db"
+	"gitlab.com/t5778/mypipe/mypipe-api/pkg/api"
+	"gitlab.com/t5778/mypipe/mypipe-api/pkg/service"
 
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
-	"gitlab.com/gowagr/mypipe-api/db"
-	"gitlab.com/gowagr/mypipe-api/pkg/api"
-	"gitlab.com/gowagr/mypipe-api/pkg/service"
 )
 
 func main() {
-	godotenv.Load(".env")
+	// Only require an environment file when it's on local
+	// development
+	if os.Getenv("ENV") == "" && (os.Getenv("ENV") != "staging") {
+		godotenv.Load(".env")
+	}
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	db, err := initDb(logger)
 	if err != nil {
@@ -81,12 +85,13 @@ func initDb(logger zerolog.Logger) (db.Database, error) {
 		return db.Database{}, err
 	}
 	dbConfig := db.Config{
-		Host:     os.Getenv("POSTGRES_DB_HOST"),
-		Port:     postgresPort,
-		DbName:   os.Getenv("POSTGRES_DB"),
-		Username: os.Getenv("POSTGRES_USER"),
-		Password: os.Getenv("POSTGRES_PASSWORD"),
-		Logger:   logger,
+		Host:           os.Getenv("POSTGRES_DB_HOST"),
+		Port:           postgresPort,
+		DbName:         os.Getenv("POSTGRES_DB"),
+		Username:       os.Getenv("POSTGRES_USER"),
+		Password:       os.Getenv("POSTGRES_PASSWORD"),
+		ConnectionMode: os.Getenv("DB_SSL_MODE"),
+		Logger:         logger,
 	}
 
 	return db.Connect(dbConfig)
