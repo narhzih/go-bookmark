@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"gitlab.com/t5778/mypipe/mypipe-api/db/model"
+	"gitlab.com/gowagr/mypipe-api/db/model"
 )
 
 func (db Database) CreatePipe(pipe model.Pipe) (model.Pipe, error) {
