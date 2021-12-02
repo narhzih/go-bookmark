@@ -1,4 +1,4 @@
-module gitlab.com/t5778/mypipe/mypipe-api
+module gitlab.com/gowagr/mypipe-api
 
 // +heroku goVersion go1.17
 go 1.17
