@@ -9,7 +9,7 @@ import (
 
 func (db Database) CreateUserByEmail(user model.User, password string) (newUser model.User, err error) {
 	query := `INSERT INTO users (email, username, profile_name) VALUES ($1, $2, $3) RETURNING id, email, user, profile_name`
-	err = db.Conn.QueryRow(query, user.ID, user.Email, user.Username, user.ProfileName).Scan(
+	err = db.Conn.QueryRow(query, user.Email, user.Username, user.ProfileName).Scan(
 		&newUser.ID,
 		&newUser.Email,
 		&newUser.Username,

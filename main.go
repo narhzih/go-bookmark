@@ -25,7 +25,7 @@ func main() {
 
 	// ONly require .env file on local machine
 	if os.Getenv("PORT") == "" || len(os.Getenv("PORT")) <= 0 {
-		logger.Info().Msg("The dataabase part of the application was executed")
+		logger.Info().Msg("Loading .env file")
 		godotenv.Load(".env")
 	}
 	db, err := initDb(logger)
