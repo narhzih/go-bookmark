@@ -21,7 +21,10 @@ import (
 )
 
 func main() {
-	godotenv.Load(".env")
+	// ONly require .env file on local machine
+	if os.Getenv("PORT") != "" && os.Getenv("production") != "staging" {
+		godotenv.Load(".env")
+	}
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	db, err := initDb(logger)
 	if err != nil {
