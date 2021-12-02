@@ -18,20 +18,21 @@ type Database struct {
 }
 
 type Config struct {
-	Host     string
-	Username string
-	Password string
-	Port     int
-	DbName   string
-	Logger   zerolog.Logger
+	Host           string
+	Username       string
+	Password       string
+	Port           int
+	DbName         string
+	ConnectionMode string
+	Logger         zerolog.Logger
 }
 
 //<--- User and user auth structs
 
 func Connect(config Config) (Database, error) {
 	db := Database{}
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=require",
-		config.Host, config.Port, config.Username, config.Password, config.DbName)
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		config.Host, config.Port, config.Username, config.Password, config.DbName, config.ConnectionMode)
 	conn, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return db, err

@@ -81,12 +81,13 @@ func initDb(logger zerolog.Logger) (db.Database, error) {
 		return db.Database{}, err
 	}
 	dbConfig := db.Config{
-		Host:     os.Getenv("POSTGRES_DB_HOST"),
-		Port:     postgresPort,
-		DbName:   os.Getenv("POSTGRES_DB"),
-		Username: os.Getenv("POSTGRES_USER"),
-		Password: os.Getenv("POSTGRES_PASSWORD"),
-		Logger:   logger,
+		Host:           os.Getenv("POSTGRES_DB_HOST"),
+		Port:           postgresPort,
+		DbName:         os.Getenv("POSTGRES_DB"),
+		Username:       os.Getenv("POSTGRES_USER"),
+		Password:       os.Getenv("POSTGRES_PASSWORD"),
+		ConnectionMode: os.Getenv("DB_SSL_MODE"),
+		Logger:         logger,
 	}
 
 	return db.Connect(dbConfig)
