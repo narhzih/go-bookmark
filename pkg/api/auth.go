@@ -39,7 +39,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		Email:       singUpReq.Email,
 	}
 
-	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
+	_, err = h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
 	if err != nil {
 		if err == db.ErrRecordExists {
 			h.logger.Err(err).Msg(err.Error())
@@ -64,27 +64,27 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		"message": "Account created succesfully. Please check your email for verification code",
 	})
 
-	authToken, err := h.service.IssueAuthToken(user)
-	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Error occurred while trying to sign user in",
-		})
-		return
-	}
+	// authToken, err := h.service.IssueAuthToken(user)
+	// if err != nil {
+	// 	h.logger.Err(err).Msg(err.Error())
+	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+	// 		"message": "Error occurred while trying to sign user in",
+	// 	})
+	// 	return
+	// }
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Sign up successful!",
-		"data": map[string]interface{}{
-			"token":         authToken.AccessToken,
-			"refresh_token": authToken.RefreshToken,
-			"user": map[string]interface{}{
-				"id":       user.ID,
-				"username": user.Username,
-				"email":    user.Email,
-			},
-		},
-	})
+	// c.JSON(http.StatusOK, gin.H{
+	// 	"message": "Sign up successful!",
+	// 	"data": map[string]interface{}{
+	// 		"token":         authToken.AccessToken,
+	// 		"refresh_token": authToken.RefreshToken,
+	// 		"user": map[string]interface{}{
+	// 			"id":       user.ID,
+	// 			"username": user.Username,
+	// 			"email":    user.Email,
+	// 		},
+	// 	},
+	// })
 
 }
 
