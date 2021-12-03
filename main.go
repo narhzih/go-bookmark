@@ -15,9 +15,9 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
-	"gitlab.com/gowagr/mypipe-api/db"
-	"gitlab.com/gowagr/mypipe-api/pkg/api"
-	"gitlab.com/gowagr/mypipe-api/pkg/service"
+	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/pkg/api"
+	"gitlab.com/trencetech/mypipe-api/pkg/service"
 )
 
 func main() {

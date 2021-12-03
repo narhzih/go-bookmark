@@ -1,7 +1,7 @@
 package service
 
 import (
-	"gitlab.com/gowagr/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db"
 )
 
 // More fields will be added to the service struct later in the future

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"gitlab.com/gowagr/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 type GoogleClaims struct {

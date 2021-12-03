@@ -4,7 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/lib/pq"
-	"gitlab.com/gowagr/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 func (db Database) CreateUserByEmail(user model.User, password string) (newUser model.User, err error) {

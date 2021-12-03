@@ -1,6 +1,6 @@
 package service
 
-import "gitlab.com/gowagr/mypipe-api/db/model"
+import "gitlab.com/trencetech/mypipe-api/db/model"
 
 func mailTo() {}
 

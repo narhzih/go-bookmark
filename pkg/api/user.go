@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.com/gowagr/mypipe-api/db"
-	"gitlab.com/gowagr/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 func (h *Handler) OnboardUser(c *gin.Context) {

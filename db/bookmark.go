@@ -1,7 +1,7 @@
 package db
 
 import (
-	"gitlab.com/gowagr/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 func (db Database) CreateBookmark(bm model.Bookmark) (model.Bookmark, error) {

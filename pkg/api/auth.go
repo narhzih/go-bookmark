@@ -3,8 +3,8 @@ package api
 import (
 	"net/http"
 
-	"gitlab.com/gowagr/mypipe-api/db"
-	"gitlab.com/gowagr/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/model"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/gin-gonic/gin"

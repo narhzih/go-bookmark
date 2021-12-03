@@ -1,8 +1,8 @@
 package service
 
 import (
-	"gitlab.com/gowagr/mypipe-api/db"
-	"gitlab.com/gowagr/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 func (s Service) GetUserProfileInformation(userID int64) (model.Profile, error) {
