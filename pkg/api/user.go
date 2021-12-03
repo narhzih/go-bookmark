@@ -135,6 +135,14 @@ func (h *Handler) EditProfile(c *gin.Context) {
 }
 
 func (h *Handler) UploadCoverPhoto(c *gin.Context) {
+	_, err := h.service.DB.GetUserById(c.GetInt(KeyUserId))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H {
+			"message": "An error occurred while trying to get user",
+			"err": err.Error(),
+		})
+		return
+	}
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	uploadInformation := service.FileUploadInformation{
 		Logger:        logger,
@@ -147,10 +155,31 @@ func (h *Handler) UploadCoverPhoto(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H {
 			"message": "An error occurred when trying to save user image",
 		})
+		return
 	}
-
+	updatedUserModel := model.User{
+		ID: c.GetInt64(KeyUserId),
+		CovertPhoto: photoUrl,
+	}
+	user, err := h.service.DB.UpdateUser(updatedUserModel)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H {
+			"message": "An error occurred while trying update user profile",
+			"err": err.Error(),
+		})
+		return
+	}
 	logger.Info().Msg(photoUrl)
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Image uploaded successfully "+photoUrl,
+		"message": "Image uploaded successfully",
+		"data": map[string]interface{}{
+			"user": map[string]interface{}{
+				"id": user.ID,
+				"cover_photo": user.CovertPhoto,
+				"email": user.Email,
+				"profile_name": user.ProfileName,
+				"username": user.Username,
+			},
+		},
 	})
 }
