@@ -1,16 +1,17 @@
 package service
 
 import (
+	"bytes"
 	"fmt"
-	"io"
-	"math/rand"
-	"net/http"
-	"os"
-
 	"github.com/cloudinary/cloudinary-go"
 	"github.com/cloudinary/cloudinary-go/api/uploader"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+	"io"
+	"math/rand"
+	"net/http"
+	"os"
+	"strings"
 )
 
 type FileUploadInformation struct {
@@ -24,6 +25,26 @@ func randSeq(n int) string {
 	b := make([]byte, n)
 	rand.Read(b)
 	return fmt.Sprintf("%x", b)
+}
+
+func saveFileToBuffer(f FileUploadInformation) (interface{}, string, *bytes.Buffer, error) {
+	var buff bytes.Buffer
+	file, header, err := f.Ctx.Request.FormFile(f.FileInputName)
+	if err != nil {
+		if err == http.ErrMissingFile {
+			return "", "", &buff, http.ErrMissingFile
+		}
+		f.Logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
+		return "", "", &buff, err
+	}
+	defer file.Close()
+	//fileName := strings.Split(header.Filename, ".")[0]
+	//fileExt := strings.Split(header.Filename, ".")[1]
+
+	//io.Copy(&buff, file)
+	//content := buff.String()
+	//buff.Reset()
+	return file, header.Filename, &buff, nil
 }
 
 func saveFileToLocalStorage(f FileUploadInformation) (string, error) {
@@ -57,24 +78,23 @@ func UploadToCloudinary(f FileUploadInformation) (string, error) {
 
 		return "", err
 	}
-	fileName, err := saveFileToLocalStorage(f)
+	//fileName, err := saveFileToLocalStorage(f)
+	file, fileNameWithExt, buffer, err := saveFileToBuffer(f)
 	if err != nil {
-		//f.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-		//	"message": "An error occurred",
-		//	"err":     err.Error(),
-		//})
-		//return
+		return "", err
 	}
-	f.FileInputName = fileName
-	resp, err := cld.Upload.Upload(f.Ctx, f.FileInputName, uploader.UploadParams{PublicID: f.FileInputName})
+	f.FileInputName = randSeq(20) + "_cover_photo_" + strings.Split(fileNameWithExt, ".")[0]
+	resp, err := cld.Upload.Upload(f.Ctx, file, uploader.UploadParams{PublicID: f.FileInputName, FilenameOverride: fileNameWithExt})
+	f.Logger.Info().Msg("file name  is " + resp.SecureURL)
 	if err != nil {
 		f.Logger.Err(err).Msg(err.Error())
 	}
+	buffer.Reset()
 
-	err = os.Remove(fileName)
-	if err != nil {
-		f.Logger.Err(err).Msg(err.Error())
-	}
+	//err = os.Remove(fileName)
+	//if err != nil {
+	//	f.Logger.Err(err).Msg(err.Error())
+	//}
 
 	return resp.SecureURL, nil
 }
