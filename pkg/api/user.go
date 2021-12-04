@@ -1,7 +1,9 @@
 package api
 
 import (
+	"fmt"
 	"github.com/rs/zerolog"
+	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/pkg/service"
 	"net/http"
 	"os"
@@ -77,61 +79,102 @@ func (h *Handler) UserProfile(c *gin.Context) {
 }
 
 func (h *Handler) EditProfile(c *gin.Context) {
-	// updateReq := struct {
-	// 	Username    string `json:"username"`
-	// 	CoverPhoto  string `json:"cover_photo"`
-	// 	ProfileName string `json:"profile_name"`
-	// }{}
 
-	// // Check if an image was uploaded
-	// file, header, err := c.Request.FormFile("cover_photo")
-	// if err != nil {
-	// 	c.AbortWithStatusJSON(http.StatusBadGateway, gin.H {
-	// 		"message": fmt.Sprintf("file err : %s", err.Error()),
-	// 	})
-	// } else {
-	// 	h.logger.Info().Msg("An image upload was actually detected")
-	// }
+	updatedUser := model.User{
+		ID: c.GetInt64(KeyUserId),
+	}
+	username := c.PostForm("username")
+	profileName := c.PostForm("profile_name")
 
-	//if err := c.ShouldBindJSON(&updateReq); err != nil {
-	//	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-	//		"message": "Invalid request body",
-	//	})
-	//	return
-	//}
-	//
-	//updatedUser := model.User{
-	//	ID:          c.GetInt64(KeyUserId),
-	//	Username:    updateReq.Username,
-	//	CovertPhoto: updateReq.CoverPhoto,
-	//	ProfileName: updateReq.ProfileName,
-	//}
-	//user, err := h.service.DB.UpdateUser(updatedUser)
-	//if err != nil {
-	//	h.logger.Err(err).Msg(err.Error())
-	//	if err == db.ErrNoRecord {
-	//		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-	//			"message": "Could not  update user because user was not found",
-	//		})
-	//		return
-	//	}
-	//
-	//	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-	//		"message": "An error occurred when trying to update user",
-	//	})
-	//	return
-	//}
-	//
-	//c.JSON(http.StatusCreated, gin.H{
-	//	"message": "Profile updated successfully",
-	//	"data": map[string]interface{}{
-	//		"user": map[string]interface{}{
-	//			"id":          user.ID,
-	//			"username":    user.Username,
-	//			"cover_photo": user.CovertPhoto,
-	//		},
-	//	},
-	//})
+	// Check if there's already a user with the same username
+	if len(username) > 0 {
+		userWithUsername, err := h.service.DB.GetUserByUsername(username)
+		if err != nil {
+			if err != db.ErrNoRecord {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "An error occurred",
+					"err":     err.Error(),
+				})
+				return
+			}
+		}
+		if userWithUsername.ID != c.GetInt64(KeyUserId) {
+			// This means there's another user that is not
+			// the user making the same request who has the same username
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "username has already been taken by another user",
+			})
+			return
+		}
+
+		updatedUser.Username = username
+	}
+	if len(profileName) > 0 {
+		updatedUser.ProfileName = profileName
+	}
+
+	// At this point, username and profile_name validation passes
+	// Try uploading the image to Cloud if any was parsed
+	_, header, err := c.Request.FormFile("cover_photo")
+	if err != nil {
+		if err != http.ErrMissingFile {
+			h.logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred",
+				"err":     err.Error(),
+			})
+			return
+		}
+
+	}
+	if len(header.Filename) > 0 {
+		// This means a file was uploaded with the request
+		// Try uploading it to Cloudinary
+		uploadInformation := service.FileUploadInformation{
+			Logger:        h.logger,
+			Ctx:           c,
+			FileInputName: "cover_photo",
+			Type:          "user",
+		}
+		photoUrl, err := service.UploadToCloudinary(uploadInformation)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred when trying to save user image",
+				"err":     err.Error(),
+			})
+			return
+		}
+
+		updatedUser.CovertPhoto = photoUrl
+	}
+	user, err := h.service.DB.UpdateUser(updatedUser)
+	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
+		if err == db.ErrNoRecord {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "Could not  update user because user was not found",
+				"err":     err.Error(),
+			})
+			return
+		}
+
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred when trying to update user",
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Profile updated successfully",
+		"data": map[string]interface{}{
+			"user": map[string]interface{}{
+				"id":          user.ID,
+				"username":    user.Username,
+				"cover_photo": user.CovertPhoto,
+			},
+		},
+	})
 }
 
 func (h *Handler) UploadCoverPhoto(c *gin.Context) {
