@@ -14,19 +14,40 @@ import (
 )
 
 func (h *Handler) CreatePipe(c *gin.Context) {
-	newPipeReq := struct {
-		Name       string `json:"name" binding:"required"`
-		CoverPhoto string `json:"cover_photo" binding:"required"`
-	}{}
+	//newPipeReq := struct {
+	//	Name string `json:"name" binding:"required"`
+	//}{}
+	//
+	//if err := c.ShouldBindJSON(&newPipeReq); err != nil {
+	//	h.logger.Err(err).Msg(err.Error())
+	//	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+	//		"message": "Invalid request body",
+	//	})
+	//	return
+	//}
 
-	if err := c.ShouldBindJSON(&newPipeReq); err != nil {
+	pipeName := c.PostForm("name")
+	if len(pipeName) <= 0 {
+		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
+			"message": "Please specify a form name",
+		})
+	}
+
+	pipeAlreadyExists, err := h.service.DB.PipeAlreadyExists(pipeName, c.GetInt64(KeyUserId))
+	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
+			"message": "An error occurred during validation",
+			"err":     err.Error(),
 		})
 		return
 	}
-
-	// Upload and save the pipe Image
+	if pipeAlreadyExists == true {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "You already have a pipe with this name",
+		})
+		return
+	}
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	uploadInformation := service.FileUploadInformation{
 		Logger:        logger,
@@ -50,7 +71,7 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 
 	pipe := model.Pipe{
 		UserID:     c.GetInt64(KeyUserId),
-		Name:       newPipeReq.Name,
+		Name:       pipeName,
 		CoverPhoto: photoUrl,
 	}
 	newPipe, err := h.service.DB.CreatePipe(pipe)
