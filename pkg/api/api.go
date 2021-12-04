@@ -56,7 +56,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	user.PATCH("/onboard-user", h.OnboardUser)
 	user.GET("/profile", h.UserProfile)
 	user.PATCH("/profile", h.EditProfile)
-	user.POST("/profile/cover_photo", h.UploadCoverPhoto)
+	user.POST("/profile/cover-photo", h.UploadCoverPhoto)
 
 }
 

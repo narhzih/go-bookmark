@@ -135,37 +135,35 @@ func (h *Handler) EditProfile(c *gin.Context) {
 }
 
 func (h *Handler) UploadCoverPhoto(c *gin.Context) {
-	_, err := h.service.DB.GetUserById(c.GetInt(KeyUserId))
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H {
-			"message": "An error occurred while trying to get user",
-			"err": err.Error(),
-		})
-		return
-	}
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	uploadInformation := service.FileUploadInformation{
 		Logger:        logger,
 		Ctx:           c,
 		FileInputName: "cover_photo",
-		Type: "user",
+		Type:          "user",
 	}
 	photoUrl, err := service.UploadToCloudinary(uploadInformation)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H {
+		if err == http.ErrMissingFile {
+			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
+				"message": "No file was uploaded. Please select a file to upload",
+			})
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred when trying to save user image",
 		})
 		return
 	}
 	updatedUserModel := model.User{
-		ID: c.GetInt64(KeyUserId),
+		ID:          c.GetInt64(KeyUserId),
 		CovertPhoto: photoUrl,
 	}
 	user, err := h.service.DB.UpdateUser(updatedUserModel)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying update user profile",
-			"err": err.Error(),
+			"err":     err.Error(),
 		})
 		return
 	}
@@ -174,11 +172,11 @@ func (h *Handler) UploadCoverPhoto(c *gin.Context) {
 		"message": "Image uploaded successfully",
 		"data": map[string]interface{}{
 			"user": map[string]interface{}{
-				"id": user.ID,
-				"cover_photo": user.CovertPhoto,
-				"email": user.Email,
+				"id":           user.ID,
+				"cover_photo":  user.CovertPhoto,
+				"email":        user.Email,
 				"profile_name": user.ProfileName,
-				"username": user.Username,
+				"username":     user.Username,
 			},
 		},
 	})

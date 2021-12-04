@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net/http"
 	"os"
 
 	"github.com/cloudinary/cloudinary-go"
@@ -16,10 +17,8 @@ type FileUploadInformation struct {
 	Ctx           *gin.Context
 	Logger        zerolog.Logger
 	FileInputName string
-	Type 		  string
+	Type          string
 }
-
-
 
 func randSeq(n int) string {
 	b := make([]byte, n)
@@ -30,12 +29,15 @@ func randSeq(n int) string {
 func saveFileToLocalStorage(f FileUploadInformation) (string, error) {
 	file, header, err := f.Ctx.Request.FormFile(f.FileInputName)
 	if err != nil {
+		if err == http.ErrMissingFile {
+			return "", http.ErrMissingFile
+		}
 		f.Logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
 		return "", err
 	}
 	fileName := header.Filename
-	fileName = randSeq(20) +"_"+ f.Type + "_cover_photo_"+ fileName
-	out, err := os.Create("public/"+fileName)
+	fileName = randSeq(20) + "_" + f.Type + "_cover_photo_" + fileName
+	out, err := os.Create("public/" + fileName)
 	if err != nil {
 		f.Logger.Err(err).Msg(fmt.Sprintf("Error occurred while trying to save file %+v ", err.Error()))
 	}
@@ -52,6 +54,7 @@ func UploadToCloudinary(f FileUploadInformation) (string, error) {
 	cld, err := cloudinary.NewFromParams(os.Getenv("CLOUDINARY_NAME"), os.Getenv("CLOUDINARY_API_KEY"), os.Getenv("CLOUDINARY_API_SECRET"))
 	if err != nil {
 		f.Logger.Err(err).Msg(fmt.Sprintf("Cloudinary connection error: %+v", err.Error()))
+
 		return "", err
 	}
 	fileName, err := saveFileToLocalStorage(f)
@@ -62,17 +65,16 @@ func UploadToCloudinary(f FileUploadInformation) (string, error) {
 		//})
 		//return
 	}
-	f.FileInputName = "public/"+fileName
+	f.FileInputName = "public/" + fileName
 	resp, err := cld.Upload.Upload(f.Ctx, f.FileInputName, uploader.UploadParams{PublicID: f.FileInputName})
 	if err != nil {
 		f.Logger.Err(err).Msg(err.Error())
 	}
 
-	err = os.Remove("public/"+fileName)
+	err = os.Remove("public/" + fileName)
 	if err != nil {
 		f.Logger.Err(err).Msg(err.Error())
 	}
 
 	return resp.SecureURL, nil
 }
-

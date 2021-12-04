@@ -2,15 +2,16 @@ package api
 
 import (
 	"fmt"
+	"github.com/rs/zerolog"
+	"gitlab.com/trencetech/mypipe-api/pkg/service"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
 )
-
-
 
 func (h *Handler) CreatePipe(c *gin.Context) {
 	newPipeReq := struct {
@@ -24,10 +25,33 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 		})
 		return
 	}
+
+	// Upload and save the pipe Image
+	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+	uploadInformation := service.FileUploadInformation{
+		Logger:        logger,
+		Ctx:           c,
+		FileInputName: "cover_photo",
+		Type:          "pipe",
+	}
+	photoUrl, err := service.UploadToCloudinary(uploadInformation)
+	if err != nil {
+		if err == http.ErrMissingFile {
+			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
+				"message": "No file was uploaded. Please select a file to upload as your pipe cover",
+			})
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred when trying to process pipe image",
+		})
+		return
+	}
+
 	pipe := model.Pipe{
 		UserID:     c.GetInt64(KeyUserId),
 		Name:       newPipeReq.Name,
-		CoverPhoto: newPipeReq.CoverPhoto,
+		CoverPhoto: photoUrl,
 	}
 	newPipe, err := h.service.DB.CreatePipe(pipe)
 
