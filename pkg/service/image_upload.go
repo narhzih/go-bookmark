@@ -37,7 +37,7 @@ func saveFileToLocalStorage(f FileUploadInformation) (string, error) {
 	}
 	fileName := header.Filename
 	fileName = randSeq(20) + "_" + f.Type + "_cover_photo_" + fileName
-	out, err := os.Create("public/" + fileName)
+	out, err := os.Create(fileName)
 	if err != nil {
 		f.Logger.Err(err).Msg(fmt.Sprintf("Error occurred while trying to save file %+v ", err.Error()))
 	}
@@ -65,13 +65,13 @@ func UploadToCloudinary(f FileUploadInformation) (string, error) {
 		//})
 		//return
 	}
-	f.FileInputName = "public/" + fileName
+	f.FileInputName = fileName
 	resp, err := cld.Upload.Upload(f.Ctx, f.FileInputName, uploader.UploadParams{PublicID: f.FileInputName})
 	if err != nil {
 		f.Logger.Err(err).Msg(err.Error())
 	}
 
-	err = os.Remove("public/" + fileName)
+	err = os.Remove(fileName)
 	if err != nil {
 		f.Logger.Err(err).Msg(err.Error())
 	}
