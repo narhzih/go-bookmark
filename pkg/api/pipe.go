@@ -14,18 +14,6 @@ import (
 )
 
 func (h *Handler) CreatePipe(c *gin.Context) {
-	//newPipeReq := struct {
-	//	Name string `json:"name" binding:"required"`
-	//}{}
-	//
-	//if err := c.ShouldBindJSON(&newPipeReq); err != nil {
-	//	h.logger.Err(err).Msg(err.Error())
-	//	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-	//		"message": "Invalid request body",
-	//	})
-	//	return
-	//}
-
 	pipeName := c.PostForm("name")
 	if len(pipeName) <= 0 {
 		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
@@ -159,17 +147,6 @@ func (h *Handler) GetPipes(c *gin.Context) {
 	})
 }
 func (h *Handler) UpdatePipe(c *gin.Context) {
-	updateReq := struct {
-		Name       string `json:"name"`
-		CoverPhoto string `json:"cover_photo"`
-	}{}
-
-	if err := c.ShouldBindJSON(&updateReq); err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
-		})
-		return
-	}
 
 	var pipe model.Pipe
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
@@ -180,15 +157,64 @@ func (h *Handler) UpdatePipe(c *gin.Context) {
 		})
 		return
 	}
-	pipe = model.Pipe{
-		Name:       updateReq.Name,
-		CoverPhoto: updateReq.CoverPhoto,
+	pipeName := c.PostForm("name")
+	if len(pipeName) > 0 {
+		pipeAlreadyExists, err := h.service.DB.PipeAlreadyExists(pipeName, c.GetInt64(KeyUserId))
+		if err != nil {
+			h.logger.Err(err).Msg(err.Error())
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "An error occurred during validation",
+				"err":     err.Error(),
+			})
+			return
+		}
+		if pipeAlreadyExists == true {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "You already have a pipe with this name",
+			})
+			return
+		}
+
+		pipe.Name = pipeName
 	}
+
+	file, _, err := c.Request.FormFile("cover_photo")
+	if err != nil {
+		if err != http.ErrMissingFile {
+			h.logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred",
+				"err":     err.Error(),
+			})
+			return
+		}
+	}
+	if file != nil {
+		// This means a file was uploaded with the request
+		// Try uploading it to Cloudinary
+		uploadInformation := service.FileUploadInformation{
+			Logger:        h.logger,
+			Ctx:           c,
+			FileInputName: "cover_photo",
+			Type:          "pipe",
+		}
+		photoUrl, err := service.UploadToCloudinary(uploadInformation)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred when trying to save user image",
+				"err":     err.Error(),
+			})
+			return
+		}
+		pipe.CoverPhoto = photoUrl
+	}
+
 	pipe, err = h.service.DB.UpdatePipe(c.GetInt64(KeyUserId), pipeId, pipe)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying to update pipe",
+			"err":     err.Error(),
 		})
 		return
 	}

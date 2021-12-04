@@ -115,7 +115,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 
 	// At this point, username and profile_name validation passes
 	// Try uploading the image to Cloud if any was parsed
-	_, header, err := c.Request.FormFile("cover_photo")
+	file, _, err := c.Request.FormFile("cover_photo")
 	if err != nil {
 		if err != http.ErrMissingFile {
 			h.logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
@@ -127,7 +127,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 		}
 
 	}
-	if len(header.Filename) > 0 {
+	if file != nil {
 		// This means a file was uploaded with the request
 		// Try uploading it to Cloudinary
 		uploadInformation := service.FileUploadInformation{
