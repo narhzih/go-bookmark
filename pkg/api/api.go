@@ -45,6 +45,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	pipe.DELETE("/:id", h.DeletePipe)
 	pipe.GET("/all", h.GetPipes)
 
+
 	pipe.GET("/:id/bookmarks", h.GetBookmarks)
 	pipe.POST("/:id/bookmark", h.CreateBookmark)
 	pipe.GET("/:id/bookmark/:bmId", h.GetBookmark)
@@ -55,6 +56,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	user.PATCH("/onboard-user", h.OnboardUser)
 	user.GET("/profile", h.UserProfile)
 	user.PATCH("/profile", h.EditProfile)
+	user.POST("/profile/cover-photo", h.UploadCoverPhoto)
 
 }
 

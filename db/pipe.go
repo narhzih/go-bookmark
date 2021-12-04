@@ -7,6 +7,19 @@ import (
 	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
+func (db Database) PipeAlreadyExists(pipeName string, userId int64) (bool, error) {
+	var pipe model.Pipe
+	query := "SELECT id, name FROM pipes WHERE name=$1 AND user_id=$2 LIMIT 1"
+	err := db.Conn.QueryRow(query, pipeName, userId).Scan(&pipe.ID, &pipe.Name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// NO record exits
+			return false, nil
+		}
+		return true, err
+	}
+	return true, nil
+}
 func (db Database) CreatePipe(pipe model.Pipe) (model.Pipe, error) {
 	var newPipe model.Pipe
 	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo"
