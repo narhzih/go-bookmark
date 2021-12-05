@@ -1,7 +1,6 @@
 package service
 
 import (
-	"bytes"
 	"fmt"
 	"github.com/cloudinary/cloudinary-go"
 	"github.com/cloudinary/cloudinary-go/api/uploader"
@@ -26,18 +25,17 @@ func randSeq(n int) string {
 	return fmt.Sprintf("%x", b)
 }
 
-func saveFileToBuffer(f FileUploadInformation) (interface{}, string, *bytes.Buffer, error) {
-	var buff bytes.Buffer
+func getFileFromForm(f FileUploadInformation) (interface{}, string, error) {
 	file, header, err := f.Ctx.Request.FormFile(f.FileInputName)
 	if err != nil {
 		if err == http.ErrMissingFile {
-			return "", "", &buff, http.ErrMissingFile
+			return "", "", http.ErrMissingFile
 		}
 		f.Logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
-		return "", "", &buff, err
+		return "", "", err
 	}
 	defer file.Close()
-	return file, header.Filename, &buff, nil
+	return file, header.Filename, nil
 }
 
 //func saveFileToLocalStorage(f FileUploadInformation) (string, error) {
@@ -72,7 +70,7 @@ func UploadToCloudinary(f FileUploadInformation) (string, error) {
 		return "", err
 	}
 	//fileName, err := saveFileToLocalStorage(f)
-	file, fileNameWithExt, buffer, err := saveFileToBuffer(f)
+	file, fileNameWithExt, err := getFileFromForm(f)
 	if err != nil {
 		return "", err
 	}
@@ -82,7 +80,6 @@ func UploadToCloudinary(f FileUploadInformation) (string, error) {
 	if err != nil {
 		f.Logger.Err(err).Msg(err.Error())
 	}
-	buffer.Reset()
 
 	return resp.SecureURL, nil
 }
