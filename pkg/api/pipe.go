@@ -17,8 +17,9 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 	pipeName := c.PostForm("name")
 	if len(pipeName) <= 0 {
 		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
-			"message": "Please specify a form name",
+			"message": "Please specify a pipe name",
 		})
+		return
 	}
 
 	pipeAlreadyExists, err := h.service.DB.PipeAlreadyExists(pipeName, c.GetInt64(KeyUserId))
