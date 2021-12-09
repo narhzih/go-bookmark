@@ -17,8 +17,9 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 	pipeName := c.PostForm("name")
 	if len(pipeName) <= 0 {
 		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
-			"message": "Please specify a form name",
+			"message": "Please specify a pipe name",
 		})
+		return
 	}
 
 	pipeAlreadyExists, err := h.service.DB.PipeAlreadyExists(pipeName, c.GetInt64(KeyUserId))
@@ -45,14 +46,17 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 	}
 	photoUrl, err := service.UploadToCloudinary(uploadInformation)
 	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
 		if err == http.ErrMissingFile {
 			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
 				"message": "No file was uploaded. Please select a file to upload as your pipe cover",
+				"err":     err.Error(),
 			})
 			return
 		}
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred when trying to process pipe image",
+			"err":     err.Error(),
 		})
 		return
 	}
@@ -70,9 +74,9 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 	// TODO: @narhzih - Implement error handling for UNIQUE(user_id, name)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
-		h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying to create pipe",
+			"err":     err.Error(),
 		})
 		return
 	}
