@@ -73,11 +73,13 @@ func (db Database) GetUserById(userId int) (user model.User, err error) {
 }
 
 func (db Database) GetUserByEmail(userEmail string) (user model.User, err error) {
-	query := `SELECT id, username, email FROM users where email=$1 LIMIT 1`
+	query := `SELECT  id, username, email, profile_name, cover_photo FROM users where email=$1 LIMIT 1`
 	if err = db.Conn.QueryRow(query, userEmail).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.ProfileName,
+		&user.CovertPhoto,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return model.User{}, ErrNoRecord
@@ -88,11 +90,13 @@ func (db Database) GetUserByEmail(userEmail string) (user model.User, err error)
 }
 
 func (db Database) GetUserByUsername(username string) (user model.User, err error) {
-	query := `SELECT id, username, email FROM users where username=$1 LIMIT 1`
+	query := `SELECT  id, username, email, profile_name, cover_photo FROM users where username=$1 LIMIT 1`
 	if err = db.Conn.QueryRow(query, username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.ProfileName,
+		&user.CovertPhoto,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return model.User{}, ErrNoRecord
