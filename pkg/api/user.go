@@ -98,7 +98,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 				return
 			}
 		}
-		if userWithUsername.ID != c.GetInt64(KeyUserId) {
+		if err != db.ErrNoRecord && userWithUsername.ID != c.GetInt64(KeyUserId) {
 			// This means there's another user that is not
 			// the user making the same request who has the same username
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
