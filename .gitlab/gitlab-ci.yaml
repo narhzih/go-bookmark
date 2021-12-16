@@ -1,0 +1,33 @@
+variables:
+  OUTPUT_NAME: mypipe-api
+
+stages:
+  - lint
+  - test
+  - build
+  - deploy
+
+lint-go-files:
+  stage: lint
+  script:
+    - echo "skipping linting"
+
+run-tests:
+  stage: test
+  script:
+    - echo "skipping tests"
+
+build-prod:
+  stage: build
+  script:
+    - go mod download
+    - CGO_ENABLED=0 GOOS=linux go build -a --installsuffix cgo -o build/mypipe ./main.go
+  artifacts:
+    paths:
+      - $OUTPUT_NAME
+
+deploy-prod:
+  stage: deploy
+  script:
+    - echo "should publish to digitalocean via ssh"
+
