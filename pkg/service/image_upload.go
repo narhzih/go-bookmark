@@ -66,7 +66,6 @@ func UploadToCloudinary(f FileUploadInformation) (string, error) {
 	cld, err := cloudinary.NewFromParams(os.Getenv("CLOUDINARY_NAME"), os.Getenv("CLOUDINARY_API_KEY"), os.Getenv("CLOUDINARY_API_SECRET"))
 	if err != nil {
 		f.Logger.Err(err).Msg(fmt.Sprintf("Cloudinary connection error: %+v", err.Error()))
-
 		return "", err
 	}
 	//fileName, err := saveFileToLocalStorage(f)

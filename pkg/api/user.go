@@ -92,15 +92,16 @@ func (h *Handler) EditProfile(c *gin.Context) {
 		if err != nil {
 			if err != db.ErrNoRecord {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					"message": "An error occurred",
+					"message": "An error occurred while getting user",
 					"err":     err.Error(),
 				})
 				return
 			}
 		}
-		if userWithUsername.ID != c.GetInt64(KeyUserId) {
+		if err != db.ErrNoRecord && userWithUsername.ID != c.GetInt64(KeyUserId) {
 			// This means there's another user that is not
 			// the user making the same request who has the same username
+			h.logger.Info().Msg(userWithUsername.Email)
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "username has already been taken by another user",
 			})
@@ -120,7 +121,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 		if err != http.ErrMissingFile {
 			h.logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"message": "An error occurred",
+				"message": "An error occurred from here",
 				"err":     err.Error(),
 			})
 			return
@@ -137,6 +138,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 			Type:          "user",
 		}
 		photoUrl, err := service.UploadToCloudinary(uploadInformation)
+		h.logger.Info().Msg("The cover photo is " + photoUrl)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "An error occurred when trying to save user image",

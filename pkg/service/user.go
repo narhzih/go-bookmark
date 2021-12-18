@@ -42,3 +42,21 @@ func (s Service) UserWithUsernameExists(username string) (bool, error) {
 
 	return exits, nil
 }
+
+func (s Service) UserWithUsernameExistsWithUser(username string) (bool, error) {
+	exits := false
+
+	_, err := s.DB.GetUserByUsername(username)
+	if err != nil {
+		if err == db.ErrNoRecord {
+			// This means that there's no record with that user
+			// and we're good to go
+			exits = true
+			return exits, nil
+		}
+
+		return exits, err
+	}
+
+	return exits, nil
+}
