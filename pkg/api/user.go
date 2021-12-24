@@ -170,11 +170,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Profile updated successfully",
 		"data": map[string]interface{}{
-			"user": map[string]interface{}{
-				"id":          user.ID,
-				"username":    user.Username,
-				"cover_photo": user.CovertPhoto,
-			},
+			"user": user,
 		},
 	})
 }

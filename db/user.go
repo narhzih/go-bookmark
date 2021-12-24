@@ -118,11 +118,13 @@ func (db Database) GetUserAndAuth(user model.User) (userAndAuth model.UserAuth, 
 
 func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 	var user model.User
-	selectQuery := "SELECT id, username, email FROM users WHERE id=$1 LIMIT 1"
+	selectQuery := "SELECT id, username, email, profile_name, cover_photo FROM users WHERE id=$1 LIMIT 1"
 	err := db.Conn.QueryRow(selectQuery, updatedBody.ID).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.ProfileName,
+		&user.CovertPhoto,
 	)
 
 	if err != nil {
