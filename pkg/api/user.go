@@ -149,7 +149,10 @@ func (h *Handler) EditProfile(c *gin.Context) {
 
 		updatedUser.CovertPhoto = photoUrl
 	}
+	h.logger.Info().Msg("Photo url after property setting is - " + updatedUser.CovertPhoto)
 	user, err := h.service.DB.UpdateUser(updatedUser)
+	h.logger.Info().Msg("Photo url after normal upload is - " + user.CovertPhoto)
+
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
 		if err == db.ErrNoRecord {
