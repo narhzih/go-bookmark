@@ -11,14 +11,20 @@ func (s Service) GetUserProfileInformation(userID int64) (model.Profile, error) 
 
 	profile.User, err = s.DB.GetUserById(int(userID))
 	if err != nil {
+		s.DB.Logger.Err(err).Msg("Error is from getting user by ID")
+		s.DB.Logger.Err(err).Msg(err.Error())
 		return model.Profile{}, err
 	}
 	profile.Pipes, err = s.DB.GetPipesCount(userID)
 	if err != nil {
+		s.DB.Logger.Err(err).Msg("Error is from getting user pipe counts")
+		s.DB.Logger.Err(err).Msg(err.Error())
 		return profile, err
 	}
 	profile.Bookmarks, err = s.DB.GetBookmarksCount(userID)
 	if err != nil {
+		s.DB.Logger.Err(err).Msg("Error is from getting user ID")
+		s.DB.Logger.Err(err).Msg(err.Error())
 		return profile, err
 	}
 

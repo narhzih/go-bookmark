@@ -30,8 +30,8 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	routeGroup.POST("/sign-up", h.EmailSignUp)
 	routeGroup.POST("/sign-in", h.EmailLogin)
 
-	routeGroup.POST("/google/signup", h.SignUpWithGoogle)
-	routeGroup.POST("/google/singin", h.SignInWithGoogle)
+	routeGroup.POST("/google/sign-up", h.SignUpWithGoogle)
+	routeGroup.POST("/google/sign-in", h.SignInWithGoogle)
 
 	authApi := routeGroup.Group("/auth")
 	authApi.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
@@ -44,7 +44,6 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	pipe.PUT("/:id", h.UpdatePipe)
 	pipe.DELETE("/:id", h.DeletePipe)
 	pipe.GET("/all", h.GetPipes)
-
 
 	pipe.GET("/:id/bookmarks", h.GetBookmarks)
 	pipe.POST("/:id/bookmark", h.CreateBookmark)

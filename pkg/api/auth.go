@@ -61,7 +61,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 	 */
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Account created succesfully. Please check your email for verification code",
+		"message": "Account created successfully. Please check your email for verification code",
 	})
 
 	// authToken, err := h.service.IssueAuthToken(user)
