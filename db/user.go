@@ -174,7 +174,7 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 				&user.CovertPhoto,
 			)
 		} else if len(updatedBody.CovertPhoto) > 0 {
-
+			db.Logger.Info().Msg("Saving cover photo to database")
 			query := "UPDATE users SET cover_photo=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo"
 			err = db.Conn.QueryRow(query, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,
@@ -196,6 +196,8 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 		}
 
 		if err != nil {
+			db.Logger.Err(err).Msg("Error from here from updating profile")
+			db.Logger.Err(err).Msg(err.Error())
 			return user, err
 		}
 
