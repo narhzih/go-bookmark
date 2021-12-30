@@ -7,20 +7,22 @@ import (
 	"gitlab.com/trencetech/mypipe-api/db/model"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
 )
 
 func (h *Handler) EmailSignUp(c *gin.Context) {
 	singUpReq := struct {
-		Username    string `json:"username" binding:"required"`
-		ProfileName string `json:"profile_name" binding:"required"`
-		Email       string `json:"email" binding:"required"`
-		Password    string `json:"password" binding:"required"`
+		Username    string `json:"username" valid:"required~username cannot be empty"`
+		ProfileName string `json:"profile_name" valid:"required~profile name cannot be empty"`
+		Email       string `json:"email" valid:"email,required~email cannot be empty"`
+		Password    string `json:"password" valid:"required~password cannot be empty"`
 	}{}
 
-	if err := c.ShouldBindJSON(&singUpReq); err != nil {
+	_, err := govalidator.ValidateStruct(singUpReq)
+	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
+			"message": err.Error(),
 		})
 		return
 	}
@@ -90,14 +92,13 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 func (h *Handler) EmailLogin(c *gin.Context) {
 	loginReq := struct {
-		Email    string `json:"email" binding:"required"`
-		Password string `json:"password" binding:"required"`
+		Email    string `json:"email" valid:"email,required~Email cannot be empty"`
+		Password string `json:"password" valid:"required~Password cannot be empty"`
 	}{}
-
-	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		h.logger.Err(err).Msg(err.Error())
+	_, err := govalidator.ValidateStruct(loginReq)
+	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
+			"message": err.Error(),
 		})
 		return
 	}
