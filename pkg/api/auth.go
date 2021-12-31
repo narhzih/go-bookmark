@@ -1,28 +1,27 @@
 package api
 
 import (
-	"net/http"
-
+	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
 	"golang.org/x/crypto/bcrypt"
-
-	"github.com/asaskevich/govalidator"
-	"github.com/gin-gonic/gin"
+	"net/http"
+	"strings"
 )
 
 func (h *Handler) EmailSignUp(c *gin.Context) {
 	singUpReq := struct {
-		Username    string `json:"username" valid:"required~username cannot be empty"`
-		ProfileName string `json:"profile_name" valid:"required~profile name cannot be empty"`
-		Email       string `json:"email" valid:"email,required~email cannot be empty"`
-		Password    string `json:"password" valid:"required~password cannot be empty"`
+		Username    string `json:"username" binding:"required"`
+		ProfileName string `json:"profile_name" binding:"required"`
+		Email       string `json:"email" binding:"required"`
+		Password    string `json:"password" binding:"required"`
 	}{}
 
-	_, err := govalidator.ValidateStruct(singUpReq)
-	if err != nil {
+	if err := c.ShouldBindJSON(&singUpReq); err != nil {
+		errMessage := parseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
+			"message": errMessage,
+			"err":     err.Error(),
 		})
 		return
 	}
@@ -92,17 +91,17 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 func (h *Handler) EmailLogin(c *gin.Context) {
 	loginReq := struct {
-		Email    string `json:"email" valid:"email,required~Email cannot be empty"`
-		Password string `json:"password" valid:"required~Password cannot be empty"`
+		Email    string `json:"email" binding:"required"`
+		Password string `json:"password" binding:"required"`
 	}{}
-	_, err := govalidator.ValidateStruct(loginReq)
-	if err != nil {
+	if err := c.ShouldBindJSON(&loginReq); err != nil {
+		errMessage := parseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": err.Error(),
+			"message": errMessage,
+			"err":     err.Error(),
 		})
 		return
 	}
-
 	user, err := h.service.DB.GetUserByEmail(loginReq.Email)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
@@ -286,4 +285,19 @@ func hashPassword(password string) (string, error) {
 func verifyPassword(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
+}
+
+func parseErrorMessage(message string) string {
+	s := strings.Split(message, "\n")
+	var errMessage string
+	for _, part := range s {
+		// Parse each message and return its parsed form
+		step1 := strings.Split(part, ":")[1]  // 'Key' Error
+		step2 := strings.Trim(step1, " ")     // 'Key' Error
+		step3 := strings.Split(step2, " ")[0] // 'Key'
+		errorKey := strings.Trim(step3, "'")  // Key
+		msg := errorKey + " cannot be empty;"
+		errMessage += msg
+	}
+	return errMessage
 }
