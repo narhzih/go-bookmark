@@ -32,23 +32,30 @@ type JWTConfig struct {
 type AuthToken struct {
 	AccessToken  string
 	RefreshToken string
+	ExpiresAt    string
 }
 
 func (s Service) IssueAuthToken(user model.User) (AuthToken, error) {
-	accessToken, refreshToken, err := s.generateTokenPair(user)
+	accessToken, refreshToken, expiresAt, err := s.generateTokenPair(user)
 	if err != nil {
 		return AuthToken{}, err
 	}
+	//expiresIn, err := strconv.Atoi(os.Getenv("JWT_EXPIRES_IN"))
+	//if err != nil {
+	//	return AuthToken{}, err
+	//}
 	authTokens := AuthToken{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
+		ExpiresAt:    expiresAt,
 	}
 	return authTokens, nil
 }
-func (s Service) generateTokenPair(user model.User) (accessToken, refreshToken string, err error) {
+func (s Service) generateTokenPair(user model.User) (accessToken, refreshToken, expiryTime string, err error) {
 	atExpiresIn := time.Now().Add(time.Duration(s.JWTConfig.ExpiresIn) * time.Second).Unix()
 	rtExpiresIn := time.Now().Add(30 * (24 * time.Hour)).Unix()
-
+	exToTime := time.Now().Add(time.Duration(s.JWTConfig.ExpiresIn) * time.Second)
+	expiryTime = exToTime.Format(time.RFC3339Nano)
 	at := jwt.NewWithClaims(s.JWTConfig.Algo, jwt.MapClaims{
 		"sub":      user.ID,
 		"username": user.Username,
@@ -62,14 +69,14 @@ func (s Service) generateTokenPair(user model.User) (accessToken, refreshToken s
 
 	accessToken, err = at.SignedString([]byte(s.JWTConfig.Key))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	refreshToken, err = rt.SignedString([]byte(s.JWTConfig.Key))
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, expiryTime, nil
 }
 
 func (s Service) ValidateGoogleJWT(tokenString string) (GoogleClaims, error) {

@@ -89,6 +89,8 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 }
 
+func (h *Handler) VerifyEmail(c *gin.Context) {}
+
 func (h *Handler) EmailLogin(c *gin.Context) {
 	loginReq := struct {
 		Email    string `json:"email" binding:"required"`
@@ -142,6 +144,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 			"data": map[string]interface{}{
 				"token":         authToken.AccessToken,
 				"refresh_token": authToken.RefreshToken,
+				"expires_at":    authToken.ExpiresAt,
 				"user": map[string]interface{}{
 					"id":       user.ID,
 					"username": user.Username,
