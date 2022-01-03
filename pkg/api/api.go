@@ -21,6 +21,8 @@ func NewHandler(service service.Service, logger zerolog.Logger) Handler {
 }
 
 func (h *Handler) Register(routeGroup *gin.RouterGroup) {
+	// User CORS
+
 	// This is where all routes will be registered
 	routeGroup.GET("/test-route", TestCaller)
 
