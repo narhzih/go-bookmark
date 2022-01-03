@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/gin-contrib/cors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -45,6 +46,7 @@ func main() {
 	apiService := service.NewService(db, jwtConfig)
 	apiHandler := api.NewHandler(apiService, logger)
 	router := gin.Default()
+	router.Use(cors.Default())
 	rg := router.Group("/v1")
 	apiHandler.Register(rg)
 	appPort, err := strconv.Atoi(os.Getenv("PORT"))
