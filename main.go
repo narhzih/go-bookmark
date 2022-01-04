@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-contrib/cors"
+	"gitlab.com/trencetech/mypipe-api/pkg/service/mailer"
 	"net/http"
 	"os"
 	"os/signal"
@@ -43,7 +44,8 @@ func main() {
 		logger.Err(err).Msg("jwt config")
 	}
 
-	apiService := service.NewService(db, jwtConfig)
+	mailerP := initMailer()
+	apiService := service.NewService(db, jwtConfig, mailerP)
 	apiHandler := api.NewHandler(apiService, logger)
 	router := gin.Default()
 	router.Use(cors.Default())
@@ -124,4 +126,19 @@ func initJWTConfig() (service.JWTConfig, error) {
 	cfg.Algo = jwt.SigningMethodHS256
 
 	return cfg, nil
+}
+
+func initMailer() *mailer.Mailer {
+	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+	var mailerP *mailer.Mailer
+	var config mailer.MailConfig
+	config.Password = os.Getenv("MAIL_PASSWORD")
+	config.Username = os.Getenv("MAIL_USERNAME")
+	config.SmtpHost = os.Getenv("MAIL_HOST")
+	config.SmtpPort = os.Getenv("MAIL_PORT")
+	config.MailFrom = "My Pipe Desk <desk@mypipe.app>"
+	logger.Info().Msg(config.Username + " is the username")
+	logger.Info().Msg(config.Password + " is the password")
+	mailerP = mailer.NewMailer(config)
+	return mailerP
 }

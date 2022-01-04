@@ -40,7 +40,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		Email:       singUpReq.Email,
 	}
 
-	_, err = h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
+	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
 	if err != nil {
 		if err == db.ErrRecordExists {
 			h.logger.Err(err).Msg(err.Error())
@@ -60,7 +60,10 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 	* TODO @narhzih
 	* Implement verification email step after registration
 	 */
-
+	err = h.service.Mailer.SendVerificationEmail([]string{user.Email})
+	if err != nil {
+		h.logger.Err(err).Msg("An error occurred while trying to send email")
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Account created successfully. Please check your email for verification code",
 	})

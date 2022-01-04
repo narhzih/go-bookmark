@@ -1,12 +1,14 @@
 package mailer
 
 import (
-	"fmt"
+	"github.com/jordan-wright/email"
 	"net/smtp"
 )
 
 type Mailer struct {
-	Auth smtp.Auth
+	Auth        smtp.Auth
+	Transporter *email.Email
+	Addr        string
 }
 
 type MailConfig struct {
@@ -14,30 +16,27 @@ type MailConfig struct {
 	Password string
 	SmtpHost string
 	SmtpPort string
+	MailFrom string
 }
 
-func NewMailer(config MailConfig) Mailer {
+func NewMailer(config MailConfig) *Mailer {
 	auth := smtp.PlainAuth("", config.Username, config.Password, config.SmtpHost)
-	return Mailer{
-		Auth: auth,
+	transporter := &email.Email{
+		From: "Mypipe Desk <service@mypipe.app>",
+	}
+	return &Mailer{
+		Auth:        auth,
+		Addr:        config.SmtpHost + ":" + config.SmtpPort,
+		Transporter: transporter,
 	}
 }
 
-func (m *Mailer) SendEmail(mailTo []string) (string, error) {
-	from := "2a1aafa047bab7"
-	password := "54c8d84430f82f"
-	//username := "my username"
-	smtpHost := "smtp.mailtrap.io"
-	smtpPort := "2525"
-
-	message := []byte("Your verification code is 444444")
-
-	auth := smtp.PlainAuth("", from, password, smtpHost)
-	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from, mailTo, message)
+func (m *Mailer) SendVerificationEmail(mailTo []string) error {
+	m.Transporter.HTML = []byte("<h1>Your verification code is 555555</h1>")
+	m.Transporter.To = mailTo
+	err := m.Transporter.Send(m.Addr, m.Auth)
 	if err != nil {
-		fmt.Println(err)
-		return "", err
+		return err
 	}
-
-	return "", err
+	return nil
 }
