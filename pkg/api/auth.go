@@ -4,9 +4,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 func (h *Handler) EmailSignUp(c *gin.Context) {
@@ -60,35 +62,26 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 	* TODO @narhzih
 	* Implement verification email step after registration
 	 */
-	err = h.service.Mailer.SendVerificationEmail([]string{user.Email})
+	var accountVerification model.AccountVerification
+	accountVerification.UserID = user.ID
+	accountVerification.Token = helpers.RandomToken(7)
+	accountVerification.ExpiresAt = time.Now().Add(7200 * time.Second).Format(time.RFC3339Nano)
+	accountVerification, err = h.service.DB.CreateVerification(accountVerification)
+	if err != nil {
+		h.logger.Err(err).Msg("An error occurred while trying to generate token details ")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "Something went wrong",
+			"err":     err.Error(),
+		})
+		return
+	}
+	err = h.service.Mailer.SendVerificationEmail([]string{user.Email}, accountVerification.Token)
 	if err != nil {
 		h.logger.Err(err).Msg("An error occurred while trying to send email")
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Account created successfully. Please check your email for verification code",
 	})
-
-	// authToken, err := h.service.IssueAuthToken(user)
-	// if err != nil {
-	// 	h.logger.Err(err).Msg(err.Error())
-	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-	// 		"message": "Error occurred while trying to sign user in",
-	// 	})
-	// 	return
-	// }
-
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"message": "Sign up successful!",
-	// 	"data": map[string]interface{}{
-	// 		"token":         authToken.AccessToken,
-	// 		"refresh_token": authToken.RefreshToken,
-	// 		"user": map[string]interface{}{
-	// 			"id":       user.ID,
-	// 			"username": user.Username,
-	// 			"email":    user.Email,
-	// 		},
-	// 	},
-	// })
 
 }
 

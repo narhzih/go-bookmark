@@ -1,6 +1,7 @@
 package mailer
 
 import (
+	"fmt"
 	"github.com/jordan-wright/email"
 	"net/smtp"
 )
@@ -31,8 +32,9 @@ func NewMailer(config MailConfig) *Mailer {
 	}
 }
 
-func (m *Mailer) SendVerificationEmail(mailTo []string) error {
-	m.Transporter.HTML = []byte("<h1>Your verification code is 555555</h1>")
+func (m *Mailer) SendVerificationEmail(mailTo []string, token string) error {
+	m.Transporter.HTML = []byte(fmt.Sprintf("<h2>YOur account verification token is %v</h2>", token))
+	m.Transporter.Subject = "MyPipe account verification"
 	m.Transporter.To = mailTo
 	err := m.Transporter.Send(m.Addr, m.Auth)
 	if err != nil {
