@@ -43,5 +43,10 @@ func (db Database) GetAccountVerificationByToken(token string) (model.AccountVer
 }
 
 func (db Database) DeleteVerification(token string) (bool, error) {
+	query := "DELETE FROM account_verifications WHERE token=$1"
+	_, err := db.Conn.Exec(query, token)
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }

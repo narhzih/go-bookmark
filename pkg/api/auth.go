@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
@@ -85,7 +86,89 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 }
 
-func (h *Handler) VerifyEmail(c *gin.Context) {}
+func (h *Handler) VerifyAccount(c *gin.Context) {
+	token := c.Param("token")
+	if len(token) <= 0 {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid verification token provided",
+		})
+		return
+	}
+
+	tokenFromDB, err := h.service.DB.GetAccountVerificationByToken(token)
+	if err != nil {
+		if err == db.ErrNoRecord {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "Invalid verification token provided",
+			})
+			return
+		}
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "Something went wrong",
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	parsedTime, _ := time.Parse(time.RFC3339Nano, tokenFromDB.CreatedAt)
+	h.logger.Info().Msg(fmt.Sprintf("The parsed token time is %v", parsedTime))
+	h.logger.Info().Msg(fmt.Sprintf("The parsed token time in hours is %v", time.Now().Sub(parsedTime).Hours()))
+	if tokenFromDB.Used == true || time.Now().Sub(parsedTime).Hours() > 2 {
+		/** TODO: Generate a new token and send to user email and make sure that
+		 * the user tha token is to be generated for is not previously verified
+		 */
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Token has expired",
+		})
+		return
+	}
+
+	// Check if the user still exists
+	user, err := h.service.DB.GetUserById(int(tokenFromDB.UserID))
+	if err != nil {
+		if err == db.ErrNoRecord {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "User with the provided token was not found in our record",
+			})
+		}
+	}
+	user.EmailVerified = true
+	user, err = h.service.MarkUserAsVerified(user, tokenFromDB.Token)
+	if err != nil {
+		h.logger.Err(err).Msg("Error occurred while verifying user")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "Something went wrong",
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	authToken, err := h.service.IssueAuthToken(user)
+	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "Error occurred while trying to automatically log in. Please, log in manually",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Verification successful!",
+		"data": map[string]interface{}{
+			"token":         authToken.AccessToken,
+			"refresh_token": authToken.RefreshToken,
+			"expires_at":    authToken.ExpiresAt,
+			"user": map[string]interface{}{
+				"id":           user.ID,
+				"username":     user.Username,
+				"email":        user.Email,
+				"profile name": user.ProfileName,
+				"cover_photo":  user.CovertPhoto,
+			},
+		},
+	})
+
+}
 
 func (h *Handler) EmailLogin(c *gin.Context) {
 	loginReq := struct {

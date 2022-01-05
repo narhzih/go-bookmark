@@ -29,6 +29,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	// sending in actual GoogleJWT
 	routeGroup.POST("/sign-up", h.EmailSignUp)
 	routeGroup.POST("/sign-in", h.EmailLogin)
+	routeGroup.POST("/verify-account/:token", h.VerifyAccount)
 
 	routeGroup.POST("/google/sign-up", h.SignUpWithGoogle)
 	routeGroup.POST("/google/sign-in", h.SignInWithGoogle)
