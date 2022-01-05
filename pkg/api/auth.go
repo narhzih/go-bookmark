@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
@@ -111,8 +110,6 @@ func (h *Handler) VerifyAccount(c *gin.Context) {
 	}
 
 	parsedTime, _ := time.Parse(time.RFC3339Nano, tokenFromDB.CreatedAt)
-	h.logger.Info().Msg(fmt.Sprintf("The parsed token time is %v", parsedTime))
-	h.logger.Info().Msg(fmt.Sprintf("The parsed token time in hours is %v", time.Now().Sub(parsedTime).Hours()))
 	if tokenFromDB.Used == true || time.Now().Sub(parsedTime).Hours() > 2 {
 		/** TODO: Generate a new token and send to user email and make sure that
 		 * the user tha token is to be generated for is not previously verified
