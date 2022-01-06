@@ -32,6 +32,7 @@ func ParseErrorMessage(message string) string {
 			errMessage += msg
 		}
 	} else {
+		// return initial error as it is
 		errMessage = message
 	}
 
