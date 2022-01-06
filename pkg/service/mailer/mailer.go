@@ -42,3 +42,14 @@ func (m *Mailer) SendVerificationEmail(mailTo []string, token string) error {
 	}
 	return nil
 }
+
+func (m *Mailer) SendPasswordResetToken(mailTo []string, token string) error {
+	m.Transporter.HTML = []byte(fmt.Sprintf("<h2>Your password reset token is %v</h2>", token))
+	m.Transporter.Subject = "MyPipe account password reset"
+	m.Transporter.To = mailTo
+	err := m.Transporter.Send(m.Addr, m.Auth)
+	if err != nil {
+		return err
+	}
+	return nil
+}

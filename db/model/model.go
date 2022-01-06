@@ -32,6 +32,15 @@ type AccountVerification struct {
 	ModifiedAt string `json:"modified_at"`
 }
 
+type PasswordReset struct {
+	ID         int64  `json:"id"`
+	UserID     int64  `json:"user_id"`
+	Token      string `json:"token"`
+	CreatedAt  string `json:"created_at"`
+	ModifiedAt string `json:"modified_at"`
+	Validated  bool   `json:"validated"`
+}
+
 type Pipe struct {
 	ID         int64     `json:"id"`
 	Name       string    `json:"name"`

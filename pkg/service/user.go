@@ -79,3 +79,7 @@ func (s Service) MarkUserAsVerified(user model.User, token string) (model.User, 
 	}
 	return user, nil
 }
+
+func (s Service) PreparePasswordResetToken(user model.User, token string) (model.User, error) {
+	return model.User{}, nil
+}

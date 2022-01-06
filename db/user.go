@@ -116,6 +116,17 @@ func (db Database) GetUserAndAuth(user model.User) (userAndAuth model.UserAuth, 
 	return userAndAuth, nil
 }
 
+func (db Database) UpdateUserPassword(userId int, password string) error {
+	authQuery := "UPDATE user_auth SET hashed_password=$1 WHERE user_id=$2"
+	_, err := db.Conn.Exec(authQuery, password, userId)
+	if err != nil {
+		db.Logger.Err(err).Msg("Could not create user for auth")
+		return err
+	}
+
+	return nil
+}
+
 // Find a way to improve sql update query
 
 func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
