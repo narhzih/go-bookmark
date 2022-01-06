@@ -18,14 +18,23 @@ func VerifyPassword(password, hash string) bool {
 func ParseErrorMessage(message string) string {
 	s := strings.Split(message, "\n")
 	var errMessage string
-	for _, part := range s {
-		// Parse each message and return its parsed form
-		step1 := strings.Split(part, ":")[1]  // 'Key' Error
-		step2 := strings.Trim(step1, " ")     // 'Key' Error
-		step3 := strings.Split(step2, " ")[0] // 'Key'
-		errorKey := strings.Trim(step3, "'")  // Key
-		msg := errorKey + " cannot be empty;"
-		errMessage += msg
+
+	if message == "EOF" {
+		errMessage = "Err: No request body sent;"
+	} else if strings.Contains(message, "tag") {
+		for _, part := range s {
+			// Parse each message and return its parsed form
+			step1 := strings.Split(part, ":")[1]  // 'Key' Error
+			step2 := strings.Trim(step1, " ")     // 'Key' Error
+			step3 := strings.Split(step2, " ")[0] // 'Key'
+			errorKey := strings.Trim(step3, "'")  // Key
+			msg := errorKey + " cannot be empty;"
+			errMessage += msg
+		}
+	} else {
+		// return initial error as it is
+		errMessage = message
 	}
+
 	return errMessage
 }
