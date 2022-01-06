@@ -220,6 +220,7 @@ func (db Database) UpdatePipeCoverPhoto(userID int64, pipeID int64, pipeCp strin
 // Whenever a pipe is deleted, all bookmarks under the pipe must be deleted
 // along with the pipe. This has a already been taken care of by enabling
 // ON DELETE CASCADE in the bookmarks table
+
 func (db Database) DeletePipe(userID, pipeID int64) (bool, error) {
 	deleteQuery := "DELETE FROM pipes WHERE id=$1 AND user_id=$2"
 	_, err := db.Conn.Exec(deleteQuery, pipeID, userID)

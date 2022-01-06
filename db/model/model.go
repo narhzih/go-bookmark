@@ -5,13 +5,14 @@ import (
 )
 
 type User struct {
-	ID          int64     `json:"id"`
-	Username    string    `json:"username"`
-	Email       string    `json:"email"`
-	ProfileName string    `json:"profile_name"`
-	CovertPhoto string    `json:"cover_photo"`
-	CreatedAt   time.Time `json:"created_at"`
-	ModifiedAt  time.Time `json:"modified_at"`
+	ID            int64     `json:"id"`
+	Username      string    `json:"username"`
+	Email         string    `json:"email"`
+	ProfileName   string    `json:"profile_name"`
+	CovertPhoto   string    `json:"cover_photo"`
+	EmailVerified bool      `json:"email_verified"`
+	CreatedAt     time.Time `json:"created_at"`
+	ModifiedAt    time.Time `json:"modified_at"`
 }
 
 type UserAuth struct {
@@ -19,6 +20,25 @@ type UserAuth struct {
 	HashedPassword string    `json:"hashed_password"`
 	CreatedAt      time.Time `json:"created_at"`
 	ModifiedAt     time.Time `json:"modified_at"`
+}
+
+type AccountVerification struct {
+	ID         int64  `json:"id"`
+	UserID     int64  `json:"user_id"`
+	Token      string `json:"token"`
+	Used       bool   `json:"used"`
+	ExpiresAt  string `json:"expires_at"`
+	CreatedAt  string `json:"created_at"`
+	ModifiedAt string `json:"modified_at"`
+}
+
+type PasswordReset struct {
+	ID         int64  `json:"id"`
+	UserID     int64  `json:"user_id"`
+	Token      string `json:"token"`
+	CreatedAt  string `json:"created_at"`
+	ModifiedAt string `json:"modified_at"`
+	Validated  bool   `json:"validated"`
 }
 
 type Pipe struct {

@@ -116,6 +116,19 @@ func (db Database) GetUserAndAuth(user model.User) (userAndAuth model.UserAuth, 
 	return userAndAuth, nil
 }
 
+func (db Database) UpdateUserPassword(userId int, password string) error {
+	authQuery := "UPDATE user_auth SET hashed_password=$1 WHERE user_id=$2"
+	_, err := db.Conn.Exec(authQuery, password, userId)
+	if err != nil {
+		db.Logger.Err(err).Msg("Could not create user for auth")
+		return err
+	}
+
+	return nil
+}
+
+// Find a way to improve sql update query
+
 func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 	var user model.User
 	selectQuery := "SELECT id, username, email, profile_name, cover_photo FROM users WHERE id=$1 LIMIT 1"
@@ -203,4 +216,20 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 
 		return user, nil
 	}
+}
+
+func (db Database) VerifyUser(user model.User) (model.User, error) {
+	query := `UPDATE users SET email_verified=true WHERE id=$1 RETURNING id, email, username, profile_name, cover_photo`
+	err := db.Conn.QueryRow(query, user.ID).Scan(
+		&user.ID,
+		&user.Email,
+		&user.Username,
+		&user.ProfileName,
+		&user.CovertPhoto,
+	)
+
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }

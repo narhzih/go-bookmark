@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users
     username VARCHAR(15) NOT NULL UNIQUE,
     profile_name VARCHAR(205) DEFAULT '',
     email VARCHAR(100) DEFAULT '' UNIQUE,
+    email_verified BOOLEAN DEFAULT  FALSE,
     cover_photo VARCHAR(500) DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

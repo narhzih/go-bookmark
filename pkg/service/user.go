@@ -66,3 +66,20 @@ func (s Service) UserWithUsernameExistsWithUser(username string) (bool, error) {
 
 	return exits, nil
 }
+
+func (s Service) MarkUserAsVerified(user model.User, token string) (model.User, error) {
+	var err error
+	user, err = s.DB.VerifyUser(user)
+	if err != nil {
+		return model.User{}, err
+	}
+	_, err = s.DB.DeleteVerification(token)
+	if err != nil {
+		s.DB.Logger.Err(err).Msg("Could not delete verification token from db")
+	}
+	return user, nil
+}
+
+func (s Service) PreparePasswordResetToken(user model.User, token string) (model.User, error) {
+	return model.User{}, nil
+}

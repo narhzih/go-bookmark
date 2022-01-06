@@ -40,10 +40,6 @@ func (s Service) IssueAuthToken(user model.User) (AuthToken, error) {
 	if err != nil {
 		return AuthToken{}, err
 	}
-	//expiresIn, err := strconv.Atoi(os.Getenv("JWT_EXPIRES_IN"))
-	//if err != nil {
-	//	return AuthToken{}, err
-	//}
 	authTokens := AuthToken{
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,

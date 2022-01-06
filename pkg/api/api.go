@@ -21,8 +21,6 @@ func NewHandler(service service.Service, logger zerolog.Logger) Handler {
 }
 
 func (h *Handler) Register(routeGroup *gin.RouterGroup) {
-	// User CORS
-
 	// This is where all routes will be registered
 	routeGroup.GET("/test-route", TestCaller)
 
@@ -31,6 +29,10 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	// sending in actual GoogleJWT
 	routeGroup.POST("/sign-up", h.EmailSignUp)
 	routeGroup.POST("/sign-in", h.EmailLogin)
+	routeGroup.POST("/verify-account/:token", h.VerifyAccount)
+	routeGroup.POST("/forgot-password", h.ForgotPassword)
+	routeGroup.POST("/verify-reset-token/:token", h.VerifyPasswordResetToken)
+	routeGroup.POST("/reset-password/:token", h.ResetPassword)
 
 	routeGroup.POST("/google/sign-up", h.SignUpWithGoogle)
 	routeGroup.POST("/google/sign-in", h.SignInWithGoogle)
