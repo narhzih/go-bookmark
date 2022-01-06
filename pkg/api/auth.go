@@ -5,9 +5,7 @@ import (
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
 	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
-	"golang.org/x/crypto/bcrypt"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -20,7 +18,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 	}{}
 
 	if err := c.ShouldBindJSON(&singUpReq); err != nil {
-		errMessage := parseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
@@ -28,7 +26,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		return
 	}
 
-	hashedPassword, err := hashPassword(singUpReq.Password)
+	hashedPassword, err := helpers.HashPassword(singUpReq.Password)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went very wrong",
@@ -170,7 +168,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 		Password string `json:"password" binding:"required"`
 	}{}
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		errMessage := parseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
@@ -202,7 +200,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 		return
 	}
 
-	if verifyPassword(loginReq.Password, userAndAuth.HashedPassword) {
+	if helpers.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword) {
 		authToken, err := h.service.IssueAuthToken(userAndAuth.User)
 		if err != nil {
 			h.logger.Err(err).Msg(err.Error())
@@ -358,7 +356,7 @@ func (h *Handler) ForgotPassword(c *gin.Context) {
 		Email string `json:"email" binding:"required"`
 	}{}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		errMessage := parseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 		})
@@ -514,7 +512,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}{}
 
 	if err = c.ShouldBindJSON(&resetReq); err != nil {
-		errMessage := parseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 		})
@@ -537,10 +535,12 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}
 
 	// Update the user's password
-	hashedPassword, err := hashPassword(resetReq.Password)
+	hashedPassword, err := helpers.HashPassword(resetReq.Password)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Something went very wrong",
+			"message": "Something" +
+				"" +
+				" went very wrong",
 		})
 		return
 	}
@@ -588,29 +588,4 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	//	},
 	//})
 
-}
-
-func hashPassword(password string) (string, error) {
-	bytes, err := bcrypt.GenerateFromPassword([]byte(password), 14)
-	return string(bytes), err
-}
-
-func verifyPassword(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
-}
-
-func parseErrorMessage(message string) string {
-	s := strings.Split(message, "\n")
-	var errMessage string
-	for _, part := range s {
-		// Parse each message and return its parsed form
-		step1 := strings.Split(part, ":")[1]  // 'Key' Error
-		step2 := strings.Trim(step1, " ")     // 'Key' Error
-		step3 := strings.Split(step2, " ")[0] // 'Key'
-		errorKey := strings.Trim(step3, "'")  // Key
-		msg := errorKey + " cannot be empty;"
-		errMessage += msg
-	}
-	return errMessage
 }
