@@ -164,7 +164,7 @@ func (db Database) UpdatePipe(userID int64, pipeID int64, updatedBody model.Pipe
 
 func (db Database) UpdatePipeName(userID int64, pipeID int64, pipeName string) (model.Pipe, error) {
 	var pipe model.Pipe
-	selectQuery := "SELECT id, name FROM pipes WHERE user_id=$1, id=$2 LIMIT 1"
+	selectQuery := "SELECT id, name FROM pipes WHERE user_id=$1 AND id=$2 LIMIT 1"
 	err := db.Conn.QueryRow(selectQuery, userID, pipeID).Scan(
 		&pipe.ID,
 		&pipe.Name,
@@ -194,7 +194,7 @@ func (db Database) UpdatePipeName(userID int64, pipeID int64, pipeName string) (
 }
 func (db Database) UpdatePipeCoverPhoto(userID int64, pipeID int64, pipeCp string) (model.Pipe, error) {
 	var pipe model.Pipe
-	selectQuery := "SELECT id, cover_photo FROM pipes WHERE user_id=$1, id=$2 LIMIT 1"
+	selectQuery := "SELECT id, cover_photo FROM pipes WHERE user_id=$1 AND id=$2 LIMIT 1"
 	err := db.Conn.QueryRow(selectQuery, userID, pipeID).Scan(
 		&pipe.ID,
 		&pipe.CoverPhoto,
