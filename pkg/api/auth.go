@@ -224,8 +224,8 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 			},
 		})
 	} else {
-		h.logger.Err(err).Msg(err.Error())
-		c.JSON(http.StatusUnauthorized, gin.H{
+		//h.logger.Err(err).Msg(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Password incorrect",
 		})
 		return
