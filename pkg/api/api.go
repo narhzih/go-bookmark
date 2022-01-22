@@ -61,6 +61,10 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	user.PATCH("/profile", h.EditProfile)
 	user.POST("/profile/cover-photo", h.UploadCoverPhoto)
 
+	parser := routeGroup.Group("/parse-link")
+	//parser.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
+	parser.GET("/twitter", h.TwitterLinkParser)
+
 }
 
 func TestCaller(c *gin.Context) {
