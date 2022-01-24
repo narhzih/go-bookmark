@@ -17,7 +17,6 @@ import (
 	"github.com/golang-jwt/jwt"
 
 	psh "github.com/platformsh/config-reader-go/v2"
-	sqldsn "github.com/platformsh/config-reader-go/v2/sqldsn"
 	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/pkg/api"
@@ -140,43 +139,43 @@ func getSqlConnectionString(logger zerolog.Logger) (string, error) {
 	var postgresPort int
 	var connectionString string
 	var err error
-	platformShConfig, err := psh.NewRuntimeConfig()
-	if err != nil {
-		// This means we're not on platform.sh
-		// Format the connection string based
-		// on variables in .env
-		postgresPort, err = strconv.Atoi(os.Getenv("POSTGRES_DB_PORT"))
-		if err != nil {
-			logger.Err(err).Msg("Error coming from parsing DB_PORT")
-			return "", err
-		}
-		dbConfig := db.Config{
-			Host:           os.Getenv("POSTGRES_DB_HOST"),
-			Port:           postgresPort,
-			DbName:         os.Getenv("POSTGRES_DB"),
-			Username:       os.Getenv("POSTGRES_USER"),
-			Password:       os.Getenv("POSTGRES_PASSWORD"),
-			ConnectionMode: os.Getenv("DB_SSL_MODE"),
-			Logger:         logger,
-		}
-
-		connectionString = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-			dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Password, dbConfig.DbName, dbConfig.ConnectionMode)
-
-		return connectionString, nil
-	}
+	//platformShConfig, err := psh.NewRuntimeConfig()
+	//if err != nil {
+	//
+	//}
 	// This means we're on platform.sh
-	credentials, err := platformShConfig.Credentials("database")
+	//credentials, err := platformShConfig.Credentials("database")
+	//if err != nil {
+	//	logger.Err(err).Msg("Error occurred while trying to connect to platform.sh database")
+	//	return "", err
+	//}
+	//
+	//connectionString, err = sqldsn.FormattedCredentials(credentials)
+	//if err != nil {
+	//	logger.Err(err).Msg("Invalid formatted credentials")
+	//	return "", nil
+	//}
+
+	// This means we're not on platform.sh
+	// Format the connection string based
+	// on variables in .env
+	postgresPort, err = strconv.Atoi(os.Getenv("POSTGRES_DB_PORT"))
 	if err != nil {
-		logger.Err(err).Msg("Error occurred while trying to connect to platform.sh database")
+		logger.Err(err).Msg("Error coming from parsing DB_PORT")
 		return "", err
 	}
-
-	connectionString, err = sqldsn.FormattedCredentials(credentials)
-	if err != nil {
-		logger.Err(err).Msg("Invalid formatted credentials")
-		return "", nil
+	dbConfig := db.Config{
+		Host:           os.Getenv("POSTGRES_DB_HOST"),
+		Port:           postgresPort,
+		DbName:         os.Getenv("POSTGRES_DB"),
+		Username:       os.Getenv("POSTGRES_USER"),
+		Password:       os.Getenv("POSTGRES_PASSWORD"),
+		ConnectionMode: os.Getenv("DB_SSL_MODE"),
+		Logger:         logger,
 	}
+
+	connectionString = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Password, dbConfig.DbName, dbConfig.ConnectionMode)
 
 	return connectionString, nil
 }
