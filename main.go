@@ -139,26 +139,6 @@ func getSqlConnectionString(logger zerolog.Logger) (string, error) {
 	var postgresPort int
 	var connectionString string
 	var err error
-	//platformShConfig, err := psh.NewRuntimeConfig()
-	//if err != nil {
-	//
-	//}
-	// This means we're on platform.sh
-	//credentials, err := platformShConfig.Credentials("database")
-	//if err != nil {
-	//	logger.Err(err).Msg("Error occurred while trying to connect to platform.sh database")
-	//	return "", err
-	//}
-	//
-	//connectionString, err = sqldsn.FormattedCredentials(credentials)
-	//if err != nil {
-	//	logger.Err(err).Msg("Invalid formatted credentials")
-	//	return "", nil
-	//}
-
-	// This means we're not on platform.sh
-	// Format the connection string based
-	// on variables in .env
 	postgresPort, err = strconv.Atoi(os.Getenv("POSTGRES_DB_PORT"))
 	if err != nil {
 		logger.Err(err).Msg("Error coming from parsing DB_PORT")
