@@ -41,6 +41,7 @@ func Connect(connectionString string, logger zerolog.Logger) (Database, error) {
 	err = db.Conn.Ping()
 	if err != nil {
 		logger.Err(err).Msg("Cannot ping database because error occurred while pinging")
+		logger.Err(err).Msg(fmt.Sprintf("The connection string is %s", connectionString))
 		return db, err
 	}
 
