@@ -166,7 +166,7 @@ func getSqlConnectionString(logger zerolog.Logger) (string, error) {
 		return connectionString, nil
 	}
 	// This means we're on platform.sh
-	credentials, err := platformShConfig.Credentials("database")
+	credentials, err := platformShConfig.Credentials("postgresdatabase")
 	if err != nil {
 		logger.Err(err).Msg("Error occurred while trying to connect to platform.sh database")
 		return "", err
