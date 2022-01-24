@@ -27,7 +27,7 @@ mounts:
 # to the application in the PLATFORM_RELATIONSHIPS variable. The right-hand
 # side is in the form '<service name>:<endpoint name>'.
 relationships:
-  postgresdatabase: 'dbpostgres:postgresql'
+  database: 'dbpostgres:postgresql'
 
 # Set disk size for this runtime to about 2 GB
 disk: 2048
