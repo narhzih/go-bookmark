@@ -29,19 +29,19 @@ type Config struct {
 
 //<--- User and user auth structs
 
-func Connect(config Config) (Database, error) {
+func Connect(connectionString string, logger zerolog.Logger) (Database, error) {
 	db := Database{}
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		config.Host, config.Port, config.Username, config.Password, config.DbName, config.ConnectionMode)
-	conn, err := sql.Open("postgres", dsn)
+	conn, err := sql.Open("postgres", connectionString)
 	if err != nil {
-		config.Logger.Err(err).Msg("Error was coming from database initialization")
+		logger.Err(err).Msg("Error was coming from database initialization")
 		return db, err
 	}
 	db.Conn = conn
-	db.Logger = config.Logger
+	db.Logger = logger
+	logger.Err(err).Msg(fmt.Sprintf("The connection string is %s", connectionString))
 	err = db.Conn.Ping()
 	if err != nil {
+		logger.Err(err).Msg("Cannot ping database because error occurred while pinging")
 		return db, err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/gin-contrib/cors"
+	"github.com/joho/godotenv"
 	"gitlab.com/trencetech/mypipe-api/pkg/service/mailer"
 	"net/http"
 	"os"
@@ -15,7 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 
-	"github.com/joho/godotenv"
+	psh "github.com/platformsh/config-reader-go/v2"
 	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/pkg/api"
@@ -26,9 +27,12 @@ func main() {
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 
 	// ONly require .env file on local machine
-	if os.Getenv("PORT") == "" || len(os.Getenv("PORT")) <= 0 {
-		logger.Info().Msg("Loading .env file")
-		godotenv.Load(".env")
+	if onPlatformDotSh() == false {
+		err := godotenv.Load(".env")
+		if err != nil {
+			logger.Err(err).Msg("Could not load environment variables")
+			os.Exit(1)
+		}
 	}
 	db, err := initDb(logger)
 	if err != nil {
@@ -83,24 +87,12 @@ func main() {
 }
 
 func initDb(logger zerolog.Logger) (db.Database, error) {
-	var postgresPort int
 	var err error
-	postgresPort, err = strconv.Atoi(os.Getenv("POSTGRES_DB_PORT"))
+	dsn, err := getSqlConnectionString(logger)
 	if err != nil {
-		logger.Err(err).Msg("Error coming from parsing DB_PORT")
 		return db.Database{}, err
 	}
-	dbConfig := db.Config{
-		Host:           os.Getenv("POSTGRES_DB_HOST"),
-		Port:           postgresPort,
-		DbName:         os.Getenv("POSTGRES_DB"),
-		Username:       os.Getenv("POSTGRES_USER"),
-		Password:       os.Getenv("POSTGRES_PASSWORD"),
-		ConnectionMode: os.Getenv("DB_SSL_MODE"),
-		Logger:         logger,
-	}
-
-	return db.Connect(dbConfig)
+	return db.Connect(dsn, logger)
 }
 
 func initJWTConfig() (service.JWTConfig, error) {
@@ -141,4 +133,38 @@ func initMailer() *mailer.Mailer {
 	logger.Info().Msg(config.Password + " is the password")
 	mailerP = mailer.NewMailer(config)
 	return mailerP
+}
+
+func getSqlConnectionString(logger zerolog.Logger) (string, error) {
+	var postgresPort int
+	var connectionString string
+	var err error
+	postgresPort, err = strconv.Atoi(os.Getenv("POSTGRES_DB_PORT"))
+	if err != nil {
+		logger.Err(err).Msg("Error coming from parsing DB_PORT")
+		return "", err
+	}
+	dbConfig := db.Config{
+		Host:           os.Getenv("POSTGRES_DB_HOST"),
+		Port:           postgresPort,
+		DbName:         os.Getenv("POSTGRES_DB"),
+		Username:       os.Getenv("POSTGRES_USER"),
+		Password:       os.Getenv("POSTGRES_PASSWORD"),
+		ConnectionMode: os.Getenv("DB_SSL_MODE"),
+		Logger:         logger,
+	}
+
+	connectionString = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Password, dbConfig.DbName, dbConfig.ConnectionMode)
+
+	return connectionString, nil
+}
+
+func onPlatformDotSh() bool {
+	_, err := psh.NewRuntimeConfig()
+	if err != nil {
+		return false
+	}
+
+	return true
 }
