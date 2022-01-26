@@ -64,6 +64,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	parser := routeGroup.Group("/parse-link")
 	//parser.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
 	parser.POST("/twitter", h.TwitterLinkParser)
+	parser.POST("/youtube", h.YoutubeLinkParser)
 
 }
 
