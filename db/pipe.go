@@ -76,9 +76,9 @@ func (db Database) GetPipeAndResource(pipeID, userID int64) (model.PipeAndResour
 	return pipeAndR, nil
 }
 
-func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
+func (db Database) GetPipesOnSteroid(userID int64) ([]model.Pipe, error) {
 	var pipes []model.Pipe
-	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE user_id=$1"
+	query := "SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks FROM pipes p INNER JOIN bookmarks b ON p.id=b.pipe_id WHERE p.user_id=$1 group by p.id"
 	rows, err := db.Conn.Query(query, userID)
 	if err != nil {
 		return pipes, err
@@ -86,7 +86,29 @@ func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var pipe model.Pipe
-		if err := rows.Scan(&pipe.ID, &pipe.Name, &pipe.CoverPhoto, &pipe.CreatedAt, &pipe.UserID); err != nil {
+		if err := rows.Scan(&pipe.ID, &pipe.Name, &pipe.CoverPhoto, &pipe.CreatedAt, &pipe.UserID, &pipe.Bookmarks); err != nil {
+			return pipes, err
+		}
+
+		pipes = append(pipes, pipe)
+	}
+	if err := rows.Err(); err != nil {
+		return pipes, err
+	}
+	return pipes, nil
+}
+
+func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
+	var pipes []model.Pipe
+	query := "SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks FROM pipes p INNER JOIN bookmarks b ON p.id=b.pipe_id WHERE p.user_id=$1 group by p.id"
+	rows, err := db.Conn.Query(query, userID)
+	if err != nil {
+		return pipes, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var pipe model.Pipe
+		if err := rows.Scan(&pipe.ID, &pipe.Name, &pipe.CoverPhoto, &pipe.CreatedAt, &pipe.UserID, &pipe.Bookmarks); err != nil {
 			return pipes, err
 		}
 

@@ -48,6 +48,7 @@ type Pipe struct {
 	CoverPhoto string    `json:"cover_photo"`
 	CreatedAt  time.Time `json:"created_at"`
 	ModifiedAt time.Time `json:"modified_at"`
+	Bookmarks  int       `json:"bookmarks"`
 }
 
 type Bookmark struct {
