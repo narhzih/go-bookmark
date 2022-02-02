@@ -56,9 +56,9 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 
 	user := routeGroup.Group("/user")
 	user.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
-	user.PATCH("/onboard-user", h.OnboardUser)
 	user.GET("/profile", h.UserProfile)
 	user.PATCH("/profile", h.EditProfile)
+	user.PATCH("/profile/change-password", h.ChangePassword)
 	user.POST("/profile/cover-photo", h.UploadCoverPhoto)
 
 	parser := routeGroup.Group("/parse-link")
