@@ -153,9 +153,17 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 
 		return user, nil
 	} else {
-		// This takes care of onbaoarding process also
-		if len(updatedBody.Username) > 0 && len(updatedBody.ProfileName) > 0 {
-			// For onboarding process
+		if len(updatedBody.Username) > 0 && len(updatedBody.ProfileName) > 0 && len(updatedBody.CovertPhoto) > 0 {
+
+			query := "UPDATE users SET username=$1, profile_name=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo"
+			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.ProfileName, updatedBody.ID).Scan(
+				&user.ID,
+				&user.Username,
+				&user.Email,
+				&user.ProfileName,
+				&user.CovertPhoto,
+			)
+		} else if len(updatedBody.Username) > 0 && len(updatedBody.ProfileName) > 0 {
 
 			query := "UPDATE users SET username=$1, profile_name=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo"
 			err = db.Conn.QueryRow(query, updatedBody.Username, updatedBody.ProfileName, updatedBody.ID).Scan(

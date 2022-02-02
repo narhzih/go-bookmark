@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 	"gitlab.com/trencetech/mypipe-api/pkg/service"
 	"net/http"
 	"os"
@@ -181,4 +182,102 @@ func (h *Handler) UploadCoverPhoto(c *gin.Context) {
 			},
 		},
 	})
+}
+
+func (h *Handler) ChangePassword(c *gin.Context) {
+	reqBody := struct {
+		CurrentPassword string `json:"current_password" binding:"required"`
+		Password        string `json:"password" binding:"required"`
+		ConfirmPassword string `json:"confirm_password" binding:"required"`
+	}{}
+
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		errMessage := helpers.ParseErrorMessage(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": errMessage,
+			"error":   err.Error(),
+		})
+		return
+	}
+	if reqBody.Password != reqBody.ConfirmPassword {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Passwords do not match",
+		})
+		return
+	}
+	userID := c.GetInt64(KeyUserId)
+	user, err := h.service.DB.GetUserById(int(userID))
+	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
+		if err == db.ErrNoRecord {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "You have to log in to be able to perform this operation",
+			})
+			return
+		}
+		h.logger.Err(err).Msg("An error occurred while trying to get user from the database")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "Something went wrong",
+			"error":   err.Error(),
+		})
+		return
+	}
+	userAndAuth, err := h.service.DB.GetUserAndAuth(user)
+	if err != nil {
+		h.logger.Err(err).Msg("An error occurred while trying to get user from the database")
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "Something went wrong",
+			"error":   err.Error(),
+		})
+		return
+	}
+
+	if helpers.VerifyPassword(reqBody.CurrentPassword, userAndAuth.HashedPassword) {
+		newPasswordHash, err := helpers.HashPassword(reqBody.Password)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Something went wrong",
+				"error":   err.Error(),
+			})
+			return
+		}
+		err = h.service.DB.UpdateUserPassword(int(userAndAuth.User.ID), newPasswordHash)
+		if err != nil {
+			h.logger.Err(err).Msg(err.Error())
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Something went wrong",
+				"error":   err.Error(),
+			})
+			return
+		}
+		authToken, err := h.service.IssueAuthToken(user)
+		if err != nil {
+			h.logger.Err(err).Msg(err.Error())
+			c.AbortWithStatusJSON(http.StatusOK, gin.H{
+				"message": "Password changed successfully",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Password changed successfully",
+			"data": map[string]interface{}{
+				"token":         authToken.AccessToken,
+				"refresh_token": authToken.RefreshToken,
+				"expires_at":    authToken.ExpiresAt,
+				"user": map[string]interface{}{
+					"id":           user.ID,
+					"username":     user.Username,
+					"email":        user.Email,
+					"profile name": user.ProfileName,
+					"cover_photo":  user.CovertPhoto,
+				},
+			},
+		})
+
+	} else {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Current password incorrect",
+		})
+	}
 }
