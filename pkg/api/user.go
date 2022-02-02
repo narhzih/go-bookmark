@@ -12,49 +12,6 @@ import (
 	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
-func (h *Handler) OnboardUser(c *gin.Context) {
-	// TODO : Implement route to onboard user
-	// i.e Set username and twitter_handle
-	// var err error
-
-	// onboardRequest := struct {
-	// 	Username    string `json:"username" binding:"required"`
-	// 	ProfileName string `json:"twitter_handle" binding:"required"`
-	// 	Email       string `json:"email" binding:"required"`
-	// 	Password    string `json:"password" binding:"required"`
-	// }{}
-
-	// if err := c.ShouldBindJSON(&onboardRequest); err != nil {
-	// 	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-	// 		"message": "Invalid request body",
-	// 	})
-	// 	return
-	// }
-
-	// newUserReq := model.User{
-	// 	Email:       onboardRequest.Email,
-	// 	Username:    onboardRequest.Username,
-	// 	ProfileName: onboardRequest.ProfileName,
-	// }
-
-	// _, err = h.service.DB.CreateUserByEmail(newUserReq, onboardRequest.Password)
-	// if err != nil {
-	// 	// Other error checks will be implemented soon
-	// 	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-	// 		"message": "An error occurred while trying to create user account",
-	// 	})
-	// }
-
-	/**
-	*	TODO:
-	*	Immediately user account is created, send a verification email to the user account
-	 */
-
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Account created successfully. Please verify your account by following the instructions sent to your email",
-	})
-}
-
 func (h *Handler) UserProfile(c *gin.Context) {
 	var userProfile model.Profile
 	var err error

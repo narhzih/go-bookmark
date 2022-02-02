@@ -176,6 +176,17 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 				&user.ProfileName,
 				&user.CovertPhoto,
 			)
+		} else if len(updatedBody.ProfileName) > 0 && len(updatedBody.CovertPhoto) > 0 {
+			// For usual edit
+
+			query := "UPDATE users SET profile_name=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo"
+			err = db.Conn.QueryRow(query, updatedBody.ProfileName, updatedBody.CovertPhoto, updatedBody.ID).Scan(
+				&user.ID,
+				&user.Username,
+				&user.Email,
+				&user.ProfileName,
+				&user.CovertPhoto,
+			)
 		} else if len(updatedBody.Username) > 0 {
 
 			query := "UPDATE users SET username=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo"
