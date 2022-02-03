@@ -1,23 +1,16 @@
 package mp_parser
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"github.com/rs/zerolog"
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 )
 
-func ParseLink(link string) (string, error) {
-	requestBody, err := json.Marshal(map[string]interface{}{})
-	resp, err := http.Post(
-		fmt.Sprintf("https://graph.facebook.com/v12.0/?scrape=true&id=%v&access_token=%v", url.QueryEscape(link), os.Getenv("FACEBOOK_ACCESS_TOKEN")),
-		"application/json",
-		bytes.NewBuffer(requestBody))
+func ParseYoutubeLink(youtubeLink string) (string, error) {
+	resp, err := http.Get(fmt.Sprintf("https://www.youtube.com/oembed?url=%+v&format=json", youtubeLink))
 	if err != nil {
 		return "", err
 	}
