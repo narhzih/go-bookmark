@@ -132,7 +132,23 @@ func (h *Handler) GetPipe(c *gin.Context) {
 	})
 }
 
-func (h *Handler) GetPipeWithResource(c *gin.Context) {}
+func (h *Handler) GetPipeWithResource(c *gin.Context) {
+	userID := c.GetInt64(KeyUserId)
+	pipes, err := h.service.DB.GetPipesOnSteroid(userID)
+	if err != nil {
+		h.logger.Err(err).Msg(err.Error())
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while trying to fetch pipes",
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "pipes fetched succesfully",
+		"data": map[string]interface{}{
+			"pipes": pipes,
+		},
+	})
+}
 func (h *Handler) GetPipes(c *gin.Context) {
 	userID := c.GetInt64(KeyUserId)
 	pipes, err := h.service.DB.GetPipes(userID)
