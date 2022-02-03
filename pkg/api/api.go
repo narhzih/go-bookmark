@@ -66,6 +66,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	//parser.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
 	parser.POST("/twitter", h.TwitterLinkParser)
 	parser.POST("/youtube", h.YoutubeLinkParser)
+	parser.POST("/others", h.ParseLink)
 
 }
 
