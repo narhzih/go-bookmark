@@ -70,3 +70,21 @@ type Profile struct {
 	Pipes     int
 	Bookmarks int
 }
+
+type SharedPipe struct {
+	ID         int64     `json:"id"`
+	SharerID   int64     `json:"sharer_id"`
+	PipeID     int64     `json:"pipe_id"`
+	Type       string    `json:"type"`
+	Code       string    `json:"code"`
+	CreatedAt  time.Time `json:"created_at"`
+	ModifiedAt time.Time `json:"modified_at"`
+}
+
+type SharedPipeReceiver struct {
+	ID           int64     `json:"id"`
+	SharedPipeId int64     `json:"shared_pipe_id"`
+	ReceiverID   int64     `json:"receiver_id"`
+	CreatedAt    time.Time `json:"created_at"`
+	ModifiedAt   time.Time `json:"modified_at"`
+}

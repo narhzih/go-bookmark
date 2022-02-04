@@ -45,6 +45,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	pipe.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
 	pipe.POST("/", h.CreatePipe)
 	pipe.GET("/:id", h.GetPipe)
+	pipe.POST("/:id/share", h.SharePipe)
 	pipe.PUT("/:id", h.UpdatePipe)
 	pipe.DELETE("/:id", h.DeletePipe)
 	pipe.GET("/all", h.GetPipes)
