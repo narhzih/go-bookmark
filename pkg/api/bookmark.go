@@ -30,6 +30,18 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 		})
 		return
 	}
+	pipeExits, err := h.service.PipeExists(pipeId, c.GetInt64(KeyUserId))
+	if !pipeExits {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid pipe to create bookmark",
+		})
+		return
+	}
+	if _, err := h.service.UserOwnsPipe(pipeId, c.GetInt64(KeyUserId)); err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"message": err.Error(),
+		})
+	}
 	bookmark = model.Bookmark{
 		UserID:   c.GetInt64(KeyUserId),
 		PipeID:   pipeId,

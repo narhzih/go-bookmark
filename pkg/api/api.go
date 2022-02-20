@@ -50,6 +50,8 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	pipe.DELETE("/:id", h.DeletePipe)
 	pipe.GET("/all", h.GetPipes)
 	pipe.GET("/all/steroids", h.GetPipeWithResource)
+	pipe.GET("/preview", h.PreviewPipe)
+	pipe.POST("/add-pipe", h.AddPipe)
 
 	pipe.GET("/:id/bookmarks", h.GetBookmarks)
 	pipe.POST("/:id/bookmark", h.CreateBookmark)

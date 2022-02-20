@@ -50,6 +50,7 @@ func (db Database) CreatePipeShareRecord(pipeShareData model.SharedPipe, receive
 			&pipeShareData.Type,
 		)
 		_, err = db.CreatePipeReceiver(model.SharedPipeReceiver{
+			SharerId:     pipeShareData.SharerID,
 			SharedPipeId: pipeShareData.PipeID,
 			ReceiverID:   pipeShareReceiver.ID,
 		})
@@ -68,12 +69,13 @@ func (db Database) CreatePipeShareRecord(pipeShareData model.SharedPipe, receive
 
 func (db Database) CreatePipeReceiver(receiver model.SharedPipeReceiver) (model.SharedPipeReceiver, error) {
 	query := `
-			INSERT INTO shared_pipe_receivers (shared_pipe_id, receiver_id)
-			VALUES ($1, $2)
-			RETURNING id, shared_pipe_id, receiver_id, created_at, modified_at
+			INSERT INTO shared_pipe_receivers (sharer_id, shared_pipe_id, receiver_id)
+			VALUES ($1, $2, $3)
+			RETURNING id, sharer_id, shared_pipe_id, receiver_id, created_at, modified_at
 	`
-	err := db.Conn.QueryRow(query, receiver.SharedPipeId, receiver.ReceiverID).Scan(
+	err := db.Conn.QueryRow(query, receiver.SharerId, receiver.SharedPipeId, receiver.ReceiverID).Scan(
 		&receiver.ID,
+		&receiver.SharerId,
 		&receiver.SharedPipeId,
 		&receiver.ReceiverID,
 		&receiver.CreatedAt,
@@ -83,4 +85,61 @@ func (db Database) CreatePipeReceiver(receiver model.SharedPipeReceiver) (model.
 		return receiver, err
 	}
 	return receiver, nil
+}
+
+func (db Database) GetSharedPipe(pipeId int64) (model.SharedPipe, error) {
+	var sharedPipe model.SharedPipe
+	query := "SELECT id, sharer_id, pipe_id, type, code, created_at FROM shared_pipes WHERE pipe_id=$1 LIMIT 1"
+	err := db.Conn.QueryRow(query, pipeId).Scan(
+		&sharedPipe.ID,
+		&sharedPipe.SharerID,
+		&sharedPipe.PipeID,
+		&sharedPipe.Type,
+		&sharedPipe.Code,
+		&sharedPipe.CreatedAt,
+	)
+	if err != nil {
+		if err == ErrNoRecord {
+			return model.SharedPipe{}, ErrNoRecord
+		}
+		return model.SharedPipe{}, err
+	}
+	return model.SharedPipe{}, nil
+}
+
+func (db Database) GetSharedPipeByCode(code string) (model.SharedPipe, error) {
+	var sharedPipe model.SharedPipe
+	query := "SELECT id,sharer_id, pipe_id, type, code, created_at FROM shared_pipes WHERE code=$1 LIMIT 1"
+	err := db.Conn.QueryRow(query, code).Scan(
+		&sharedPipe.ID,
+		&sharedPipe.SharerID,
+		&sharedPipe.PipeID,
+		&sharedPipe.Type,
+		&sharedPipe.Code,
+		&sharedPipe.CreatedAt,
+	)
+	if err != nil {
+		if err == ErrNoRecord {
+			return model.SharedPipe{}, ErrNoRecord
+		}
+		return model.SharedPipe{}, err
+	}
+	return sharedPipe, nil
+}
+
+func (db Database) GetReceivedPipeRecord(pipeId, userId int64) (model.SharedPipeReceiver, error) {
+	var sharedPipe model.SharedPipeReceiver
+	query := "SELECT id, shared_pipe_id, receiver_id FROM shared_pipe_receivers WHERE shared_pipe_id=$1 AND receiver_id=$2 LIMIT 1"
+	err := db.Conn.QueryRow(query, pipeId, userId).Scan(
+		&sharedPipe.ID,
+		&sharedPipe.SharedPipeId,
+		&sharedPipe.ReceiverID,
+	)
+	if err != nil {
+		if err == ErrNoRecord {
+			return model.SharedPipeReceiver{}, ErrNoRecord
+		}
+		return model.SharedPipeReceiver{}, err
+	}
+	return sharedPipe, nil
 }

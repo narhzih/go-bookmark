@@ -83,6 +83,7 @@ type SharedPipe struct {
 
 type SharedPipeReceiver struct {
 	ID           int64     `json:"id"`
+	SharerId     int64     `json:"sharer_id"`
 	SharedPipeId int64     `json:"shared_pipe_id"`
 	ReceiverID   int64     `json:"receiver_id"`
 	CreatedAt    time.Time `json:"created_at"`
