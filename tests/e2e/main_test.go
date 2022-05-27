@@ -1,6 +1,8 @@
 package e2e
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -9,25 +11,38 @@ import (
 	"gitlab.com/trencetech/mypipe-api/pkg/api"
 	"gitlab.com/trencetech/mypipe-api/pkg/service"
 	"gitlab.com/trencetech/mypipe-api/pkg/service/mailer"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/exec"
+	"sync"
 	"testing"
 )
 
 var (
-	handler  *http.Server
-	logger   = zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
-	appPort  = "5555"
-	pgPort   = 5432
-	pgDbName = "mypipe_db"
-	pgDbUser = "narhzih"
-	pgDbPass = "password"
+	handler           *http.Server
+	logger            = zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+	appPort           = "5555"
+	pgPort            = 5432
+	pgDbName          = "mypipe_db"
+	pgDbUser          = "narhzih"
+	pgDbPass          = "password"
+	dbUrl             = ""
+	globalAccessToken = ""
+	hostAndPort       = "localhost:5432"
 )
 
 func TestMain(main *testing.M) {
 	dbConn, _ := makeDBConn()
+	dbUrl = fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", pgDbUser, pgDbPass, hostAndPort, pgDbName)
+	applyMigration("down")
+	applyMigration("up")
+
 	handler = makeHandler(dbConn)
+	createInitialUser()
+	applyMigration("down")
 	code := main.Run()
 	os.Exit(code)
 }
@@ -36,12 +51,13 @@ func TestDefaultRoute(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/v1/test-route", nil)
 	res := executeRequest(req)
 	checkResponseCode(t, http.StatusOK, res.Code)
+
 	//fmt.Println("All well and good")
 }
 
 func checkResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
-		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+		t.Errorf("Expected response codee %d. Got %d\n", expected, actual)
 	}
 }
 func executeRequest(req *http.Request) *httptest.ResponseRecorder {
@@ -99,4 +115,74 @@ func initMailer(logger zerolog.Logger) *mailer.Mailer {
 	return mailerP
 }
 
-func applyMigration() {}
+func applyMigration(direction string) {
+	var syncer sync.WaitGroup
+	var cmd *exec.Cmd
+	cmd = exec.Command("migrate", "-database", dbUrl, "-path", "../../migrations", direction)
+	if direction == "down" {
+		log.Print("Executing migrate down")
+		stdin, err := cmd.StdinPipe()
+		if err != nil {
+			log.Fatal(err)
+		}
+		syncer.Add(1)
+		go func() {
+			defer syncer.Done()
+			defer stdin.Close()
+			io.WriteString(stdin, "y")
+		}()
+		syncer.Wait()
+		return
+	}
+	log.Fatal("Just executing the norms")
+
+	cmd.Stderr = logger
+	cmd.Stdout = logger
+	if err := cmd.Run(); err != nil {
+		log.Fatal(err)
+	}
+}
+func createInitialUser() {
+	// Create user
+	body := []byte(`{"username": "dummy_user", "profile_name": "dummy_user", "password": "test123", "email": "dummy@user.com"}`)
+	req, _ := http.NewRequest(http.MethodPost, "/v1/sign-up", bytes.NewBuffer(body))
+	res := executeRequest(req)
+	vResInJson := struct {
+		Message string `json:"message"`
+		Data    struct {
+			VToken string `json:"v_token"`
+		}
+	}{}
+	respBody, _ := io.ReadAll(res.Body)
+	if err := json.Unmarshal(respBody, &vResInJson); err != nil {
+		log.Print("Error coming from parsing vResINJson")
+		log.Fatal(err)
+	}
+
+	log.Print(fmt.Sprintf("Verification token is -> %+v", vResInJson.Message))
+
+	// Verify account
+	reqUrl := fmt.Sprintf("/v1/verify-account/%+v", vResInJson.Data.VToken)
+	req, _ = http.NewRequest(http.MethodPost, reqUrl, nil)
+	res = executeRequest(req)
+	lResInJson := struct {
+		Message string `json:"message"`
+		Data    struct {
+			Token string `json:"token"`
+			User  struct {
+				ID int64 `json:"id"`
+			}
+		}
+	}{}
+	respBody, _ = io.ReadAll(res.Body)
+	log.Print(fmt.Sprintf("response body log %+v", res.Body))
+	if err := json.Unmarshal(respBody, &lResInJson); err != nil {
+		log.Print("Error coming from parsing lResINJsonm")
+		log.Fatal(err)
+	}
+	// Login
+
+	globalAccessToken = lResInJson.Data.Token
+	log.Print(lResInJson.Message)
+	log.Print(globalAccessToken)
+}

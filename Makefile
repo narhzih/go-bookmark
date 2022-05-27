@@ -11,6 +11,8 @@ migrate-up:
 	migrate -database ${PG_URL} -path ./migrations up
 migrate-down:
 	migrate -database ${PG_URL} -path ./migrations down
+migrate-drop:
+	migrate -database ${PG_URL} -path ./migrations drop -f
 # creates a new migration in the sql directory
 # e.g: `make migration name=create_users_table` creates a new migration named "create_users_table"
 migration:
