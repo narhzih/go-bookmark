@@ -155,12 +155,12 @@ func (h *Handler) GetPipes(c *gin.Context) {
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"mesage": "An error occurred while trying to fetch pipes",
+			"message": "An error occurred while trying to fetch pipes",
 		})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"message": "pipes fetched succesfully",
+		"message": "pipes fetched successfully",
 		"data": map[string]interface{}{
 			"pipes": pipes,
 		},
