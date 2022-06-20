@@ -1,12 +1,13 @@
 package api
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
 	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
-	"net/http"
-	"time"
 )
 
 func (h *Handler) EmailSignUp(c *gin.Context) {
@@ -240,19 +241,20 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 
 func (h *Handler) SignInWithGoogle(c *gin.Context) {
 	var user model.User
+	var isNewUser bool = false
 
-	singInReq := struct {
+	signInReq := struct {
 		TokenString string `json:"token_string" binding:"required"`
 	}{}
 
-	if err := c.ShouldBindJSON(&singInReq); err != nil {
+	if err := c.ShouldBindJSON(&signInReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid request body",
 		})
 		return
 	}
 
-	claims, err := h.service.ValidateGoogleJWT(singInReq.TokenString)
+	claims, err := h.service.ValidateGoogleJWT(signInReq.TokenString)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid GoogleJWT",
@@ -263,13 +265,21 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 	user, err = h.service.DB.GetUserByEmail(claims.Email)
 	if err != nil {
 		if err == db.ErrNoRecord {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "user with the specified email not found",
-			})
-			return
+			// Create a new user account
+			isNewUser = true
+			userCred := model.User{
+				Username: claims.FirstName + " " + claims.LastName,
+				Email:    claims.Email,
+			}
+			user, err = h.service.DB.CreateUser(userCred)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Error occurred while trying to register user",
+				})
+				return
+			}
 		}
-
-		c.JSON(http.StatusInternalServerError, gin.H{
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to register user",
 		})
 		return
@@ -283,8 +293,9 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Sign in successful!",
+		"message": "Authentication successful!",
 		"data": map[string]interface{}{
+			"newUser": 		 isNewUser,
 			"token":         authToken.AccessToken,
 			"refresh_token": authToken.RefreshToken,
 			"user": map[string]interface{}{
@@ -322,6 +333,8 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 	user, err := h.service.DB.CreateUser(userCred)
 	if err != nil {
 		if err == db.ErrRecordExists {
+			// This means the user has already registered
+			// Automatically log the user into the system
 			c.JSON(http.StatusBadRequest, gin.H{
 				"message": "Email has already been taken. Please provide a unique email",
 			})
@@ -343,8 +356,8 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 	c.JSON(http.StatusAccepted, gin.H{
 		"message": "You can start organizing your life right away!",
 		"data": map[string]interface{}{
-			"token":        authToken.AccessToken,
-			"refesh_token": authToken.RefreshToken,
+			"token":         authToken.AccessToken,
+			"refresh_token": authToken.RefreshToken,
 			"user": map[string]interface{}{
 				"id":       user.ID,
 				"username": user.Username,
