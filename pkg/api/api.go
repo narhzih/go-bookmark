@@ -34,8 +34,8 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	routeGroup.POST("/verify-reset-token/:token", h.VerifyPasswordResetToken)
 	routeGroup.POST("/reset-password/:token", h.ResetPassword)
 
-	routeGroup.POST("/google/sign-up", h.SignUpWithGoogle)
-	routeGroup.POST("/google/sign-in", h.SignInWithGoogle)
+	routeGroup.POST("/google-auth", h.SignInWithGoogle)
+	// routeGroup.POST("/google/sign-in", h.SignInWithGoogle)
 
 	authApi := routeGroup.Group("/auth")
 	authApi.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
