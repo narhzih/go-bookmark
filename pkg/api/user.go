@@ -231,8 +231,8 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 		})
 		return
 	}
-
-	if helpers.VerifyPassword(reqBody.CurrentPassword, userAndAuth.HashedPassword) {
+	verifyOk, verifyErr := helpers.VerifyPassword(reqBody.CurrentPassword, userAndAuth.HashedPassword, userAndAuth.Origin)
+	if verifyOk {
 		newPasswordHash, err := helpers.HashPassword(reqBody.Password)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -277,7 +277,7 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 
 	} else {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Current password incorrect",
+			"message": verifyErr.Error(),
 		})
 	}
 }
