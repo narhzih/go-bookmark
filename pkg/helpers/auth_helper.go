@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"strings"
 )
@@ -10,9 +11,16 @@ func HashPassword(password string) (string, error) {
 	return string(bytes), err
 }
 
-func VerifyPassword(password, hash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+func VerifyPassword(password, hash, authOrigin string) (ok bool, err error) {
+
+	if authOrigin == "" || authOrigin == "DEFAULT" {
+		err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+		if err != nil {
+			return false, fmt.Errorf("incorrect password")
+		}
+		return true, nil
+	}
+	return false, fmt.Errorf("your account was created using %+v., authentication can only be carried out using the same channel", authOrigin)
 }
 
 func ParseErrorMessage(message string) string {

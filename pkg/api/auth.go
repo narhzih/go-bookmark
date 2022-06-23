@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -41,7 +42,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		Email:       singUpReq.Email,
 	}
 
-	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
+	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword, "DEFAULT")
 	if err != nil {
 		if err == db.ErrRecordExists {
 			h.logger.Err(err).Msg(err.Error())
@@ -191,20 +192,13 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 	userAndAuth, err := h.service.DB.GetUserAndAuth(user)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
-		if err == db.ErrNoRecord {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "You cannot be logged in! Your account was either created through google sign up or apple sign up. Please use either of those to sign in to your account",
-			})
-			return
-		}
-
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to sign in user",
 		})
 		return
 	}
-
-	if helpers.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword) {
+	verifyOk, verifyErr := helpers.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword, userAndAuth.Origin)
+	if verifyOk {
 		authToken, err := h.service.IssueAuthToken(userAndAuth.User)
 		if err != nil {
 			h.logger.Err(err).Msg(err.Error())
@@ -230,7 +224,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 	} else {
 		//h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Incorrect email or password",
+			"message": verifyErr.Error(),
 		})
 		return
 	}
@@ -261,28 +255,32 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 		})
 		return
 	}
-
+	h.logger.Info().Msg("google jwt validation successful")
 	user, err = h.service.DB.GetUserByEmail(claims.Email)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			// Create a new user account
+			h.logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.FirstName, claims.Email))
 			isNewUser = true
 			userCred := model.User{
 				Username: claims.FirstName + " " + claims.LastName,
 				Email:    claims.Email,
 			}
-			user, err = h.service.DB.CreateUser(userCred)
+			user, err = h.service.DB.CreateUserByEmail(userCred, "", "GOOGLE")
 			if err != nil {
+				h.logger.Err(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"message": "Error occurred while trying to register user",
 				})
 				return
 			}
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Error occurred while trying to register user",
+			})
+			return
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Error occurred while trying to register user",
-		})
-		return
+
 	}
 	authToken, err := h.service.IssueAuthToken(user)
 	if err != nil {
@@ -295,7 +293,7 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Authentication successful!",
 		"data": map[string]interface{}{
-			"newUser": 		 isNewUser,
+			"newUser":       isNewUser,
 			"token":         authToken.AccessToken,
 			"refresh_token": authToken.RefreshToken,
 			"user": map[string]interface{}{
