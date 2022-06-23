@@ -113,9 +113,10 @@ func (db Database) GetUserByUsername(username string) (user model.User, err erro
 }
 
 func (db Database) GetUserAndAuth(user model.User) (userAndAuth model.UserAuth, err error) {
-	query := "SELECT hashed_password FROM user_auth WHERE user_id=$1"
+	query := "SELECT hashed_password, origin FROM user_auth WHERE user_id=$1"
 	err = db.Conn.QueryRow(query, user.ID).Scan(
 		&userAndAuth.HashedPassword,
+		&userAndAuth.Origin,
 	)
 	if err != nil {
 		return model.UserAuth{}, err

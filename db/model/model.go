@@ -18,6 +18,7 @@ type User struct {
 type UserAuth struct {
 	User           User
 	HashedPassword string    `json:"hashed_password"`
+	Origin         string    `json:"origin"`
 	CreatedAt      time.Time `json:"created_at"`
 	ModifiedAt     time.Time `json:"modified_at"`
 }

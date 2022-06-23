@@ -192,20 +192,13 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 	userAndAuth, err := h.service.DB.GetUserAndAuth(user)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
-		if err == db.ErrNoRecord {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "You cannot be logged in! Your account was either created through google sign up or apple sign up. Please use either of those to sign in to your account",
-			})
-			return
-		}
-
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to sign in user",
 		})
 		return
 	}
-
-	if helpers.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword) {
+	verifyOk, verifyErr := helpers.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword, userAndAuth.Origin)
+	if verifyOk {
 		authToken, err := h.service.IssueAuthToken(userAndAuth.User)
 		if err != nil {
 			h.logger.Err(err).Msg(err.Error())
@@ -231,7 +224,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 	} else {
 		//h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Incorrect email or password",
+			"message": verifyErr.Error(),
 		})
 		return
 	}
