@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -261,11 +262,12 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 		})
 		return
 	}
-
+	h.logger.Info().Msg("google jwt validation successful")
 	user, err = h.service.DB.GetUserByEmail(claims.Email)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			// Create a new user account
+			h.logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.FirstName, claims.Email))
 			isNewUser = true
 			userCred := model.User{
 				Username: claims.FirstName + " " + claims.LastName,
@@ -273,16 +275,19 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 			}
 			user, err = h.service.DB.CreateUser(userCred)
 			if err != nil {
+				h.logger.Err(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"message": "Error occurred while trying to register user",
 				})
 				return
 			}
+		} else {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Error occurred while trying to register user",
+			})
+			return
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Error occurred while trying to register user",
-		})
-		return
+
 	}
 	authToken, err := h.service.IssueAuthToken(user)
 	if err != nil {
@@ -295,7 +300,7 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Authentication successful!",
 		"data": map[string]interface{}{
-			"newUser": 		 isNewUser,
+			"newUser":       isNewUser,
 			"token":         authToken.AccessToken,
 			"refresh_token": authToken.RefreshToken,
 			"user": map[string]interface{}{
