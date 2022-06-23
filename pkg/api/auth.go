@@ -248,7 +248,7 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 		return
 	}
 
-	claims, err := h.service.ValidateGoogleJWT(signInReq.TokenString)
+	claims, err := h.service.ValidateGoogleJWT(signInReq.TokenString, c.Query("device"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid GoogleJWT",
@@ -317,7 +317,7 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 		})
 		return
 	}
-	claims, err := h.service.ValidateGoogleJWT(signUpReq.TokenString)
+	claims, err := h.service.ValidateGoogleJWT(signUpReq.TokenString, c.Query("device"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid GoogleJWT",
