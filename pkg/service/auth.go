@@ -76,7 +76,7 @@ func (s Service) generateTokenPair(user model.User) (accessToken, refreshToken, 
 	return accessToken, refreshToken, expiryTime, nil
 }
 
-func (s Service) ValidateGoogleJWT(tokenString string) (GoogleClaims, error) {
+func (s Service) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, error) {
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	claimStruct := GoogleClaims{}
 	token, err := jwt.ParseWithClaims(
@@ -99,8 +99,13 @@ func (s Service) ValidateGoogleJWT(tokenString string) (GoogleClaims, error) {
 		logger.Info().Msg("GOOGLE_JWT_ERROR: iss is invalid")
 		return GoogleClaims{}, errors.New("iss is invalid")
 	}
-
-	if claims.Audience != os.Getenv("GOOGLE_CLIENT_ID") {
+	var googleClientId string
+	if device == "ios" {
+		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_IOS")
+	} else {
+		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_ANDROID")
+	}
+	if claims.Audience != googleClientId {
 		logger.Info().Msg("GOOGLE_JWT_ERROR: aud is invalid")
 		return GoogleClaims{}, errors.New("aud is invalid")
 	}
