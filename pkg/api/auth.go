@@ -42,7 +42,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		Email:       singUpReq.Email,
 	}
 
-	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword)
+	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword, "DEFAULT")
 	if err != nil {
 		if err == db.ErrRecordExists {
 			h.logger.Err(err).Msg(err.Error())
@@ -273,7 +273,7 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 				Username: claims.FirstName + " " + claims.LastName,
 				Email:    claims.Email,
 			}
-			user, err = h.service.DB.CreateUser(userCred)
+			user, err = h.service.DB.CreateUserByEmail(userCred, "", "GOOGLE")
 			if err != nil {
 				h.logger.Err(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

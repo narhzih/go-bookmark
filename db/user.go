@@ -7,7 +7,7 @@ import (
 	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
-func (db Database) CreateUserByEmail(user model.User, password string) (newUser model.User, err error) {
+func (db Database) CreateUserByEmail(user model.User, password string, authOrigin string) (newUser model.User, err error) {
 	query := `INSERT INTO users (email, username, profile_name) VALUES ($1, $2, $3) RETURNING id, email, user, profile_name`
 	err = db.Conn.QueryRow(query, user.Email, user.Username, user.ProfileName).Scan(
 		&newUser.ID,
@@ -24,9 +24,18 @@ func (db Database) CreateUserByEmail(user model.User, password string) (newUser 
 		}
 		return model.User{}, err
 	}
+	var authQuery string
+	var secondQueryValue string
+	if authOrigin == "" || authOrigin == "DEFAULT" {
+		secondQueryValue = password
+		authQuery = "INSERT INTO user_auth (user_id, hashed_password) VALUES ($1, $2)"
 
-	authQuery := "INSERT INTO user_auth (user_id, hashed_password) VALUES ($1, $2)"
-	_, err = db.Conn.Exec(authQuery, newUser.ID, password)
+	} else {
+		secondQueryValue = authOrigin
+		authQuery = "INSERT INTO user_auth (user_id, origin) VALUES ($1, $2)"
+
+	}
+	_, err = db.Conn.Exec(authQuery, newUser.ID, secondQueryValue)
 	if err != nil {
 		db.Logger.Err(err).Msg("Could not create user for auth")
 		return model.User{}, err
