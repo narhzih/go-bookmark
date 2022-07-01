@@ -159,6 +159,9 @@ func (h *Handler) GetPipes(c *gin.Context) {
 		})
 		return
 	}
+	if pipes == nil || len(pipes) <= 0 {
+
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pipes fetched successfully",
 		"data": map[string]interface{}{

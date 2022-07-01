@@ -1,8 +1,11 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
+	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/db/model"
+	"os"
 )
 
 var (
@@ -119,7 +122,7 @@ func (db Database) GetSharedPipeByCode(code string) (model.SharedPipe, error) {
 		&sharedPipe.CreatedAt,
 	)
 	if err != nil {
-		if err == ErrNoRecord {
+		if err == sql.ErrNoRows {
 			return model.SharedPipe{}, ErrNoRecord
 		}
 		return model.SharedPipe{}, err
@@ -128,6 +131,8 @@ func (db Database) GetSharedPipeByCode(code string) (model.SharedPipe, error) {
 }
 
 func (db Database) GetReceivedPipeRecord(pipeId, userId int64) (model.SharedPipeReceiver, error) {
+	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+
 	var sharedPipe model.SharedPipeReceiver
 	query := "SELECT id, shared_pipe_id, receiver_id FROM shared_pipe_receivers WHERE shared_pipe_id=$1 AND receiver_id=$2 LIMIT 1"
 	err := db.Conn.QueryRow(query, pipeId, userId).Scan(
@@ -136,10 +141,14 @@ func (db Database) GetReceivedPipeRecord(pipeId, userId int64) (model.SharedPipe
 		&sharedPipe.ReceiverID,
 	)
 	if err != nil {
-		if err == ErrNoRecord {
+		if err == sql.ErrNoRows {
+			logger.Info().Msg("The logged in user hasn't received this  pipe yet")
 			return model.SharedPipeReceiver{}, ErrNoRecord
 		}
+		logger.Info().Msg("There's a specific error somewhere")
+		logger.Err(err)
 		return model.SharedPipeReceiver{}, err
 	}
+	logger.Info().Msg("You have already received this pipe")
 	return sharedPipe, nil
 }
