@@ -150,13 +150,23 @@ func (h *Handler) AddPipe(c *gin.Context) {
 		})
 		return
 	}
+	h.logger.Info().Msg("Pipe was not found and about to be added to users collection")
 	// See if this user has already added this pipe to their collection
 	_, err = h.service.DB.GetReceivedPipeRecord(pipeToAdd.ID, c.GetInt64(KeyUserId))
-	if err != db.ErrNoRecord {
+	if err == nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "You have already added this pipe to your collection.",
 		})
 		return
+	} else {
+		if err != db.ErrNoRecord {
+			// This
+			h.logger.Err(err).Msg("An error occurred")
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "An error occurred while trying to add pipe to collection.",
+			})
+			return
+		}
 	}
 	_, err = h.service.DB.GetPipe(pipeToAdd.PipeID, pipeToAdd.SharerID)
 	if err != nil {
