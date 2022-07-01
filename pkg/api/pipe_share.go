@@ -161,7 +161,6 @@ func (h *Handler) AddPipe(c *gin.Context) {
 	} else {
 		if err != db.ErrNoRecord {
 			// This
-			h.logger.Err(err).Msg("An error occurred")
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "An error occurred while trying to add pipe to collection.",
 			})
@@ -176,7 +175,6 @@ func (h *Handler) AddPipe(c *gin.Context) {
 			})
 			return
 		}
-		h.logger.Err(err).Msg("Something went wrong")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
 		})
