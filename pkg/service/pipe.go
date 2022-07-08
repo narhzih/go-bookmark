@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"gitlab.com/trencetech/mypipe-api/db"
+	"strings"
 )
 
 func (s Service) PipeExists(pipeId, userId int64) (bool, error) {
@@ -28,4 +29,16 @@ func (s Service) UserOwnsPipe(pipeId, userId int64) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (s Service) GetPlatformFromLink(link string) (string, error) {
+	linkSplit := strings.Split(link, "://")[1]
+	if strings.HasPrefix(linkSplit, "twitter") {
+		return "twitter", nil
+	} else if strings.HasPrefix(linkSplit, "youtube") {
+		return "youtube", nil
+	} else {
+		return "others", nil
+	}
+
 }

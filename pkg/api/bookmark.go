@@ -11,8 +11,7 @@ import (
 
 func (h *Handler) CreateBookmark(c *gin.Context) {
 	bmRequest := struct {
-		Platform string `json:"platform" binding:"required"`
-		Url      string `json:"url" binding:"required"`
+		Url string `json:"url" binding:"required"`
 	}{}
 	if err := c.ShouldBindJSON(&bmRequest); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -20,7 +19,8 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 		})
 		return
 	}
-
+	var detectedPlatform string
+	detectedPlatform, _ = h.service.GetPlatformFromLink(bmRequest.Url)
 	var bookmark model.Bookmark
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -45,7 +45,7 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 	bookmark = model.Bookmark{
 		UserID:   c.GetInt64(KeyUserId),
 		PipeID:   pipeId,
-		Platform: bmRequest.Platform,
+		Platform: detectedPlatform,
 		Url:      bmRequest.Url,
 	}
 	bookmark, err = h.service.DB.CreateBookmark(bookmark)
