@@ -125,7 +125,7 @@ func (h *Handler) GetBookmarks(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Pipes fetched succesfully",
+		"message": "Pipes fetched successfully",
 		"data": map[string]interface{}{
 			"bookmarks": bookmarks,
 		},

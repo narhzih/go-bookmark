@@ -45,14 +45,14 @@ func (db Database) GetBookmarks(userID, pipeID int64) ([]model.Bookmark, error) 
 	query := "SELECT id, user_id, pipe_id, url, platform FROM bookmarks WHERE user_id=$1 AND pipe_id=$2"
 	rows, err := db.Conn.Query(query, userID, pipeID)
 	if err != nil {
-		return bookmarks, nil
+		return bookmarks, err
 	}
 	defer rows.Close()
 
 	for rows.Next() {
 		var bookmark model.Bookmark
 		if err := rows.Scan(&bookmark.ID, &bookmark.UserID, &bookmark.PipeID, &bookmark.Url, &bookmark.Platform); err != nil {
-			return bookmarks, nil
+			return bookmarks, err
 		}
 		bookmarks = append(bookmarks, bookmark)
 	}

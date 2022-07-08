@@ -65,6 +65,11 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	user.PATCH("/profile/change-password", h.ChangePassword)
 	user.POST("/profile/cover-photo", h.UploadCoverPhoto)
 
+	notification := routeGroup.Group("/notifications")
+	notification.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
+	notification.GET("/", h.GetNotifications)
+	notification.GET("/:notificationId", h.GetNotification)
+
 	parser := routeGroup.Group("/parse-link")
 	//parser.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
 	parser.POST("/twitter", h.TwitterLinkParser)
