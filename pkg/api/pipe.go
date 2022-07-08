@@ -15,6 +15,7 @@ import (
 
 func (h *Handler) CreatePipe(c *gin.Context) {
 	pipeName := c.PostForm("name")
+	var photoUrl = ""
 	if len(pipeName) <= 0 {
 		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
 			"message": "Please specify a pipe name",
@@ -38,29 +39,42 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 		return
 	}
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
-	uploadInformation := service.FileUploadInformation{
-		Logger:        logger,
-		Ctx:           c,
-		FileInputName: "cover_photo",
-		Type:          "pipe",
-	}
-	photoUrl, err := service.UploadToCloudinary(uploadInformation)
+	// Check if a file was added
+	_, _, err = c.Request.FormFile("cover_photo")
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
-		if err == http.ErrMissingFile {
-			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
-				"message": "No file was uploaded. Please select a file to upload as your pipe cover",
+		if err != http.ErrMissingFile {
+			h.logger.Info().Msg("No file was actually sent")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+		h.logger.Info().Msg("it's not giving")
+	} else {
+		uploadInformation := service.FileUploadInformation{
+			Logger:        logger,
+			Ctx:           c,
+			FileInputName: "cover_photo",
+			Type:          "pipe",
+		}
+		photoUrl, err = service.UploadToCloudinary(uploadInformation)
+		if err != nil {
+			h.logger.Err(err).Msg(err.Error())
+			if err == http.ErrMissingFile {
+				c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
+					"message": "No file was uploaded. Please select a file to upload as your pipe cover",
+					"err":     err.Error(),
+				})
+				return
+			}
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred when trying to process pipe image",
 				"err":     err.Error(),
 			})
 			return
 		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "An error occurred when trying to process pipe image",
-			"err":     err.Error(),
-		})
-		return
 	}
-
+	h.logger.Info().Msg("Actual pipe creation has started")
 	pipe := model.Pipe{
 		UserID:     c.GetInt64(KeyUserId),
 		Name:       pipeName,
