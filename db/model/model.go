@@ -90,3 +90,11 @@ type SharedPipeReceiver struct {
 	CreatedAt    time.Time `json:"created_at"`
 	ModifiedAt   time.Time `json:"modified_at"`
 }
+
+type Notification struct {
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Message   string    `json:"message"`
+	Read      bool      `json:"read"`
+	CreatedAt time.Time `json:"created_at"`
+}
