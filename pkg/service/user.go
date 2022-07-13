@@ -3,6 +3,7 @@ package service
 import (
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 )
 
 func (s Service) GetUserProfileInformation(userID int64) (model.Profile, error) {
@@ -80,6 +81,10 @@ func (s Service) MarkUserAsVerified(user model.User, token string) (model.User, 
 	return user, nil
 }
 
-func (s Service) PreparePasswordResetToken(user model.User, token string) (model.User, error) {
-	return model.User{}, nil
+func (s Service) TokenInUserDeviceTokens(userID int64, deviceToken string) (bool, error) {
+	userDeviceTokens, err := s.DB.GetUserDeviceTokens(userID)
+	if err != nil {
+		return false, err
+	}
+	return helpers.SliceContains(userDeviceTokens, deviceToken), nil
 }

@@ -14,6 +14,7 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.1.0 // indirect
+	github.com/appleboy/go-fcm v0.1.5 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/cloudinary/cloudinary-go v1.4.0 // indirect
 	github.com/creasty/defaults v1.5.1 // indirect
