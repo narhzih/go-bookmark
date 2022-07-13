@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func (s Service) SendPushNotification(message string, deviceToken string) error {
+func (s Service) SendPushNotification(message string, deviceToken []string) error {
 	msg := &fcm.Message{
 		To: "sample_device_token",
 		Data: map[string]interface{}{

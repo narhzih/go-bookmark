@@ -119,7 +119,7 @@ func (h *Handler) GetBookmarks(c *gin.Context) {
 	bookmarks, err := h.service.DB.GetBookmarks(userId, pipeId)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Could not retreive bookmarks! Please try again soon",
+			"message": "Could not retrieve bookmarks! Please try again soon",
 		})
 		return
 	}

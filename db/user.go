@@ -262,3 +262,23 @@ func (db Database) VerifyUser(user model.User) (model.User, error) {
 	}
 	return user, nil
 }
+
+func (db Database) GetUserDeviceTokens(userID int64) ([]string, error) {
+	var deviceTokens []string
+	query := `SELECT device_tokens FROM users WHERE user_id=$1`
+	err := db.Conn.QueryRow(query, userID).Scan(pq.Array(&deviceTokens))
+	if err != nil {
+		return deviceTokens, err
+	}
+	return deviceTokens, nil
+}
+
+func (db Database) UpdateUserDeviceTokens(userID int64, deviceTokens []string) ([]string, error) {
+	var userDeviceTokens []string
+	query := `UPDATE users SET device_tokens=$1 WHERE user_id=$2 RETURNING device_tokens`
+	err := db.Conn.QueryRow(query, pq.Array(deviceTokens), userID).Scan(pq.Array(&userDeviceTokens))
+	if err != nil {
+		return []string{}, err
+	}
+	return userDeviceTokens, nil
+}
