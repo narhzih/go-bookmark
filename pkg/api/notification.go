@@ -61,3 +61,40 @@ func (h *Handler) GetNotifications(c *gin.Context) {
 		},
 	})
 }
+
+func (h *Handler) UpdateUserDeviceTokens(c *gin.Context) {
+	reqBody := struct {
+		DeviceToken string `json:"device_token"`
+	}{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Please provide a device token",
+		})
+		return
+	}
+
+	existingDeviceTokens, err := h.service.DB.GetUserDeviceTokens(c.GetInt64(KeyUserId))
+	if err != nil {
+		if err != db.ErrNoRecord {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred",
+				"error":   err.Error(),
+			})
+			return
+		}
+	}
+	// TODO: Refactor to remove old device tokens if regenerated
+	existingDeviceTokens = append(existingDeviceTokens, reqBody.DeviceToken)
+	existingDeviceTokens, err = h.service.DB.UpdateUserDeviceTokens(c.GetInt64(KeyUserId), existingDeviceTokens)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Our system encountered an error. Please try again soon",
+			"error":   err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "User device token updated successfully",
+	})
+
+}

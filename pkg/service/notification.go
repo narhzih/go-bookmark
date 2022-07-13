@@ -3,11 +3,12 @@ package service
 import (
 	"github.com/appleboy/go-fcm"
 	"log"
+	"os"
 )
 
-func (s Service) SendPushNotification(message string, deviceToken []string) error {
+func (s Service) SendPushNotification(message string, deviceTokens []string) error {
 	msg := &fcm.Message{
-		To: "sample_device_token",
+		To: deviceTokens[0],
 		Data: map[string]interface{}{
 			"message": message,
 		},
@@ -17,7 +18,7 @@ func (s Service) SendPushNotification(message string, deviceToken []string) erro
 		},
 	}
 
-	client, err := fcm.NewClient("sample_api_key")
+	client, err := fcm.NewClient(os.Getenv("GFCM_SERVER_KEY"))
 	if err != nil {
 		return err
 	}

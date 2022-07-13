@@ -68,6 +68,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	notification := routeGroup.Group("/notifications")
 	notification.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
 	notification.GET("/", h.GetNotifications)
+	notification.POST("/update-device-tokens", h.UpdateUserDeviceTokens)
 	notification.GET("/:notificationId", h.GetNotification)
 
 	parser := routeGroup.Group("/parse-link")
