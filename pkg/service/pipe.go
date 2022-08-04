@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"gitlab.com/trencetech/mypipe-api/db"
+	"regexp"
 	"strings"
 )
 
@@ -33,9 +34,10 @@ func (s Service) UserOwnsPipe(pipeId, userId int64) (bool, error) {
 
 func (s Service) GetPlatformFromLink(link string) (string, error) {
 	linkSplit := strings.Split(link, "://")[1]
-	if strings.HasPrefix(linkSplit, "twitter") {
+	r, _ := regexp.Compile("^((?:https?:)?\\/\\/)?((?:www|m)\\.)?((?:youtube(-nocookie)?\\.com|youtu.be))(\\/(?:[\\w\\-]+\\?v=|embed\\/|v\\/)?)([\\w\\-]+)(\\S+)?$")
+	if strings.HasPrefix(linkSplit, "twitter") || strings.HasPrefix(linkSplit, "www.twitter") {
 		return "twitter", nil
-	} else if strings.HasPrefix(linkSplit, "youtube") {
+	} else if r.MatchString(linkSplit) {
 		return "youtube", nil
 	} else {
 		return "others", nil
