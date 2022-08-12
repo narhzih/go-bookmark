@@ -89,13 +89,13 @@ func (s Service) TokenInUserDeviceTokens(userID int64, deviceToken string) (bool
 	return helpers.SliceContains(userDeviceTokens, deviceToken), nil
 }
 
-func (s Service) TwitterAccountConnected(userID int, authorID string) (bool, error) {
-	user, err := s.DB.GetUserById(userID)
+func (s Service) TwitterAccountConnected(twitterID string) (model.User, error) {
+	user, err := s.DB.GetUserByTwitterID(twitterID)
 	if err != nil {
-		return false, err
+		if err == db.ErrNoRecord {
+			return model.User{}, db.ErrNoRecord
+		}
+		return model.User{}, err
 	}
-	if user.TwitterId == authorID {
-		return true, nil
-	}
-	return false, err
+	return user, nil
 }

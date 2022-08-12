@@ -55,6 +55,25 @@ func (db Database) GetPipe(pipeID, userID int64) (model.Pipe, error) {
 	return pipe, nil
 }
 
+func (db Database) GetPipeByName(pipeName string, userID int64) (model.Pipe, error) {
+	var pipe model.Pipe
+	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE name=$1 AND user_id=$2 LIMIT 1"
+	err := db.Conn.QueryRow(query, pipeName, userID).Scan(
+		&pipe.ID,
+		&pipe.Name,
+		&pipe.CoverPhoto,
+		&pipe.CreatedAt,
+		&pipe.UserID,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return model.Pipe{}, ErrNoRecord
+		}
+		return model.Pipe{}, err
+	}
+	return pipe, nil
+}
+
 func (db Database) GetPipeAndResource(pipeID, userID int64) (model.PipeAndResource, error) {
 	var pipeAndR model.PipeAndResource
 	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1 AND user_id=$2"
