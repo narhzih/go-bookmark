@@ -92,10 +92,6 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 		})
 		return
 	}
-	_, err = h.service.DB.CreateNotification(c.GetInt64(KeyUserId), "You just created a pipe titled "+pipeName)
-	if err != nil {
-		h.logger.Err(err).Msg("An error occurred while trying to create notification")
-	}
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Pipe created successfully",

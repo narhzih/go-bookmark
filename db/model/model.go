@@ -9,6 +9,7 @@ type User struct {
 	Username      string    `json:"username"`
 	Email         string    `json:"email"`
 	ProfileName   string    `json:"profile_name"`
+	TwitterId     string    `json:"twitter_id"`
 	CovertPhoto   string    `json:"cover_photo"`
 	EmailVerified bool      `json:"email_verified"`
 	CreatedAt     time.Time `json:"created_at"`

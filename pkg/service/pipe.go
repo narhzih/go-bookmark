@@ -42,5 +42,4 @@ func (s Service) GetPlatformFromLink(link string) (string, error) {
 	} else {
 		return "others", nil
 	}
-
 }
