@@ -6,6 +6,33 @@ import (
 	"os"
 )
 
+func (s Service) CreateTwitterPipeShareNotification(tweetUrl, pipeName string, userId int64) error {
+	message := "The following tweet has been successfully saved to " + pipeName + ": " + tweetUrl
+	_, err := s.DB.CreateNotification(userId, message)
+	if err != nil {
+		return err
+	}
+	return nil
+
+}
+func (s Service) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sharedToId int64) error {
+	sharedPipe, err := s.DB.GetPipe(sharedPipeId, sharerId)
+	if err != nil {
+		return err
+	}
+	sharer, err := s.DB.GetUserById(int(sharerId))
+	if err != nil {
+		return err
+	}
+	message := sharer.ProfileName + " privately shared you pipe with name: " + sharedPipe.Name
+	_, err = s.DB.CreateNotification(sharedToId, message)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s Service) SendPushNotification(message string, deviceTokens []string) error {
 	msg := &fcm.Message{
 		To: deviceTokens[0],
