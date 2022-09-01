@@ -26,9 +26,9 @@ var (
 	logger            = zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	appPort           = "5555"
 	pgPort            = 5432
-	pgDbName          = "mypipe_db"
+	pgDbName          = "mypipe_db_test"
 	pgDbUser          = "narhzih"
-	pgDbPass          = "password"
+	pgDbPass          = "me.password_"
 	dbUrl             = ""
 	globalAccessToken = ""
 	hostAndPort       = "localhost:5432"
@@ -134,7 +134,6 @@ func applyMigration(direction string) {
 		syncer.Wait()
 		return
 	}
-	log.Fatal("Just executing the norms")
 
 	cmd.Stderr = logger
 	cmd.Stdout = logger
