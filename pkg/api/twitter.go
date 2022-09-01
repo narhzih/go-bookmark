@@ -75,6 +75,11 @@ func (h *Handler) BotAddToPipe(c *gin.Context) {
 		})
 	}
 
+	err = h.service.CreateTwitterPipeShareNotification(bookmark.Url, pipe.Name, user.ID)
+	if err != nil {
+		h.logger.Err(err).Msg("An error occurred while creating notification for twitter pipe share")
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Bookmark created successfully",
 		"data": map[string]interface{}{
