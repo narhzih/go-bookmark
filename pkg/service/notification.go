@@ -1,14 +1,16 @@
 package service
 
 import (
+	"encoding/json"
 	"github.com/appleboy/go-fcm"
+	"gitlab.com/trencetech/mypipe-api/db/model"
 	"log"
 	"os"
 )
 
 func (s Service) CreateTwitterPipeShareNotification(tweetUrl, pipeName string, userId int64) error {
 	message := "The following tweet has been successfully saved to " + pipeName + ": " + tweetUrl
-	_, err := s.DB.CreateNotification(userId, message)
+	_, err := s.DB.CreateNotification(userId, message, "")
 	if err != nil {
 		return err
 	}
@@ -24,8 +26,13 @@ func (s Service) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, shar
 	if err != nil {
 		return err
 	}
+	metadata := model.MDPrivatePipeShare{
+		Pipe:   sharedPipe,
+		Sharer: sharer,
+	}
+	mdToJson, _ := json.Marshal(metadata)
 	message := sharer.ProfileName + " privately shared you pipe with name: " + sharedPipe.Name
-	_, err = s.DB.CreateNotification(sharedToId, message)
+	_, err = s.DB.CreateNotification(sharedToId, message, string(mdToJson))
 	if err != nil {
 		return err
 	}
