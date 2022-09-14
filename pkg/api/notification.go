@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/model"
@@ -18,6 +19,7 @@ func (h *Handler) GetNotification(c *gin.Context) {
 		})
 		return
 	}
+	h.logger.Info().Msg(fmt.Sprintf("retrieving notification for %+v", notificationId))
 	notification, err = h.service.DB.GetNotification(notificationId, c.GetInt64(KeyUserId))
 	if err != nil {
 		if err == db.ErrNoRecord {
@@ -29,6 +31,7 @@ func (h *Handler) GetNotification(c *gin.Context) {
 
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Unable to retrieve notification",
+			"err":     err.Error(),
 		})
 		return
 	}

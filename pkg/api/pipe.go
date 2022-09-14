@@ -43,13 +43,11 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 	_, _, err = c.Request.FormFile("cover_photo")
 	if err != nil {
 		if err != http.ErrMissingFile {
-			h.logger.Info().Msg("No file was actually sent")
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": err.Error(),
 			})
 			return
 		}
-		h.logger.Info().Msg("it's not giving")
 	} else {
 		uploadInformation := service.FileUploadInformation{
 			Logger:        logger,
