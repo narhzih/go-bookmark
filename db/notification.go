@@ -47,12 +47,13 @@ func (db Database) GetNotifications(userId int64) ([]model.Notification, error) 
 
 func (db Database) GetNotification(notificationId, userId int64) (model.Notification, error) {
 	var notification model.Notification
-	query := "SELECT id, user_id, message, read, created_at FROM notifications WHERE id=$1 AND user_id=$2 LIMIT 1"
+	query := "SELECT id, user_id, message, read, metadata, created_at FROM notifications WHERE id=$1 AND user_id=$2 LIMIT 1"
 	err := db.Conn.QueryRow(query, notificationId, userId).Scan(
 		&notification.ID,
 		&notification.UserID,
 		&notification.Message,
 		&notification.Read,
+		&notification.MetaData,
 		&notification.CreatedAt,
 	)
 	if err != nil {
