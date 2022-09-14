@@ -1,0 +1,25 @@
+FROM golang:alpine AS builder
+
+COPY go.mod go.sum /go/src/gitlab.com/trencetech/mypipe-api/
+WORKDIR /go/src/gitlab.com/trencetech/mypipe-api/
+RUN go mod download
+COPY . /go/src/gitlab.com/trencetech/mypipe-api/
+RUN CGO_ENABLED=0 GOOS=linux go build -a --installsuffix cgo -o bin/mypipe ./main.go
+
+FROM alpine
+RUN apk add --no-cache ca-certificates && update-ca-certificates
+
+# Install make and go-lang migrate
+RUN apt update && apt install -y make
+RUN curl -L https://packagecloud.io/golang-migrate/migrate/gpgkey |  apt-key add -
+RUN echo "deb https://packagecloud.io/golang-migrate/migrate/ubuntu/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/migrate.list
+RUN apt-get install -y migrate
+# Migrate database files / Pick up from last migration point
+RUN make migrate-up
+# Copy necessary code files
+COPY --from=builder /go/src/gitlab.com/trencetech/mypipe-api/bin/mypipe /usr/bin/mypipe
+
+# COPY .env /usr/bin/mypipe
+RUN  chmod +x /usr/bin/mypipe
+EXPOSE 5555
+ENTRYPOINT ["/usr/bin/mypipe"]

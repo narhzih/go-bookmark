@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/gin-contrib/cors"
 	"github.com/joho/godotenv"
-	"gitlab.com/trencetech/mypipe-api/pkg/service/mailer"
 	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/gin-contrib/cors"
+	"gitlab.com/trencetech/mypipe-api/pkg/service/mailer"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
@@ -26,14 +27,15 @@ import (
 func main() {
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 
-	// ONly require .env file on local machine
-	if onPlatformDotSh() == false {
+	// ONly require .env file on dev environment
+	if _, err := os.Stat(".env"); err == nil {
 		err := godotenv.Load(".env")
 		if err != nil {
 			logger.Err(err).Msg("Could not load environment variables")
 			os.Exit(1)
 		}
 	}
+
 	db, err := initDb(logger)
 	if err != nil {
 		logger.Err(err).Msg("An error occurred")
