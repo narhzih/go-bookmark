@@ -9,6 +9,7 @@ type User struct {
 	Username      string    `json:"username"`
 	Email         string    `json:"email"`
 	ProfileName   string    `json:"profile_name"`
+	TwitterId     string    `json:"twitter_id"`
 	CovertPhoto   string    `json:"cover_photo"`
 	EmailVerified bool      `json:"email_verified"`
 	CreatedAt     time.Time `json:"created_at"`
@@ -92,9 +93,16 @@ type SharedPipeReceiver struct {
 }
 
 type Notification struct {
-	ID        int64     `json:"id"`
-	UserID    int64     `json:"user_id"`
-	Message   string    `json:"message"`
-	Read      bool      `json:"read"`
-	CreatedAt time.Time `json:"created_at"`
+	ID        int64       `json:"id"`
+	UserID    int64       `json:"user_id"`
+	Message   string      `json:"message"`
+	MetaData  interface{} `json:"meta_data"`
+	Read      bool        `json:"read"`
+	CreatedAt time.Time   `json:"created_at"`
+}
+
+// MDPrivatePipeShare - Metadata definitions for notification
+type MDPrivatePipeShare struct {
+	Sharer User `json:"sharer"`
+	Pipe   Pipe `json:"pipe"`
 }

@@ -55,7 +55,14 @@ func (h *Handler) SharePipe(c *gin.Context) {
 			})
 		}
 		shareTo := shareReq.Username
-		_, err := h.service.SharePrivatePipe(int64(pipeID), loggedInUser, shareTo)
+		userToShareTo, err := h.service.DB.GetUserByUsername(shareTo)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "The specified user not found",
+			})
+			return
+		}
+		_, err = h.service.SharePrivatePipe(int64(pipeID), loggedInUser, shareTo)
 		if err != nil {
 			if err == db.ErrPipeShareToNotFound || err == db.ErrCannotSharePipeToSelf {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -68,6 +75,11 @@ func (h *Handler) SharePipe(c *gin.Context) {
 				"message": "Our system encountered an error while trying to finalize share. Please try again soon",
 			})
 			return
+		}
+
+		err = h.service.CreatePrivatePipeShareNotification(int64(pipeID), loggedInUser, userToShareTo.ID)
+		if err != nil {
+			h.logger.Err(err).Msg("An error occurred while creating share notification")
 		}
 		c.JSON(http.StatusCreated, gin.H{
 			"message": fmt.Sprintf("Pipe has been shared to %v successfully", shareTo),

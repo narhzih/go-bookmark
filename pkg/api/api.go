@@ -77,6 +77,9 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	parser.POST("/youtube", h.YoutubeLinkParser)
 	parser.POST("/others", h.ParseLink)
 
+	bot := routeGroup.Group("/bot")
+	bot.POST("/twitter/add-to-pipe", h.BotAddToPipe)
+
 }
 
 func TestCaller(c *gin.Context) {
