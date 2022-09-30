@@ -17,7 +17,7 @@ func ParseTwitterLink(twitterLink string) (string, error) {
 	timeout := time.Duration(10 * time.Second)
 	requestBody, err := json.Marshal(map[string]interface{}{})
 	client := http.Client{Timeout: timeout}
-	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?id=%v", chatId), bytes.NewBuffer(requestBody))
+	request, err := http.NewRequest("GET", fmt.Sprintf("https://api.twitter.com/1.1/statuses/show.json?id=%v&tweet_mode=extended", chatId), bytes.NewBuffer(requestBody))
 	request.Header.Set("Authorization", fmt.Sprintf("Bearer %v", os.Getenv("BEARER_TOKEN")))
 	resp, err := client.Do(request)
 	if err != nil {
