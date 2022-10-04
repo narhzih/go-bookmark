@@ -51,7 +51,9 @@ func (h *Handler) YoutubeLinkParser(c *gin.Context) {
 		})
 		return
 	}
-	c.Data(http.StatusOK, "application/json", []byte(parsedLink))
+	c.JSON(http.StatusOK, gin.H{
+		"data": parsedLink,
+	})
 }
 
 func (h *Handler) ParseLink(c *gin.Context) {
