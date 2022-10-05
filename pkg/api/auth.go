@@ -603,3 +603,50 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	//})
 
 }
+
+func (h *Handler) ConnectTwitterAccount(c *gin.Context) {
+	req := struct {
+		AccessToken string `json:"accessToken" binding:"required"`
+	}{}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		errMessage := helpers.ParseErrorMessage(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": errMessage,
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	user, err := h.service.DB.GetUserById(int(c.GetInt64(KeyUserId)))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "Server error",
+			"err":     err.Error(),
+		})
+	}
+
+	user, err = h.service.DB.ConnectToTwitter(user, "my-twitter-id")
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "Server error",
+			"err":     err.Error(),
+		})
+	}
+	h.logger.Info().Msg(req.AccessToken)
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Twitter account connected successfully",
+		"data": map[string]interface{}{
+			"user": map[string]interface{}{
+				"id":           user.ID,
+				"username":     user.Username,
+				"email":        user.Email,
+				"profile name": user.ProfileName,
+				"cover_photo":  user.CovertPhoto,
+				"twitter_id":   user.TwitterId,
+			},
+		},
+	})
+
+}
