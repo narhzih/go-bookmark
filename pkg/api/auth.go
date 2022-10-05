@@ -633,6 +633,7 @@ func (h *Handler) ConnectTwitterAccount(c *gin.Context) {
 			"err":     err.Error(),
 		})
 	}
+	h.logger.Info().Msg(req.AccessToken)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Twitter account connected successfully",
