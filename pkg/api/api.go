@@ -40,6 +40,7 @@ func (h *Handler) Register(routeGroup *gin.RouterGroup) {
 	authApi := routeGroup.Group("/auth")
 	authApi.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
 	authApi.GET("/auth-test", TestCaller)
+	authApi.POST("/twitter/connect-account", h.ConnectTwitterAccount)
 
 	pipe := routeGroup.Group("/pipe")
 	pipe.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))

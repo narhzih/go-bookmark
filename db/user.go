@@ -300,3 +300,22 @@ func (db Database) UpdateUserDeviceTokens(userID int64, deviceTokens []string) (
 	}
 	return userDeviceTokens, nil
 }
+
+func (db Database) ConnectToTwitter(user model.User, twitterId string) (model.User, error) {
+	updatedUser := model.User{}
+	query := `UPDATE users SET twitter_id=$1 WHERE id=$2 RETURNING id, username, profile_name, email, twitter_id, cover_photo`
+	err := db.Conn.QueryRow(query, twitterId, user.ID).Scan(
+		&updatedUser.ID,
+		&updatedUser.Username,
+		&updatedUser.ProfileName,
+		&updatedUser.Email,
+		&updatedUser.TwitterId,
+		&updatedUser.CovertPhoto,
+	)
+
+	if err != nil {
+		return updatedUser, err
+	}
+
+	return updatedUser, nil
+}
