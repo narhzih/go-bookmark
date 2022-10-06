@@ -126,13 +126,14 @@ func (db Database) GetPipesOnSteroid(userID int64) ([]model.Pipe, error) {
 func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
 	var pipes []model.Pipe
 	query := `
-			SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks
+			SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
 			FROM pipes p
 				LEFT JOIN bookmarks b ON p.id=b.pipe_id
+				LEFT JOIN users u ON p.user_id=u.id
 			WHERE p.user_id=$1 OR p.id  IN (
 					SELECT spr.shared_pipe_id FROM shared_pipe_receivers spr WHERE receiver_id=$1
 				)
-			GROUP BY p.id
+			GROUP BY p.id, u.username
 			ORDER BY p.id;
 	`
 	rows, err := db.Conn.Query(query, userID)
@@ -142,7 +143,15 @@ func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var pipe model.Pipe
-		if err := rows.Scan(&pipe.ID, &pipe.Name, &pipe.CoverPhoto, &pipe.CreatedAt, &pipe.UserID, &pipe.Bookmarks); err != nil {
+		if err := rows.Scan(
+			&pipe.ID,
+			&pipe.Name,
+			&pipe.CoverPhoto,
+			&pipe.CreatedAt,
+			&pipe.UserID,
+			&pipe.Bookmarks,
+			&pipe.Creator,
+		); err != nil {
 			return pipes, err
 		}
 

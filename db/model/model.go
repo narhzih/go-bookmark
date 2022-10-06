@@ -51,6 +51,7 @@ type Pipe struct {
 	CreatedAt  time.Time `json:"created_at"`
 	ModifiedAt time.Time `json:"modified_at"`
 	Bookmarks  int       `json:"bookmarks"`
+	Creator    string    `json:"creator"`
 }
 
 type Bookmark struct {
