@@ -36,11 +36,20 @@ func (h *Handler) GetNotification(c *gin.Context) {
 		return
 	}
 
+	if !notification.Read {
+		// Mark notification as read
+		notification, err = h.service.DB.MarkAsRead(notification)
+		if err != nil {
+			h.logger.Err(err).Msg("an error occurred while trying to mark notification as read")
+		}
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Notification fetched successfully",
 		"data": map[string]interface{}{
 			"id":         notification.ID,
 			"message":    notification.Message,
+			"metadata":   notification.MetaData,
 			"read":       notification.Read,
 			"created_at": notification.CreatedAt,
 		},

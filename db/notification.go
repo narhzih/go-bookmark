@@ -61,3 +61,22 @@ func (db Database) GetNotification(notificationId, userId int64) (model.Notifica
 	}
 	return notification, nil
 }
+
+func (db Database) MarkAsRead(notification model.Notification) (model.Notification, error) {
+	var markedNotification model.Notification
+	query := `UPDATE notifications SET read=true WHERE id=$1 RETURNING id, user_id, message, metadata, read, created_at`
+	err := db.Conn.QueryRow(query, notification.ID).Scan(
+		&markedNotification.ID,
+		&markedNotification.UserID,
+		&markedNotification.Message,
+		&markedNotification.MetaData,
+		&markedNotification.Read,
+		&markedNotification.CreatedAt,
+	)
+
+	if err != nil {
+		return markedNotification, err
+	}
+
+	return markedNotification, nil
+}
