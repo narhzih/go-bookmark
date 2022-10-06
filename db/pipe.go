@@ -38,13 +38,25 @@ func (db Database) CreatePipe(pipe model.Pipe) (model.Pipe, error) {
 
 func (db Database) GetPipe(pipeID, userID int64) (model.Pipe, error) {
 	var pipe model.Pipe
-	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1 AND user_id=$2 LIMIT 1"
-	err := db.Conn.QueryRow(query, pipeID, userID).Scan(
+	//query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1 AND user_id=$2 LIMIT 1"
+	query := `
+	SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
+	FROM pipes p
+		LEFT JOIN bookmarks b ON p.id=b.pipe_id
+		LEFT JOIN users u ON p.user_id=u.id
+	WHERE p.user_id=$1 AND p.id = $2
+	GROUP BY p.id, u.username
+	ORDER BY p.id
+	LIMIT 1
+	`
+	err := db.Conn.QueryRow(query, userID, pipeID).Scan(
 		&pipe.ID,
 		&pipe.Name,
 		&pipe.CoverPhoto,
 		&pipe.CreatedAt,
 		&pipe.UserID,
+		&pipe.Bookmarks,
+		&pipe.Creator,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {

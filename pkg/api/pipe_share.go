@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
@@ -146,58 +147,33 @@ func (h *Handler) PreviewPipe(c *gin.Context) {
 }
 
 func (h *Handler) AddPipe(c *gin.Context) {
-	code := c.Query("code")
-	// See if the pipe is still sharable
-	pipeToAdd, err := h.service.DB.GetSharedPipeByCode(code)
+	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		if err == db.ErrNoRecord {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "This pipe cannot be added to your collection because the author has not allowed it!",
-			})
-			return
-		}
-		h.logger.Err(err).Msg("Something went wrong")
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
-		})
-		return
-	}
-	h.logger.Info().Msg("Pipe was not found and about to be added to users collection")
-	// See if this user has already added this pipe to their collection
-	_, err = h.service.DB.GetReceivedPipeRecord(pipeToAdd.ID, c.GetInt64(KeyUserId))
-	if err == nil {
+		h.logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "You have already added this pipe to your collection.",
-		})
-		return
-	} else {
-		if err != db.ErrNoRecord {
-			// This
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "An error occurred while trying to add pipe to collection.",
-			})
-			return
-		}
-	}
-	_, err = h.service.DB.GetPipe(pipeToAdd.PipeID, pipeToAdd.SharerID)
-	if err != nil {
-		if err == db.ErrNoRecord {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "Pipe not found. Either the author of this pipe has deleted it or has removed the pipe from public access",
-			})
-			return
-		}
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
+			"message": "Invalid pipe ID",
 		})
 		return
 	}
 
-	if pipeToAdd.Type != "public" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "You cannot add this pipe to your collection because this pipe is not a public pipe",
-		})
-		return
+	// See if the pipe is an actual pipe
+	pipeToAdd, err := h.service.DB.GetSharedPipe(pipeId)
+	if err != nil {
+		switch {
+		case errors.Is(err, db.ErrNoRecord):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "This pipe cannot be added to your collection because the author has not allowed it!",
+			})
+			return
+		default:
+			h.logger.Err(err).Msg("Something went wrong")
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
+			})
+			return
+
+		}
+
 	}
 
 	if pipeToAdd.SharerID == c.GetInt64(KeyUserId) {
@@ -206,18 +182,98 @@ func (h *Handler) AddPipe(c *gin.Context) {
 		})
 	}
 
-	// Now we can add the pipe to the user's collection
-	_, err = h.service.DB.CreatePipeReceiver(model.SharedPipeReceiver{
-		SharedPipeId: pipeToAdd.ID,
-		ReceiverID:   c.GetInt64(KeyUserId),
-	})
+	switch pipeToAdd.Type {
+	case model.PipeShareTypePublic:
+		// Perform actions for public share type
+		_, err := h.service.DB.GetSharedPipeByCode(c.Query("code"))
+		if err != nil {
+			switch {
+			case errors.Is(err, db.ErrNoRecord):
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": "This pipe cannot be added to your collection because the author has not allowed it!",
+				})
+				return
+			default:
+				h.logger.Err(err).Msg("Something went wrong")
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
+				})
+				return
 
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Something went wrong",
-			"err":     err.Error(),
+			}
+		}
+
+		// See if this user has already added this pipe to their collection
+		_, err = h.service.DB.GetReceivedPipeRecord(pipeToAdd.ID, c.GetInt64(KeyUserId))
+		switch {
+		case errors.Is(err, nil):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "You have already added this pipe to your collection.",
+			})
+			return
+		case err != db.ErrNoRecord:
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "An error occurred while trying to add pipe to collection.",
+			})
+			return
+		}
+
+		// get the actual pipe
+		_, err = h.service.DB.GetPipe(pipeToAdd.PipeID, pipeToAdd.SharerID)
+		if err != nil {
+			if err == db.ErrNoRecord {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": "Pipe not found. Either the author of this pipe has deleted it or has removed the pipe from public access",
+				})
+				return
+			}
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
+			})
+			return
+		}
+
+		_, err = h.service.DB.CreatePipeReceiver(model.SharedPipeReceiver{
+			SharedPipeId: pipeToAdd.ID,
+			ReceiverID:   c.GetInt64(KeyUserId),
+			IsAccepted:   true,
 		})
-		return
+
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Something went wrong",
+				"err":     err.Error(),
+			})
+			return
+		}
+	case model.PipeShareTypePrivate:
+		pipeShareRecord, err := h.service.DB.GetReceivedPipeRecord(pipeToAdd.PipeID, c.GetInt64(KeyUserId))
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "an error occurred while addding pipe to your collection",
+				"err":     err.Error(),
+			})
+			return
+		}
+
+		if pipeShareRecord.IsAccepted {
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{
+				"message": "this pipe is already in your collection",
+			})
+		}
+		_, err = h.service.DB.AcceptPrivateShare(pipeShareRecord)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "an error occurred while addding pipe to your collection",
+				"err":     err.Error(),
+			})
+			return
+		}
+
+	default:
+		c.AbortWithStatusJSON(http.StatusConflict, gin.H{
+			"message": "Operation not allowed for pipe sharing",
+		})
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
