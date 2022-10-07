@@ -88,5 +88,3 @@ func (h *Handler) BotAddToPipe(c *gin.Context) {
 	})
 
 }
-
-func (h *Handler) ConnectTwitterAccount(c *gin.Context) {}
