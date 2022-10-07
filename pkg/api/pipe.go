@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"github.com/rs/zerolog"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"gitlab.com/trencetech/mypipe-api/pkg/service"
 	"net/http"
 	"os"
@@ -10,7 +11,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 func (h *Handler) CreatePipe(c *gin.Context) {
@@ -73,7 +73,7 @@ func (h *Handler) CreatePipe(c *gin.Context) {
 		}
 	}
 	h.logger.Info().Msg("Actual pipe creation has started")
-	pipe := model.Pipe{
+	pipe := models.Pipe{
 		UserID:     c.GetInt64(KeyUserId),
 		Name:       pipeName,
 		CoverPhoto: photoUrl,
@@ -183,7 +183,7 @@ func (h *Handler) GetPipes(c *gin.Context) {
 }
 func (h *Handler) UpdatePipe(c *gin.Context) {
 
-	var pipe model.Pipe
+	var pipe models.Pipe
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())

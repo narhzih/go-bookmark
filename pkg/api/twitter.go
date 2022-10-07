@@ -3,13 +3,13 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 	"net/http"
 )
 
 func (h *Handler) BotAddToPipe(c *gin.Context) {
-	var pipe model.Pipe
+	var pipe models.Pipe
 	botAddToPipeBody := struct {
 		TwitterID string `json:"twitter_id" binding:"required"`
 		TweetLink string `json:"tweet_link" binding:"required"`
@@ -44,7 +44,7 @@ func (h *Handler) BotAddToPipe(c *gin.Context) {
 	if err != nil {
 		if err == db.ErrNoRecord {
 			// Create a pipe for that user
-			pipe, err = h.service.DB.CreatePipe(model.Pipe{
+			pipe, err = h.service.DB.CreatePipe(models.Pipe{
 				Name:       botAddToPipeBody.PipeName,
 				UserID:     user.ID,
 				CoverPhoto: "",
@@ -62,7 +62,7 @@ func (h *Handler) BotAddToPipe(c *gin.Context) {
 			return
 		}
 	}
-	bookmark, err := h.service.DB.CreateBookmark(model.Bookmark{
+	bookmark, err := h.service.DB.CreateBookmark(models.Bookmark{
 		UserID:   user.ID,
 		PipeID:   pipe.ID,
 		Platform: "twitter",

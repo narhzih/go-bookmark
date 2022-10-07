@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"os"
 )
 
@@ -13,7 +13,7 @@ var (
 	ErrCannotSharePipeToSelf = fmt.Errorf("you cannot share pipe to yourself")
 )
 
-func (db Database) CreatePipeShareRecord(pipeShareData model.SharedPipe, receiver string) (model.SharedPipe, error) {
+func (db Database) CreatePipeShareRecord(pipeShareData models.SharedPipe, receiver string) (models.SharedPipe, error) {
 	var query string
 	var err error
 	if pipeShareData.Type == "public" {
@@ -31,13 +31,13 @@ func (db Database) CreatePipeShareRecord(pipeShareData model.SharedPipe, receive
 			db.Logger.Err(err).Msg("An error occurred while trying to fetch user to share pipe to")
 
 			if err == ErrNoRecord {
-				return model.SharedPipe{}, ErrPipeShareToNotFound
+				return models.SharedPipe{}, ErrPipeShareToNotFound
 			}
 
-			return model.SharedPipe{}, err
+			return models.SharedPipe{}, err
 		}
 		if pipeShareReceiver.ID == pipeShareData.SharerID {
-			return model.SharedPipe{}, ErrCannotSharePipeToSelf
+			return models.SharedPipe{}, ErrCannotSharePipeToSelf
 		}
 		//var sharedTo model.SharedPipeReceiver
 		query = `
@@ -52,13 +52,13 @@ func (db Database) CreatePipeShareRecord(pipeShareData model.SharedPipe, receive
 			&pipeShareData.PipeID,
 			&pipeShareData.Type,
 		)
-		_, err = db.CreatePipeReceiver(model.SharedPipeReceiver{
+		_, err = db.CreatePipeReceiver(models.SharedPipeReceiver{
 			SharerId:     pipeShareData.SharerID,
 			SharedPipeId: pipeShareData.PipeID,
 			ReceiverID:   pipeShareReceiver.ID,
 		})
 		if err != nil {
-			return model.SharedPipe{}, nil
+			return models.SharedPipe{}, nil
 		}
 	} else {
 		return pipeShareData, fmt.Errorf("invalid pipe type share: %v", pipeShareData.Type)
@@ -70,7 +70,7 @@ func (db Database) CreatePipeShareRecord(pipeShareData model.SharedPipe, receive
 	return pipeShareData, nil
 }
 
-func (db Database) CreatePipeReceiver(receiver model.SharedPipeReceiver) (model.SharedPipeReceiver, error) {
+func (db Database) CreatePipeReceiver(receiver models.SharedPipeReceiver) (models.SharedPipeReceiver, error) {
 	query := `
 			INSERT INTO shared_pipe_receivers (sharer_id, shared_pipe_id, receiver_id)
 			VALUES ($1, $2, $3)
@@ -90,8 +90,8 @@ func (db Database) CreatePipeReceiver(receiver model.SharedPipeReceiver) (model.
 	return receiver, nil
 }
 
-func (db Database) GetSharedPipe(pipeId int64) (model.SharedPipe, error) {
-	var sharedPipe model.SharedPipe
+func (db Database) GetSharedPipe(pipeId int64) (models.SharedPipe, error) {
+	var sharedPipe models.SharedPipe
 	query := "SELECT id, sharer_id, pipe_id, type, code, created_at FROM shared_pipes WHERE pipe_id=$1 LIMIT 1"
 	err := db.Conn.QueryRow(query, pipeId).Scan(
 		&sharedPipe.ID,
@@ -103,15 +103,15 @@ func (db Database) GetSharedPipe(pipeId int64) (model.SharedPipe, error) {
 	)
 	if err != nil {
 		if err == ErrNoRecord {
-			return model.SharedPipe{}, ErrNoRecord
+			return models.SharedPipe{}, ErrNoRecord
 		}
-		return model.SharedPipe{}, err
+		return models.SharedPipe{}, err
 	}
-	return model.SharedPipe{}, nil
+	return models.SharedPipe{}, nil
 }
 
-func (db Database) GetSharedPipeByCode(code string) (model.SharedPipe, error) {
-	var sharedPipe model.SharedPipe
+func (db Database) GetSharedPipeByCode(code string) (models.SharedPipe, error) {
+	var sharedPipe models.SharedPipe
 	query := "SELECT id,sharer_id, pipe_id, type, code, created_at FROM shared_pipes WHERE code=$1 LIMIT 1"
 	err := db.Conn.QueryRow(query, code).Scan(
 		&sharedPipe.ID,
@@ -123,17 +123,17 @@ func (db Database) GetSharedPipeByCode(code string) (model.SharedPipe, error) {
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return model.SharedPipe{}, ErrNoRecord
+			return models.SharedPipe{}, ErrNoRecord
 		}
-		return model.SharedPipe{}, err
+		return models.SharedPipe{}, err
 	}
 	return sharedPipe, nil
 }
 
-func (db Database) GetReceivedPipeRecord(pipeId, userId int64) (model.SharedPipeReceiver, error) {
+func (db Database) GetReceivedPipeRecord(pipeId, userId int64) (models.SharedPipeReceiver, error) {
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 
-	var sharedPipe model.SharedPipeReceiver
+	var sharedPipe models.SharedPipeReceiver
 	query := "SELECT id, shared_pipe_id, receiver_id FROM shared_pipe_receivers WHERE shared_pipe_id=$1 AND receiver_id=$2 LIMIT 1"
 	err := db.Conn.QueryRow(query, pipeId, userId).Scan(
 		&sharedPipe.ID,
@@ -143,11 +143,11 @@ func (db Database) GetReceivedPipeRecord(pipeId, userId int64) (model.SharedPipe
 	if err != nil {
 		if err == sql.ErrNoRows {
 			logger.Info().Msg("The logged in user hasn't received this  pipe yet")
-			return model.SharedPipeReceiver{}, ErrNoRecord
+			return models.SharedPipeReceiver{}, ErrNoRecord
 		}
 		logger.Info().Msg("There's a specific error somewhere")
 		logger.Err(err)
-		return model.SharedPipeReceiver{}, err
+		return models.SharedPipeReceiver{}, err
 	}
 	logger.Info().Msg("You have already received this pipe")
 	return sharedPipe, nil

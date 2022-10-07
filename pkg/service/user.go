@@ -2,19 +2,19 @@ package service
 
 import (
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 )
 
-func (s Service) GetUserProfileInformation(userID int64) (model.Profile, error) {
-	var profile model.Profile
+func (s Service) GetUserProfileInformation(userID int64) (models.Profile, error) {
+	var profile models.Profile
 	var err error
 
 	profile.User, err = s.DB.GetUserById(int(userID))
 	if err != nil {
 		s.DB.Logger.Err(err).Msg("Error is from getting user by ID")
 		s.DB.Logger.Err(err).Msg(err.Error())
-		return model.Profile{}, err
+		return models.Profile{}, err
 	}
 	profile.Pipes, err = s.DB.GetPipesCount(userID)
 	if err != nil {
@@ -68,11 +68,11 @@ func (s Service) UserWithUsernameExistsWithUser(username string) (bool, error) {
 	return exits, nil
 }
 
-func (s Service) MarkUserAsVerified(user model.User, token string) (model.User, error) {
+func (s Service) MarkUserAsVerified(user models.User, token string) (models.User, error) {
 	var err error
 	user, err = s.DB.VerifyUser(user)
 	if err != nil {
-		return model.User{}, err
+		return models.User{}, err
 	}
 	_, err = s.DB.DeleteVerification(token)
 	if err != nil {
@@ -89,13 +89,13 @@ func (s Service) TokenInUserDeviceTokens(userID int64, deviceToken string) (bool
 	return helpers.SliceContains(userDeviceTokens, deviceToken), nil
 }
 
-func (s Service) TwitterAccountConnected(twitterID string) (model.User, error) {
+func (s Service) TwitterAccountConnected(twitterID string) (models.User, error) {
 	user, err := s.DB.GetUserByTwitterID(twitterID)
 	if err != nil {
 		if err == db.ErrNoRecord {
-			return model.User{}, db.ErrNoRecord
+			return models.User{}, db.ErrNoRecord
 		}
-		return model.User{}, err
+		return models.User{}, err
 	}
 	return user, nil
 }

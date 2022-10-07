@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
 )
@@ -207,7 +207,7 @@ func (h *Handler) AddPipe(c *gin.Context) {
 	}
 
 	// Now we can add the pipe to the user's collection
-	_, err = h.service.DB.CreatePipeReceiver(model.SharedPipeReceiver{
+	_, err = h.service.DB.CreatePipeReceiver(models.SharedPipeReceiver{
 		SharedPipeId: pipeToAdd.ID,
 		ReceiverID:   c.GetInt64(KeyUserId),
 	})

@@ -2,10 +2,10 @@ package db
 
 import (
 	"database/sql"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 )
 
-func (db Database) CreateVerification(accountVerification model.AccountVerification) (model.AccountVerification, error) {
+func (db Database) CreateVerification(accountVerification models.AccountVerification) (models.AccountVerification, error) {
 	query := `
 				INSERT INTO account_verifications (user_id, token, expires_at) 
 				VALUES ($1, $2, $3) 
@@ -18,13 +18,13 @@ func (db Database) CreateVerification(accountVerification model.AccountVerificat
 		&accountVerification.CreatedAt,
 	)
 	if err != nil {
-		return model.AccountVerification{}, err
+		return models.AccountVerification{}, err
 	}
 	return accountVerification, nil
 }
 
-func (db Database) GetAccountVerificationByToken(token string) (model.AccountVerification, error) {
-	var accountVerification model.AccountVerification
+func (db Database) GetAccountVerificationByToken(token string) (models.AccountVerification, error) {
+	var accountVerification models.AccountVerification
 	query := `SELECT id, user_id, used, token, created_at FROM account_verifications WHERE token=$1 LIMIT 1`
 	if err := db.Conn.QueryRow(query, token).Scan(
 		&accountVerification.ID,
@@ -34,9 +34,9 @@ func (db Database) GetAccountVerificationByToken(token string) (model.AccountVer
 		&accountVerification.CreatedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return model.AccountVerification{}, ErrNoRecord
+			return models.AccountVerification{}, ErrNoRecord
 		}
-		return model.AccountVerification{}, nil
+		return models.AccountVerification{}, nil
 	}
 
 	return accountVerification, nil

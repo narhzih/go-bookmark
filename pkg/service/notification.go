@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"github.com/appleboy/go-fcm"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"log"
 	"os"
 )
@@ -26,7 +26,7 @@ func (s Service) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, shar
 	if err != nil {
 		return err
 	}
-	metadata := model.MDPrivatePipeShare{
+	metadata := models.MDPrivatePipeShare{
 		Pipe:   sharedPipe,
 		Sharer: sharer,
 	}

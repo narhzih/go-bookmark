@@ -2,12 +2,11 @@ package db
 
 import (
 	"database/sql"
-
 	"github.com/lib/pq"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 )
 
-func (db Database) CreateUserByEmail(user model.User, password string, authOrigin string) (newUser model.User, err error) {
+func (db Database) CreateUserByEmail(user models.User, password string, authOrigin string) (newUser models.User, err error) {
 	query := `INSERT INTO users (email, username, profile_name) VALUES ($1, $2, $3) RETURNING id, email, user, profile_name`
 	err = db.Conn.QueryRow(query, user.Email, user.Username, user.ProfileName).Scan(
 		&newUser.ID,
@@ -22,7 +21,7 @@ func (db Database) CreateUserByEmail(user model.User, password string, authOrigi
 				return newUser, ErrRecordExists
 			}
 		}
-		return model.User{}, err
+		return models.User{}, err
 	}
 	var authQuery string
 	var secondQueryValue string
@@ -38,13 +37,13 @@ func (db Database) CreateUserByEmail(user model.User, password string, authOrigi
 	_, err = db.Conn.Exec(authQuery, newUser.ID, secondQueryValue)
 	if err != nil {
 		db.Logger.Err(err).Msg("Could not create user for auth")
-		return model.User{}, err
+		return models.User{}, err
 	}
 
 	return newUser, err
 }
 
-func (db Database) CreateUser(user model.User) (newUser model.User, err error) {
+func (db Database) CreateUser(user models.User) (newUser models.User, err error) {
 	query := `INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id, username, email`
 	err = db.Conn.QueryRow(query, user.Username, user.Email).Scan(
 		&newUser.ID,
@@ -58,13 +57,13 @@ func (db Database) CreateUser(user model.User) (newUser model.User, err error) {
 				return newUser, ErrRecordExists
 			}
 		}
-		return model.User{}, err
+		return models.User{}, err
 	}
 
 	return newUser, err
 }
 
-func (db Database) GetUserByTwitterID(twitterId string) (user model.User, err error) {
+func (db Database) GetUserByTwitterID(twitterId string) (user models.User, err error) {
 	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id FROM users where twitter_id=$1 LIMIT 1`
 	if err = db.Conn.QueryRow(query, twitterId).Scan(
 		&user.ID,
@@ -75,14 +74,14 @@ func (db Database) GetUserByTwitterID(twitterId string) (user model.User, err er
 		&user.TwitterId,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return model.User{}, ErrNoRecord
+			return models.User{}, ErrNoRecord
 		}
-		return model.User{}, err
+		return models.User{}, err
 	}
 	return user, err
 }
 
-func (db Database) GetUserById(userId int) (user model.User, err error) {
+func (db Database) GetUserById(userId int) (user models.User, err error) {
 	query := `SELECT id, username, email, profile_name, cover_photo FROM users where id=$1 LIMIT 1`
 	if err = db.Conn.QueryRow(query, userId).Scan(
 		&user.ID,
@@ -92,14 +91,14 @@ func (db Database) GetUserById(userId int) (user model.User, err error) {
 		&user.CovertPhoto,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return model.User{}, ErrNoRecord
+			return models.User{}, ErrNoRecord
 		}
-		return model.User{}, err
+		return models.User{}, err
 	}
 	return user, err
 }
 
-func (db Database) GetUserByEmail(userEmail string) (user model.User, err error) {
+func (db Database) GetUserByEmail(userEmail string) (user models.User, err error) {
 	query := `SELECT id, username, email FROM users where email=$1 LIMIT 1`
 	if err = db.Conn.QueryRow(query, userEmail).Scan(
 		&user.ID,
@@ -107,14 +106,14 @@ func (db Database) GetUserByEmail(userEmail string) (user model.User, err error)
 		&user.Email,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return model.User{}, ErrNoRecord
+			return models.User{}, ErrNoRecord
 		}
-		return model.User{}, err
+		return models.User{}, err
 	}
 	return user, err
 }
 
-func (db Database) GetUserByUsername(username string) (user model.User, err error) {
+func (db Database) GetUserByUsername(username string) (user models.User, err error) {
 	query := `SELECT id, username, email, profile_name FROM users where username=$1 LIMIT 1`
 	if err = db.Conn.QueryRow(query, username).Scan(
 		&user.ID,
@@ -123,21 +122,21 @@ func (db Database) GetUserByUsername(username string) (user model.User, err erro
 		&user.ProfileName,
 	); err != nil {
 		if err == sql.ErrNoRows {
-			return model.User{}, ErrNoRecord
+			return models.User{}, ErrNoRecord
 		}
-		return model.User{}, err
+		return models.User{}, err
 	}
 	return user, err
 }
 
-func (db Database) GetUserAndAuth(user model.User) (userAndAuth model.UserAuth, err error) {
+func (db Database) GetUserAndAuth(user models.User) (userAndAuth models.UserAuth, err error) {
 	query := "SELECT hashed_password, origin FROM user_auth WHERE user_id=$1"
 	err = db.Conn.QueryRow(query, user.ID).Scan(
 		&userAndAuth.HashedPassword,
 		&userAndAuth.Origin,
 	)
 	if err != nil {
-		return model.UserAuth{}, err
+		return models.UserAuth{}, err
 	}
 	userAndAuth.User = user
 
@@ -157,8 +156,8 @@ func (db Database) UpdateUserPassword(userId int, password string) error {
 
 // Find a way to improve sql update query
 
-func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
-	var user model.User
+func (db Database) UpdateUser(updatedBody models.User) (models.User, error) {
+	var user models.User
 	selectQuery := "SELECT id, username, email, profile_name, cover_photo FROM users WHERE id=$1 LIMIT 1"
 	err := db.Conn.QueryRow(selectQuery, updatedBody.ID).Scan(
 		&user.ID,
@@ -171,9 +170,9 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 	if err != nil {
 
 		if err == sql.ErrNoRows {
-			return model.User{}, ErrNoRecord
+			return models.User{}, ErrNoRecord
 		}
-		return model.User{}, err
+		return models.User{}, err
 	}
 
 	if len(updatedBody.Username) <= 0 && len(updatedBody.CovertPhoto) <= 0 && len(updatedBody.ProfileName) <= 0 {
@@ -265,7 +264,7 @@ func (db Database) UpdateUser(updatedBody model.User) (model.User, error) {
 	}
 }
 
-func (db Database) VerifyUser(user model.User) (model.User, error) {
+func (db Database) VerifyUser(user models.User) (models.User, error) {
 	query := `UPDATE users SET email_verified=true WHERE id=$1 RETURNING id, email, username, profile_name, cover_photo`
 	err := db.Conn.QueryRow(query, user.ID).Scan(
 		&user.ID,
@@ -301,8 +300,8 @@ func (db Database) UpdateUserDeviceTokens(userID int64, deviceTokens []string) (
 	return userDeviceTokens, nil
 }
 
-func (db Database) ConnectToTwitter(user model.User, twitterId string) (model.User, error) {
-	updatedUser := model.User{}
+func (db Database) ConnectToTwitter(user models.User, twitterId string) (models.User, error) {
+	updatedUser := models.User{}
 	query := `UPDATE users SET twitter_id=$1 WHERE id=$2 RETURNING id, username, profile_name, email, twitter_id, cover_photo`
 	err := db.Conn.QueryRow(query, twitterId, user.ID).Scan(
 		&updatedUser.ID,

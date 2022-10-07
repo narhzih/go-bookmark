@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 	"gitlab.com/trencetech/mypipe-api/pkg/service"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 func (h *Handler) UserProfile(c *gin.Context) {
-	var userProfile model.Profile
+	var userProfile models.Profile
 	var err error
 	userID := c.GetInt64(KeyUserId)
 	userProfile, err = h.service.GetUserProfileInformation(userID)
@@ -38,7 +38,7 @@ func (h *Handler) UserProfile(c *gin.Context) {
 
 func (h *Handler) EditProfile(c *gin.Context) {
 
-	updatedUser := model.User{
+	updatedUser := models.User{
 		ID: c.GetInt64(KeyUserId),
 	}
 	username := c.PostForm("username")
@@ -157,7 +157,7 @@ func (h *Handler) UploadCoverPhoto(c *gin.Context) {
 		})
 		return
 	}
-	updatedUserModel := model.User{
+	updatedUserModel := models.User{
 		ID:          c.GetInt64(KeyUserId),
 		CovertPhoto: photoUrl,
 	}

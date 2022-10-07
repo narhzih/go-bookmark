@@ -2,12 +2,12 @@ package api
 
 import (
 	"fmt"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/db/model"
 	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 )
 
@@ -36,7 +36,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		return
 	}
 
-	userStruct := model.User{
+	userStruct := models.User{
 		Username:    singUpReq.Username,
 		ProfileName: singUpReq.ProfileName,
 		Email:       singUpReq.Email,
@@ -59,7 +59,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		return
 	}
 
-	var accountVerification model.AccountVerification
+	var accountVerification models.AccountVerification
 	accountVerification.UserID = user.ID
 	accountVerification.Token = helpers.RandomToken(7)
 	accountVerification.ExpiresAt = time.Now().Add(7200 * time.Second).Format(time.RFC3339Nano)
@@ -234,7 +234,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 }
 
 func (h *Handler) SignInWithGoogle(c *gin.Context) {
-	var user model.User
+	var user models.User
 	var isNewUser bool = false
 
 	signInReq := struct {
@@ -262,7 +262,7 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 			// Create a new user account
 			h.logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.FirstName, claims.Email))
 			isNewUser = true
-			userCred := model.User{
+			userCred := models.User{
 				Username: claims.FirstName + " " + claims.LastName,
 				Email:    claims.Email,
 			}
@@ -324,7 +324,7 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 		})
 		return
 	}
-	userCred := model.User{
+	userCred := models.User{
 		Username: claims.FirstName + " " + claims.LastName,
 		Email:    claims.Email,
 	}

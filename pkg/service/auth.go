@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/rs/zerolog"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"io/ioutil"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt"
-	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 type GoogleClaims struct {
@@ -36,7 +36,7 @@ type AuthToken struct {
 	ExpiresAt    string
 }
 
-func (s Service) IssueAuthToken(user model.User) (AuthToken, error) {
+func (s Service) IssueAuthToken(user models.User) (AuthToken, error) {
 	accessToken, refreshToken, expiresAt, err := s.generateTokenPair(user)
 	if err != nil {
 		return AuthToken{}, err
@@ -48,7 +48,7 @@ func (s Service) IssueAuthToken(user model.User) (AuthToken, error) {
 	}
 	return authTokens, nil
 }
-func (s Service) generateTokenPair(user model.User) (accessToken, refreshToken, expiryTime string, err error) {
+func (s Service) generateTokenPair(user models.User) (accessToken, refreshToken, expiryTime string, err error) {
 	atExpiresIn := time.Now().Add(time.Duration(s.JWTConfig.ExpiresIn) * time.Second).Unix()
 	rtExpiresIn := time.Now().Add(30 * (24 * time.Hour)).Unix()
 	exToTime := time.Now().Add(time.Duration(s.JWTConfig.ExpiresIn) * time.Second)

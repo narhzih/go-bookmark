@@ -3,13 +3,13 @@ package service
 import (
 	"fmt"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 )
 
-func (s Service) SharePublicPipe(pipeId, userId int64) (model.SharedPipe, error) {
-	var sharedPipeModel model.SharedPipe
-	var pipeToBeShared model.Pipe
+func (s Service) SharePublicPipe(pipeId, userId int64) (models.SharedPipe, error) {
+	var sharedPipeModel models.SharedPipe
+	var pipeToBeShared models.Pipe
 	var err error
 
 	pipeToBeShared, err = s.DB.GetPipe(pipeId, userId)
@@ -28,9 +28,9 @@ func (s Service) SharePublicPipe(pipeId, userId int64) (model.SharedPipe, error)
 	return sharedPipeModel, nil
 }
 
-func (s Service) SharePrivatePipe(pipeId, userId int64, shareTo string) (model.SharedPipe, error) {
-	var sharedPipeModel model.SharedPipe
-	var pipeToBeShared model.Pipe
+func (s Service) SharePrivatePipe(pipeId, userId int64, shareTo string) (models.SharedPipe, error) {
+	var sharedPipeModel models.SharedPipe
+	var pipeToBeShared models.Pipe
 	var err error
 
 	pipeToBeShared, err = s.DB.GetPipe(pipeId, userId)
@@ -48,7 +48,7 @@ func (s Service) SharePrivatePipe(pipeId, userId int64, shareTo string) (model.S
 	return sharedPipeModel, nil
 }
 
-func (s Service) CanPreviewAndCanAdd(pipe model.Pipe, userId int64) (bool, error) {
+func (s Service) CanPreviewAndCanAdd(pipe models.Pipe, userId int64) (bool, error) {
 	pipeToAdd, err := s.DB.GetSharedPipe(pipe.ID)
 	if err != nil {
 		return false, err
@@ -62,13 +62,13 @@ func (s Service) CanPreviewAndCanAdd(pipe model.Pipe, userId int64) (bool, error
 	return true, nil
 }
 
-func (s Service) AddPipeToCollection(pipeToAdd model.SharedPipe, userId int64) (model.SharedPipeReceiver, error) {
-	receiverInfo, err := s.DB.CreatePipeReceiver(model.SharedPipeReceiver{
+func (s Service) AddPipeToCollection(pipeToAdd models.SharedPipe, userId int64) (models.SharedPipeReceiver, error) {
+	receiverInfo, err := s.DB.CreatePipeReceiver(models.SharedPipeReceiver{
 		SharedPipeId: pipeToAdd.PipeID,
 		ReceiverID:   userId,
 	})
 	if err != nil {
-		return model.SharedPipeReceiver{}, err
+		return models.SharedPipeReceiver{}, err
 	}
 	return receiverInfo, nil
 }

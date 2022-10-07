@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/db/model"
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
 )
 
 func (h *Handler) GetNotification(c *gin.Context) {
-	var notification model.Notification
+	var notification models.Notification
 	notificationId, err := strconv.ParseInt(c.Param("notificationId"), 10, 64)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())

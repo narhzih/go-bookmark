@@ -1,12 +1,12 @@
 package api
 
 import (
+	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/db/model"
 )
 
 func (h *Handler) CreateBookmark(c *gin.Context) {
@@ -21,7 +21,7 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 	}
 	var detectedPlatform string
 	detectedPlatform, _ = h.service.GetPlatformFromLink(bmRequest.Url)
-	var bookmark model.Bookmark
+	var bookmark models.Bookmark
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
@@ -42,7 +42,7 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 			"message": err.Error(),
 		})
 	}
-	bookmark = model.Bookmark{
+	bookmark = models.Bookmark{
 		UserID:   c.GetInt64(KeyUserId),
 		PipeID:   pipeId,
 		Platform: detectedPlatform,
@@ -74,7 +74,7 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 	})
 }
 func (h *Handler) GetBookmark(c *gin.Context) {
-	var bookmark model.Bookmark
+	var bookmark models.Bookmark
 	bmId, err := strconv.ParseInt(c.Param("bmId"), 10, 64)
 	if err != nil {
 		h.logger.Err(err).Msg(err.Error())
