@@ -2,8 +2,8 @@ package service
 
 import (
 	"fmt"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/services/mailer"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/pkg/service/mailer"
 )
 
 // Service More fields will be added to the service struct later in the future

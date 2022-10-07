@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/joho/godotenv"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/services/mailer"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,14 +13,11 @@ import (
 	"time"
 
 	"github.com/gin-contrib/cors"
-	"gitlab.com/trencetech/mypipe-api/pkg/service/mailer"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 
 	psh "github.com/platformsh/config-reader-go/v2"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/pkg/api"
 	"gitlab.com/trencetech/mypipe-api/pkg/service"
 )
@@ -88,15 +86,6 @@ func main() {
 	logger.Info().Msg("exiting server")
 }
 
-func initDb(logger zerolog.Logger) (db.Database, error) {
-	var err error
-	dsn, err := getSqlConnectionString(logger)
-	if err != nil {
-		return db.Database{}, err
-	}
-	return db.Connect(dsn, logger)
-}
-
 func initJWTConfig() (service.JWTConfig, error) {
 	var expiresIn int
 	var key string
@@ -135,31 +124,6 @@ func initMailer() *mailer.Mailer {
 	logger.Info().Msg(config.Password + " is the password")
 	mailerP = mailer.NewMailer(config)
 	return mailerP
-}
-
-func getSqlConnectionString(logger zerolog.Logger) (string, error) {
-	var postgresPort int
-	var connectionString string
-	var err error
-	postgresPort, err = strconv.Atoi(os.Getenv("POSTGRES_DB_PORT"))
-	if err != nil {
-		logger.Err(err).Msg("Error coming from parsing DB_PORT")
-		return "", err
-	}
-	dbConfig := db.Config{
-		Host:           os.Getenv("POSTGRES_DB_HOST"),
-		Port:           postgresPort,
-		DbName:         os.Getenv("POSTGRES_DB"),
-		Username:       os.Getenv("POSTGRES_USER"),
-		Password:       os.Getenv("POSTGRES_PASSWORD"),
-		ConnectionMode: os.Getenv("DB_SSL_MODE"),
-		Logger:         logger,
-	}
-
-	connectionString = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		dbConfig.Host, dbConfig.Port, dbConfig.Username, dbConfig.Password, dbConfig.DbName, dbConfig.ConnectionMode)
-
-	return connectionString, nil
 }
 
 func onPlatformDotSh() bool {

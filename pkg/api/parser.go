@@ -2,8 +2,8 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
+	mp_parser2 "gitlab.com/trencetech/mypipe-api/cmd/api/services/mp_parser"
 	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
-	"gitlab.com/trencetech/mypipe-api/pkg/service/mp_parser"
 	"net/http"
 )
 
@@ -20,7 +20,7 @@ func (h *Handler) TwitterLinkParser(c *gin.Context) {
 		return
 	}
 
-	parsedLink, err := mp_parser.ParseTwitterLink(reqBody.Link)
+	parsedLink, err := mp_parser2.ParseTwitterLink(reqBody.Link)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "An error occurred while parsing twitter link",
@@ -43,7 +43,7 @@ func (h *Handler) YoutubeLinkParser(c *gin.Context) {
 		})
 		return
 	}
-	parsedLink, err := mp_parser.ParseYoutubeLink(reqBody.Link)
+	parsedLink, err := mp_parser2.ParseYoutubeLink(reqBody.Link)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "An error occurred while parsing youtube link",
@@ -68,7 +68,7 @@ func (h *Handler) ParseLink(c *gin.Context) {
 		})
 		return
 	}
-	parsedLink, err := mp_parser.ParseLink(reqBody.Link)
+	parsedLink, err := mp_parser2.ParseLink(reqBody.Link)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "An error occurred while parsing youtube link",
