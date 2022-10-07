@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -624,7 +625,29 @@ func (h *Handler) ConnectTwitterAccount(c *gin.Context) {
 			"message": "Server error",
 			"err":     err.Error(),
 		})
+		return
 	}
+
+	// Get user information from twitter api
+	twitterHttp, err := http.NewRequest(http.MethodGet, "https://api.twitter.com/2/users/me", nil)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "we can't proceed to connect your twitter account at the moment. Please try again soon",
+		})
+		return
+	}
+	twitterHttp.Header.Add("Authorization", "Basic "+req.AccessToken)
+	twitterResponse, err := http.DefaultClient.Do(twitterHttp)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while connecting to twitter api!",
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	respBody, err := io.ReadAll(twitterResponse.Body)
+	h.logger.Info().Msg(string(respBody))
 
 	user, err = h.service.DB.ConnectToTwitter(user, "my-twitter-id")
 	if err != nil {
@@ -632,6 +655,7 @@ func (h *Handler) ConnectTwitterAccount(c *gin.Context) {
 			"message": "Server error",
 			"err":     err.Error(),
 		})
+		return
 	}
 	h.logger.Info().Msg(req.AccessToken)
 
