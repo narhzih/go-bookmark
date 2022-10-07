@@ -22,11 +22,12 @@ func (db Database) PipeAlreadyExists(pipeName string, userId int64) (bool, error
 }
 func (db Database) CreatePipe(pipe model.Pipe) (model.Pipe, error) {
 	var newPipe model.Pipe
-	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo"
+	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo, user_id"
 	err := db.Conn.QueryRow(query, pipe.UserID, pipe.Name, pipe.CoverPhoto).Scan(
 		&newPipe.ID,
 		&newPipe.Name,
 		&newPipe.CoverPhoto,
+		&newPipe.UserID,
 	)
 
 	if err != nil {
