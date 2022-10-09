@@ -652,7 +652,6 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 	var twitterUserResponse response.TwitterUserResponse
 	respBody, err := io.ReadAll(twitterResponse.Body)
 	json.Unmarshal(respBody, &twitterUserResponse)
-	h.app.Logger.Info().Msg(string(respBody))
 	user, err = h.app.Repositories.User.ConnectToTwitter(user, twitterUserResponse.Data.Id)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
