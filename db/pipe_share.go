@@ -72,15 +72,16 @@ func (db Database) CreatePipeShareRecord(pipeShareData model.SharedPipe, receive
 
 func (db Database) CreatePipeReceiver(receiver model.SharedPipeReceiver) (model.SharedPipeReceiver, error) {
 	query := `
-			INSERT INTO shared_pipe_receivers (sharer_id, shared_pipe_id, receiver_id)
-			VALUES ($1, $2, $3)
-			RETURNING id, sharer_id, shared_pipe_id, receiver_id, created_at, modified_at
+			INSERT INTO shared_pipe_receivers (sharer_id, shared_pipe_id, receiver_id, is_accepted)
+			VALUES ($1, $2, $3, $4)
+			RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
 	`
-	err := db.Conn.QueryRow(query, receiver.SharerId, receiver.SharedPipeId, receiver.ReceiverID).Scan(
+	err := db.Conn.QueryRow(query, receiver.SharerId, receiver.SharedPipeId, receiver.ReceiverID, receiver.IsAccepted).Scan(
 		&receiver.ID,
 		&receiver.SharerId,
 		&receiver.SharedPipeId,
 		&receiver.ReceiverID,
+		&receiver.IsAccepted,
 		&receiver.CreatedAt,
 		&receiver.ModifiedAt,
 	)
@@ -149,6 +150,29 @@ func (db Database) GetReceivedPipeRecord(pipeId, userId int64) (model.SharedPipe
 		logger.Err(err)
 		return model.SharedPipeReceiver{}, err
 	}
-	logger.Info().Msg("You have already received this pipe")
 	return sharedPipe, nil
+}
+
+func (db Database) AcceptPrivateShare(receiver model.SharedPipeReceiver) (model.SharedPipeReceiver, error) {
+	query := `
+	UPDATE shared_pipe_receivers 
+	SET 
+	    is_accepted=true 
+	WHERE receiver_id=$1 AND shared_pipe_id=$2
+	RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
+	`
+
+	err := db.Conn.QueryRow(query, receiver.ReceiverID, receiver.SharedPipeId).Scan(
+		&receiver.ID,
+		&receiver.SharerId,
+		&receiver.SharedPipeId,
+		&receiver.ReceiverID,
+		&receiver.IsAccepted,
+		&receiver.CreatedAt,
+		&receiver.ModifiedAt,
+	)
+	if err != nil {
+		return receiver, err
+	}
+	return receiver, nil
 }

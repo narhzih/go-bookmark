@@ -22,11 +22,12 @@ func (db Database) PipeAlreadyExists(pipeName string, userId int64) (bool, error
 }
 func (db Database) CreatePipe(pipe model.Pipe) (model.Pipe, error) {
 	var newPipe model.Pipe
-	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo"
+	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo, user_id"
 	err := db.Conn.QueryRow(query, pipe.UserID, pipe.Name, pipe.CoverPhoto).Scan(
 		&newPipe.ID,
 		&newPipe.Name,
 		&newPipe.CoverPhoto,
+		&newPipe.UserID,
 	)
 
 	if err != nil {
@@ -38,13 +39,25 @@ func (db Database) CreatePipe(pipe model.Pipe) (model.Pipe, error) {
 
 func (db Database) GetPipe(pipeID, userID int64) (model.Pipe, error) {
 	var pipe model.Pipe
-	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1 AND user_id=$2 LIMIT 1"
-	err := db.Conn.QueryRow(query, pipeID, userID).Scan(
+	//query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1 AND user_id=$2 LIMIT 1"
+	query := `
+	SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
+	FROM pipes p
+		LEFT JOIN bookmarks b ON p.id=b.pipe_id
+		LEFT JOIN users u ON p.user_id=u.id
+	WHERE p.user_id=$1 AND p.id = $2
+	GROUP BY p.id, u.username
+	ORDER BY p.id
+	LIMIT 1
+	`
+	err := db.Conn.QueryRow(query, userID, pipeID).Scan(
 		&pipe.ID,
 		&pipe.Name,
 		&pipe.CoverPhoto,
 		&pipe.CreatedAt,
 		&pipe.UserID,
+		&pipe.Bookmarks,
+		&pipe.Creator,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -131,7 +144,7 @@ func (db Database) GetPipes(userID int64) ([]model.Pipe, error) {
 				LEFT JOIN bookmarks b ON p.id=b.pipe_id
 				LEFT JOIN users u ON p.user_id=u.id
 			WHERE p.user_id=$1 OR p.id  IN (
-					SELECT spr.shared_pipe_id FROM shared_pipe_receivers spr WHERE receiver_id=$1
+					SELECT spr.shared_pipe_id FROM shared_pipe_receivers spr WHERE receiver_id=$1 AND is_accepted=true
 				)
 			GROUP BY p.id, u.username
 			ORDER BY p.id;
