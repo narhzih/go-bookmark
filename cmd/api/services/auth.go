@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"encoding/json"
@@ -36,7 +36,7 @@ type AuthToken struct {
 	ExpiresAt    string
 }
 
-func (s Service) IssueAuthToken(user models.User) (AuthToken, error) {
+func (s Services) IssueAuthToken(user models.User) (AuthToken, error) {
 	accessToken, refreshToken, expiresAt, err := s.generateTokenPair(user)
 	if err != nil {
 		return AuthToken{}, err
@@ -48,7 +48,7 @@ func (s Service) IssueAuthToken(user models.User) (AuthToken, error) {
 	}
 	return authTokens, nil
 }
-func (s Service) generateTokenPair(user models.User) (accessToken, refreshToken, expiryTime string, err error) {
+func (s Services) generateTokenPair(user models.User) (accessToken, refreshToken, expiryTime string, err error) {
 	atExpiresIn := time.Now().Add(time.Duration(s.JWTConfig.ExpiresIn) * time.Second).Unix()
 	rtExpiresIn := time.Now().Add(30 * (24 * time.Hour)).Unix()
 	exToTime := time.Now().Add(time.Duration(s.JWTConfig.ExpiresIn) * time.Second)
@@ -76,7 +76,7 @@ func (s Service) generateTokenPair(user models.User) (accessToken, refreshToken,
 	return accessToken, refreshToken, expiryTime, nil
 }
 
-func (s Service) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, error) {
+func (s Services) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, error) {
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	claimStruct := GoogleClaims{}
 	token, err := jwt.ParseWithClaims(

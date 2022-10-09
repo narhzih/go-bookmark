@@ -1,15 +1,30 @@
-package api
+package handlers
 
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
 )
 
-func (h *Handler) SharePipe(c *gin.Context) {
+type PipeShareHandler interface {
+	SharePipe(c *gin.Context)
+	PreviewPipe(c *gin.Context)
+	AddPipe(c *gin.Context)
+}
+
+type pipeShareHandler struct {
+	app internal.Application
+}
+
+func NewPipeShareHandler(app internal.Application) PipeShareHandler {
+	return pipeShareHandler{app: app}
+}
+
+func (h pipeShareHandler) SharePipe(c *gin.Context) {
 	shareType := c.Query("type")
 	if len(shareType) <= 0 {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -20,9 +35,9 @@ func (h *Handler) SharePipe(c *gin.Context) {
 
 	loggedInUser := c.GetInt64(KeyUserId)
 	pipeID, _ := strconv.Atoi(c.Param("id"))
-	_, err := h.service.DB.GetPipe(int64(pipeID), loggedInUser)
+	_, err := h.app.Repositories.Pipe.GetPipe(int64(pipeID), loggedInUser)
 	if err != nil {
-		h.logger.Err(err)
+		h.app.Logger.Err(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Our system encountered an error while trying to finalize share. Please try again soon",
 		})
@@ -30,9 +45,9 @@ func (h *Handler) SharePipe(c *gin.Context) {
 	}
 
 	if shareType == "public" {
-		sharedPipe, err := h.service.SharePublicPipe(int64(pipeID), loggedInUser)
+		sharedPipe, err := h.app.Services.SharePublicPipe(int64(pipeID), loggedInUser)
 		if err != nil {
-			h.logger.Err(err)
+			h.app.Logger.Err(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Our system encountered an error while trying to finalize share. Please try again soon",
 			})
@@ -55,14 +70,14 @@ func (h *Handler) SharePipe(c *gin.Context) {
 			})
 		}
 		shareTo := shareReq.Username
-		userToShareTo, err := h.service.DB.GetUserByUsername(shareTo)
+		userToShareTo, err := h.app.Repositories.User.GetUserByUsername(shareTo)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "The specified user not found",
 			})
 			return
 		}
-		_, err = h.service.SharePrivatePipe(int64(pipeID), loggedInUser, shareTo)
+		_, err = h.app.Services.SharePrivatePipe(int64(pipeID), loggedInUser, shareTo)
 		if err != nil {
 			if err == db.ErrPipeShareToNotFound || err == db.ErrCannotSharePipeToSelf {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -70,16 +85,16 @@ func (h *Handler) SharePipe(c *gin.Context) {
 				})
 				return
 			}
-			h.logger.Err(err)
+			h.app.Logger.Err(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Our system encountered an error while trying to finalize share. Please try again soon",
 			})
 			return
 		}
 
-		err = h.service.CreatePrivatePipeShareNotification(int64(pipeID), loggedInUser, userToShareTo.ID)
+		err = h.app.Services.CreatePrivatePipeShareNotification(int64(pipeID), loggedInUser, userToShareTo.ID)
 		if err != nil {
-			h.logger.Err(err).Msg("An error occurred while creating share notification")
+			h.app.Logger.Err(err).Msg("An error occurred while creating share notification")
 		}
 		c.JSON(http.StatusCreated, gin.H{
 			"message": fmt.Sprintf("Pipe has been shared to %v successfully", shareTo),
@@ -91,10 +106,10 @@ func (h *Handler) SharePipe(c *gin.Context) {
 	}
 }
 
-func (h *Handler) PreviewPipe(c *gin.Context) {
+func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 	code := c.Query("code")
 	// See if the pipe is still sharable
-	pipeToAdd, err := h.service.DB.GetSharedPipeByCode(code)
+	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -102,13 +117,13 @@ func (h *Handler) PreviewPipe(c *gin.Context) {
 			})
 			return
 		}
-		h.logger.Err(err).Msg("Something went wrong")
+		h.app.Logger.Err(err).Msg("Something went wrong")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
 		})
 		return
 	}
-	pipe, err := h.service.DB.GetPipeAndResource(pipeToAdd.PipeID, pipeToAdd.SharerID)
+	pipe, err := h.app.Repositories.Pipe.GetPipeAndResource(pipeToAdd.PipeID, pipeToAdd.SharerID)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -116,15 +131,15 @@ func (h *Handler) PreviewPipe(c *gin.Context) {
 			})
 			return
 		}
-		h.logger.Err(err).Msg("Something went wrong")
+		h.app.Logger.Err(err).Msg("Something went wrong")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
 		})
 		return
 	}
-	sharer, err := h.service.DB.GetUserById(int(pipeToAdd.SharerID))
+	sharer, err := h.app.Repositories.User.GetUserById(int(pipeToAdd.SharerID))
 	if err != nil {
-		h.logger.Err(err)
+		h.app.Logger.Err(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
 			"err":     err.Error(),
@@ -145,10 +160,10 @@ func (h *Handler) PreviewPipe(c *gin.Context) {
 
 }
 
-func (h *Handler) AddPipe(c *gin.Context) {
+func (h pipeShareHandler) AddPipe(c *gin.Context) {
 	code := c.Query("code")
 	// See if the pipe is still sharable
-	pipeToAdd, err := h.service.DB.GetSharedPipeByCode(code)
+	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -156,15 +171,15 @@ func (h *Handler) AddPipe(c *gin.Context) {
 			})
 			return
 		}
-		h.logger.Err(err).Msg("Something went wrong")
+		h.app.Logger.Err(err).Msg("Something went wrong")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
 		})
 		return
 	}
-	h.logger.Info().Msg("Pipe was not found and about to be added to users collection")
+	h.app.Logger.Info().Msg("Pipe was not found and about to be added to users collection")
 	// See if this user has already added this pipe to their collection
-	_, err = h.service.DB.GetReceivedPipeRecord(pipeToAdd.ID, c.GetInt64(KeyUserId))
+	_, err = h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.ID, c.GetInt64(KeyUserId))
 	if err == nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "You have already added this pipe to your collection.",
@@ -179,7 +194,7 @@ func (h *Handler) AddPipe(c *gin.Context) {
 			return
 		}
 	}
-	_, err = h.service.DB.GetPipe(pipeToAdd.PipeID, pipeToAdd.SharerID)
+	_, err = h.app.Repositories.Pipe.GetPipe(pipeToAdd.PipeID, pipeToAdd.SharerID)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -207,7 +222,7 @@ func (h *Handler) AddPipe(c *gin.Context) {
 	}
 
 	// Now we can add the pipe to the user's collection
-	_, err = h.service.DB.CreatePipeReceiver(models.SharedPipeReceiver{
+	_, err = h.app.Repositories.PipeShare.CreatePipeReceiver(models.SharedPipeReceiver{
 		SharedPipeId: pipeToAdd.ID,
 		ReceiverID:   c.GetInt64(KeyUserId),
 	})
@@ -224,5 +239,5 @@ func (h *Handler) AddPipe(c *gin.Context) {
 		"message": "Pipe has been added to your collection successfully",
 	})
 }
-func (h *Handler) RemoveShareAccessFromPipe(c *gin.Context) {}
-func (h *Handler) ChangePipeShareAccessType(c *gin.Context) {}
+func (h pipeShareHandler) RemoveShareAccessFromPipe(c *gin.Context) {}
+func (h pipeShareHandler) ChangePipeShareAccessType(c *gin.Context) {}

@@ -1,6 +1,7 @@
-package api
+package handlers
 
 import (
+	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
@@ -9,7 +10,22 @@ import (
 	"gitlab.com/trencetech/mypipe-api/db"
 )
 
-func (h *Handler) CreateBookmark(c *gin.Context) {
+type BookmarkHandler interface {
+	GetBookmarks(c *gin.Context)
+	CreateBookmark(c *gin.Context)
+	GetBookmark(c *gin.Context)
+	DeleteBookmark(c *gin.Context)
+}
+
+type bookmarkHandler struct {
+	app internal.Application
+}
+
+func NewBookmarkHandler(app internal.Application) BookmarkHandler {
+	return bookmarkHandler{app: app}
+}
+
+func (h bookmarkHandler) CreateBookmark(c *gin.Context) {
 	bmRequest := struct {
 		Url string `json:"url" binding:"required"`
 	}{}
@@ -20,24 +36,24 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 		return
 	}
 	var detectedPlatform string
-	detectedPlatform, _ = h.service.GetPlatformFromLink(bmRequest.Url)
+	detectedPlatform, _ = h.app.Services.GetPlatformFromLink(bmRequest.Url)
 	var bookmark models.Bookmark
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid pipe ID",
 		})
 		return
 	}
-	pipeExits, err := h.service.PipeExists(pipeId, c.GetInt64(KeyUserId))
+	pipeExits, err := h.app.Services.PipeExists(pipeId, c.GetInt64(KeyUserId))
 	if !pipeExits {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid pipe to create bookmark",
 		})
 		return
 	}
-	if _, err := h.service.UserOwnsPipe(pipeId, c.GetInt64(KeyUserId)); err != nil {
+	if _, err := h.app.Services.UserOwnsPipe(pipeId, c.GetInt64(KeyUserId)); err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"message": err.Error(),
 		})
@@ -48,7 +64,7 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 		Platform: detectedPlatform,
 		Url:      bmRequest.Url,
 	}
-	bookmark, err = h.service.DB.CreateBookmark(bookmark)
+	bookmark, err = h.app.Repositories.Bookmark.CreateBookmark(bookmark)
 	if err != nil {
 		if err == db.ErrRecordExists {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -56,7 +72,7 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 			})
 			return
 		}
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred when trying to create your bookmark",
 		})
@@ -73,17 +89,17 @@ func (h *Handler) CreateBookmark(c *gin.Context) {
 		},
 	})
 }
-func (h *Handler) GetBookmark(c *gin.Context) {
+func (h bookmarkHandler) GetBookmark(c *gin.Context) {
 	var bookmark models.Bookmark
 	bmId, err := strconv.ParseInt(c.Param("bmId"), 10, 64)
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid Bookmark ID",
 		})
 		return
 	}
-	bookmark, err = h.service.DB.GetBookmark(bmId, c.GetInt64(KeyUserId))
+	bookmark, err = h.app.Repositories.Bookmark.GetBookmark(bmId, c.GetInt64(KeyUserId))
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
@@ -106,17 +122,17 @@ func (h *Handler) GetBookmark(c *gin.Context) {
 		},
 	})
 }
-func (h *Handler) GetBookmarks(c *gin.Context) {
+func (h bookmarkHandler) GetBookmarks(c *gin.Context) {
 	userId := c.GetInt64(KeyUserId)
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid Bookmark ID",
 		})
 		return
 	}
-	bookmarks, err := h.service.DB.GetBookmarks(userId, pipeId)
+	bookmarks, err := h.app.Repositories.Bookmark.GetBookmarks(userId, pipeId)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Could not retrieve bookmarks! Please try again soon",
@@ -131,18 +147,18 @@ func (h *Handler) GetBookmarks(c *gin.Context) {
 		},
 	})
 }
-func (h *Handler) DeleteBookmark(c *gin.Context) {
+func (h bookmarkHandler) DeleteBookmark(c *gin.Context) {
 	userId := c.GetInt64(KeyUserId)
 	bmId, err := strconv.ParseInt(c.Param("bmId"), 10, 64)
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid Bookmark ID",
 		})
 		return
 	}
 
-	_, err = h.service.DB.DeleteBookmark(bmId, userId)
+	_, err = h.app.Repositories.Bookmark.DeleteBookmark(bmId, userId)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying to delete bookmark",

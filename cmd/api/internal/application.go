@@ -1,12 +1,13 @@
 package internal
 
 import (
+	"github.com/rs/zerolog"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
 	"gitlab.com/trencetech/mypipe-api/db/repository"
-	"gitlab.com/trencetech/mypipe-api/pkg/service"
 )
 
 type Application struct {
 	Repositories repository.Repositories
-	Services     service.Service
-	Helpers      string
+	Services     services.Services
+	Logger       zerolog.Logger
 }

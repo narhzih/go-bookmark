@@ -1,18 +1,18 @@
-package service
+package services
 
 import (
 	"fmt"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/models"
-	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 )
 
-func (s Service) SharePublicPipe(pipeId, userId int64) (models.SharedPipe, error) {
+func (s Services) SharePublicPipe(pipeId, userId int64) (models.SharedPipe, error) {
 	var sharedPipeModel models.SharedPipe
 	var pipeToBeShared models.Pipe
 	var err error
 
-	pipeToBeShared, err = s.DB.GetPipe(pipeId, userId)
+	pipeToBeShared, err = s.Repositories.Pipe.GetPipe(pipeId, userId)
 	if err != nil {
 		return sharedPipeModel, err
 	}
@@ -21,19 +21,19 @@ func (s Service) SharePublicPipe(pipeId, userId int64) (models.SharedPipe, error
 	sharedPipeModel.Type = "public"
 	sharedPipeModel.Code = helpers.RandomToken(15)
 	// Parse an empty string to the receiver since it's a public pipe sharer
-	sharedPipeModel, err = s.DB.CreatePipeShareRecord(sharedPipeModel, "")
+	sharedPipeModel, err = s.Repositories.PipeShare.CreatePipeShareRecord(sharedPipeModel, "")
 	if err != nil {
 		return sharedPipeModel, err
 	}
 	return sharedPipeModel, nil
 }
 
-func (s Service) SharePrivatePipe(pipeId, userId int64, shareTo string) (models.SharedPipe, error) {
+func (s Services) SharePrivatePipe(pipeId, userId int64, shareTo string) (models.SharedPipe, error) {
 	var sharedPipeModel models.SharedPipe
 	var pipeToBeShared models.Pipe
 	var err error
 
-	pipeToBeShared, err = s.DB.GetPipe(pipeId, userId)
+	pipeToBeShared, err = s.Repositories.Pipe.GetPipe(pipeId, userId)
 	if err != nil {
 		return sharedPipeModel, err
 	}
@@ -41,15 +41,15 @@ func (s Service) SharePrivatePipe(pipeId, userId int64, shareTo string) (models.
 	sharedPipeModel.SharerID = pipeToBeShared.UserID
 	sharedPipeModel.Type = "private"
 	// Parse an empty string to the receiver since it's a public pipe sharer
-	sharedPipeModel, err = s.DB.CreatePipeShareRecord(sharedPipeModel, shareTo)
+	sharedPipeModel, err = s.Repositories.PipeShare.CreatePipeShareRecord(sharedPipeModel, shareTo)
 	if err != nil {
 		return sharedPipeModel, err
 	}
 	return sharedPipeModel, nil
 }
 
-func (s Service) CanPreviewAndCanAdd(pipe models.Pipe, userId int64) (bool, error) {
-	pipeToAdd, err := s.DB.GetSharedPipe(pipe.ID)
+func (s Services) CanPreviewAndCanAdd(pipe models.Pipe, userId int64) (bool, error) {
+	pipeToAdd, err := s.Repositories.PipeShare.GetSharedPipe(pipe.ID)
 	if err != nil {
 		return false, err
 	}
@@ -62,8 +62,8 @@ func (s Service) CanPreviewAndCanAdd(pipe models.Pipe, userId int64) (bool, erro
 	return true, nil
 }
 
-func (s Service) AddPipeToCollection(pipeToAdd models.SharedPipe, userId int64) (models.SharedPipeReceiver, error) {
-	receiverInfo, err := s.DB.CreatePipeReceiver(models.SharedPipeReceiver{
+func (s Services) AddPipeToCollection(pipeToAdd models.SharedPipe, userId int64) (models.SharedPipeReceiver, error) {
+	receiverInfo, err := s.Repositories.PipeShare.CreatePipeReceiver(models.SharedPipeReceiver{
 		SharedPipeId: pipeToAdd.PipeID,
 		ReceiverID:   userId,
 	})

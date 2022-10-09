@@ -1,4 +1,4 @@
-package mp_parser
+package helpers
 
 import (
 	"bytes"

@@ -1,26 +1,41 @@
-package api
+package handlers
 
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
 )
 
-func (h *Handler) GetNotification(c *gin.Context) {
+type NotificationHandler interface {
+	GetNotifications(c *gin.Context)
+	UpdateUserDeviceTokens(c *gin.Context)
+	GetNotification(c *gin.Context)
+}
+
+type notificationHandler struct {
+	app internal.Application
+}
+
+func NewNotificationHandler(app internal.Application) NotificationHandler {
+	return notificationHandler{app: app}
+}
+
+func (h notificationHandler) GetNotification(c *gin.Context) {
 	var notification models.Notification
 	notificationId, err := strconv.ParseInt(c.Param("notificationId"), 10, 64)
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid Notification ID",
 		})
 		return
 	}
-	h.logger.Info().Msg(fmt.Sprintf("retrieving notification for %+v", notificationId))
-	notification, err = h.service.DB.GetNotification(notificationId, c.GetInt64(KeyUserId))
+	h.app.Logger.Info().Msg(fmt.Sprintf("retrieving notification for %+v", notificationId))
+	notification, err = h.app.Repositories.Notification.GetNotification(notificationId, c.GetInt64(KeyUserId))
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
@@ -38,9 +53,9 @@ func (h *Handler) GetNotification(c *gin.Context) {
 
 	if !notification.Read {
 		// Mark notification as read
-		notification, err = h.service.DB.MarkAsRead(notification)
+		notification, err = h.app.Repositories.Notification.MarkAsRead(notification)
 		if err != nil {
-			h.logger.Err(err).Msg("an error occurred while trying to mark notification as read")
+			h.app.Logger.Err(err).Msg("an error occurred while trying to mark notification as read")
 		}
 	}
 
@@ -56,9 +71,9 @@ func (h *Handler) GetNotification(c *gin.Context) {
 	})
 }
 
-func (h *Handler) GetNotifications(c *gin.Context) {
+func (h notificationHandler) GetNotifications(c *gin.Context) {
 	userId := c.GetInt64(KeyUserId)
-	notifications, err := h.service.DB.GetNotifications(userId)
+	notifications, err := h.app.Repositories.Notification.GetNotifications(userId)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Could not retrieve notifications! Please try again soon",
@@ -74,7 +89,7 @@ func (h *Handler) GetNotifications(c *gin.Context) {
 	})
 }
 
-func (h *Handler) UpdateUserDeviceTokens(c *gin.Context) {
+func (h notificationHandler) UpdateUserDeviceTokens(c *gin.Context) {
 	reqBody := struct {
 		DeviceToken string `json:"device_token"`
 	}{}
@@ -85,7 +100,7 @@ func (h *Handler) UpdateUserDeviceTokens(c *gin.Context) {
 		return
 	}
 
-	existingDeviceTokens, err := h.service.DB.GetUserDeviceTokens(c.GetInt64(KeyUserId))
+	existingDeviceTokens, err := h.app.Repositories.User.GetUserDeviceTokens(c.GetInt64(KeyUserId))
 	if err != nil {
 		if err != db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -97,7 +112,7 @@ func (h *Handler) UpdateUserDeviceTokens(c *gin.Context) {
 	}
 	// TODO: Refactor to remove old device tokens if regenerated
 	existingDeviceTokens = append(existingDeviceTokens, reqBody.DeviceToken)
-	existingDeviceTokens, err = h.service.DB.UpdateUserDeviceTokens(c.GetInt64(KeyUserId), existingDeviceTokens)
+	existingDeviceTokens, err = h.app.Repositories.User.UpdateUserDeviceTokens(c.GetInt64(KeyUserId), existingDeviceTokens)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Our system encountered an error. Please try again soon",

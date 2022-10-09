@@ -1,23 +1,39 @@
-package api
+package handlers
 
 import (
 	"fmt"
 	"github.com/rs/zerolog"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/models"
-	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
-	"gitlab.com/trencetech/mypipe-api/pkg/service"
 	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (h *Handler) UserProfile(c *gin.Context) {
+type UserHandler interface {
+	UserProfile(c *gin.Context)
+	EditProfile(c *gin.Context)
+	UploadCoverPhoto(c *gin.Context)
+	ChangePassword(c *gin.Context)
+}
+
+type userHandler struct {
+	app internal.Application
+}
+
+func NewUserHandler(app internal.Application) UserHandler {
+	return userHandler{app: app}
+}
+
+func (h userHandler) UserProfile(c *gin.Context) {
 	var userProfile models.Profile
 	var err error
 	userID := c.GetInt64(KeyUserId)
-	userProfile, err = h.service.GetUserProfileInformation(userID)
+	userProfile, err = h.app.Services.GetUserProfileInformation(userID)
 
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -36,7 +52,7 @@ func (h *Handler) UserProfile(c *gin.Context) {
 	})
 }
 
-func (h *Handler) EditProfile(c *gin.Context) {
+func (h userHandler) EditProfile(c *gin.Context) {
 
 	updatedUser := models.User{
 		ID: c.GetInt64(KeyUserId),
@@ -46,7 +62,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 
 	// Check if there's already a user with the same username
 	if len(username) > 0 {
-		userWithUsername, err := h.service.DB.GetUserByUsername(username)
+		userWithUsername, err := h.app.Repositories.User.GetUserByUsername(username)
 		if err != nil {
 			if err != db.ErrNoRecord {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -59,7 +75,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 		if err != db.ErrNoRecord && userWithUsername.ID != c.GetInt64(KeyUserId) {
 			// This means there's another user that is not
 			// the user making the same request who has the same username
-			h.logger.Info().Msg(userWithUsername.Email)
+			h.app.Logger.Info().Msg(userWithUsername.Email)
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "username has already been taken by another user",
 			})
@@ -77,7 +93,7 @@ func (h *Handler) EditProfile(c *gin.Context) {
 	file, _, err := c.Request.FormFile("cover_photo")
 	if err != nil {
 		if err != http.ErrMissingFile {
-			h.logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
+			h.app.Logger.Err(err).Msg(fmt.Sprintf("file err : %s", err.Error()))
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "An error occurred from here",
 				"err":     err.Error(),
@@ -89,14 +105,14 @@ func (h *Handler) EditProfile(c *gin.Context) {
 	if file != nil {
 		// This means a file was uploaded with the request
 		// Try uploading it to Cloudinary
-		uploadInformation := service.FileUploadInformation{
-			Logger:        h.logger,
+		uploadInformation := services.FileUploadInformation{
+			Logger:        h.app.Logger,
 			Ctx:           c,
 			FileInputName: "cover_photo",
 			Type:          "user",
 		}
-		photoUrl, err := service.UploadToCloudinary(uploadInformation)
-		h.logger.Info().Msg("The cover photo is " + photoUrl)
+		photoUrl, err := services.UploadToCloudinary(uploadInformation)
+		h.app.Logger.Info().Msg("The cover photo is " + photoUrl)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "An error occurred when trying to save user image",
@@ -107,12 +123,12 @@ func (h *Handler) EditProfile(c *gin.Context) {
 
 		updatedUser.CovertPhoto = photoUrl
 	}
-	h.logger.Info().Msg("Photo url after property setting is - " + updatedUser.CovertPhoto)
-	user, err := h.service.DB.UpdateUser(updatedUser)
-	h.logger.Info().Msg("Photo url after normal upload is - " + user.CovertPhoto)
+	h.app.Logger.Info().Msg("Photo url after property setting is - " + updatedUser.CovertPhoto)
+	user, err := h.app.Repositories.User.UpdateUser(updatedUser)
+	h.app.Logger.Info().Msg("Photo url after normal upload is - " + user.CovertPhoto)
 
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Could not  update user because user was not found",
@@ -136,15 +152,15 @@ func (h *Handler) EditProfile(c *gin.Context) {
 	})
 }
 
-func (h *Handler) UploadCoverPhoto(c *gin.Context) {
+func (h userHandler) UploadCoverPhoto(c *gin.Context) {
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
-	uploadInformation := service.FileUploadInformation{
+	uploadInformation := services.FileUploadInformation{
 		Logger:        logger,
 		Ctx:           c,
 		FileInputName: "cover_photo",
 		Type:          "user",
 	}
-	photoUrl, err := service.UploadToCloudinary(uploadInformation)
+	photoUrl, err := services.UploadToCloudinary(uploadInformation)
 	if err != nil {
 		if err == http.ErrMissingFile {
 			c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
@@ -161,7 +177,7 @@ func (h *Handler) UploadCoverPhoto(c *gin.Context) {
 		ID:          c.GetInt64(KeyUserId),
 		CovertPhoto: photoUrl,
 	}
-	user, err := h.service.DB.UpdateUser(updatedUserModel)
+	user, err := h.app.Repositories.User.UpdateUser(updatedUserModel)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying update user profile",
@@ -184,7 +200,7 @@ func (h *Handler) UploadCoverPhoto(c *gin.Context) {
 	})
 }
 
-func (h *Handler) ChangePassword(c *gin.Context) {
+func (h userHandler) ChangePassword(c *gin.Context) {
 	reqBody := struct {
 		CurrentPassword string `json:"current_password" binding:"required"`
 		Password        string `json:"password" binding:"required"`
@@ -206,25 +222,25 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 		return
 	}
 	userID := c.GetInt64(KeyUserId)
-	user, err := h.service.DB.GetUserById(int(userID))
+	user, err := h.app.Repositories.User.GetUserById(int(userID))
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "You have to log in to be able to perform this operation",
 			})
 			return
 		}
-		h.logger.Err(err).Msg("An error occurred while trying to get user from the database")
+		h.app.Logger.Err(err).Msg("An error occurred while trying to get user from the database")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
 			"error":   err.Error(),
 		})
 		return
 	}
-	userAndAuth, err := h.service.DB.GetUserAndAuth(user)
+	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(user)
 	if err != nil {
-		h.logger.Err(err).Msg("An error occurred while trying to get user from the database")
+		h.app.Logger.Err(err).Msg("An error occurred while trying to get user from the database")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
 			"error":   err.Error(),
@@ -241,18 +257,18 @@ func (h *Handler) ChangePassword(c *gin.Context) {
 			})
 			return
 		}
-		err = h.service.DB.UpdateUserPassword(int(userAndAuth.User.ID), newPasswordHash)
+		err = h.app.Repositories.User.UpdateUserPassword(int(userAndAuth.User.ID), newPasswordHash)
 		if err != nil {
-			h.logger.Err(err).Msg(err.Error())
+			h.app.Logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Something went wrong",
 				"error":   err.Error(),
 			})
 			return
 		}
-		authToken, err := h.service.IssueAuthToken(user)
+		authToken, err := h.app.Services.IssueAuthToken(user)
 		if err != nil {
-			h.logger.Err(err).Msg(err.Error())
+			h.app.Logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusOK, gin.H{
 				"message": "Password changed successfully",
 			})

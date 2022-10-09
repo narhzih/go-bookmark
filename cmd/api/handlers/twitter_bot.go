@@ -1,14 +1,27 @@
-package api
+package handlers
 
 import (
 	"github.com/gin-gonic/gin"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/models"
-	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 	"net/http"
 )
 
-func (h *Handler) BotAddToPipe(c *gin.Context) {
+type TwitterBotHandler interface {
+	BotAddToPipe(c *gin.Context)
+}
+
+type twitterBotHandler struct {
+	app internal.Application
+}
+
+func NewTwitterBotHandler(app internal.Application) TwitterBotHandler {
+	return twitterBotHandler{app: app}
+}
+
+func (h twitterBotHandler) BotAddToPipe(c *gin.Context) {
 	var pipe models.Pipe
 	botAddToPipeBody := struct {
 		TwitterID string `json:"twitter_id" binding:"required"`
@@ -23,7 +36,7 @@ func (h *Handler) BotAddToPipe(c *gin.Context) {
 		})
 		return
 	}
-	user, err := h.service.TwitterAccountConnected(botAddToPipeBody.TwitterID)
+	user, err := h.app.Services.TwitterAccountConnected(botAddToPipeBody.TwitterID)
 
 	if err != nil {
 		if err == db.ErrNoRecord {
@@ -40,11 +53,11 @@ func (h *Handler) BotAddToPipe(c *gin.Context) {
 		})
 		return
 	}
-	pipe, err = h.service.DB.GetPipeByName(botAddToPipeBody.PipeName, user.ID)
+	pipe, err = h.app.Repositories.Pipe.GetPipeByName(botAddToPipeBody.PipeName, user.ID)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			// Create a pipe for that user
-			pipe, err = h.service.DB.CreatePipe(models.Pipe{
+			pipe, err = h.app.Repositories.Pipe.CreatePipe(models.Pipe{
 				Name:       botAddToPipeBody.PipeName,
 				UserID:     user.ID,
 				CoverPhoto: "",
@@ -62,7 +75,7 @@ func (h *Handler) BotAddToPipe(c *gin.Context) {
 			return
 		}
 	}
-	bookmark, err := h.service.DB.CreateBookmark(models.Bookmark{
+	bookmark, err := h.app.Repositories.Bookmark.CreateBookmark(models.Bookmark{
 		UserID:   user.ID,
 		PipeID:   pipe.ID,
 		Platform: "twitter",
@@ -75,9 +88,9 @@ func (h *Handler) BotAddToPipe(c *gin.Context) {
 		})
 	}
 
-	err = h.service.CreateTwitterPipeShareNotification(bookmark.Url, pipe.Name, user.ID)
+	err = h.app.Services.CreateTwitterPipeShareNotification(bookmark.Url, pipe.Name, user.ID)
 	if err != nil {
-		h.logger.Err(err).Msg("An error occurred while creating notification for twitter pipe share")
+		h.app.Logger.Err(err).Msg("An error occurred while creating notification for twitter pipe share")
 	}
 
 	c.JSON(http.StatusOK, gin.H{

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/db"
@@ -8,13 +9,14 @@ import (
 	"strconv"
 )
 
-func initDb(logger zerolog.Logger) (db.Database, error) {
+func initDb(logger zerolog.Logger) (*sql.DB, error) {
 	var err error
 	dsn, err := getSqlConnectionString(logger)
 	if err != nil {
-		return db.Database{}, err
+		return nil, err
 	}
-	return db.Connect(dsn, logger)
+	dbInit, _ := db.Connect(dsn, logger)
+	return dbInit.Conn, nil
 }
 
 func getSqlConnectionString(logger zerolog.Logger) (string, error) {

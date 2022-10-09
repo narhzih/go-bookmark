@@ -1,4 +1,4 @@
-package mp_parser
+package helpers
 
 type YoutubeAPIResponse struct {
 	Video  interface{} `json:"video"`

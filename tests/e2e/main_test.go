@@ -7,9 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
 	"github.com/rs/zerolog"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/handlers"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/services/mailer"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/pkg/api"
 	"gitlab.com/trencetech/mypipe-api/pkg/service"
 	"io"
 	"log"
@@ -68,13 +69,13 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 }
 
 func makeHandler(dbs db.Database) *http.Server {
-	var jwtConfig service.JWTConfig
+	var jwtConfig services.JWTConfig
 	jwtConfig.ExpiresIn = 15
 	jwtConfig.Key = "hello_world"
 	jwtConfig.Algo = jwt.SigningMethodHS256
 	//var err error
 	apiService := service.NewService(dbs, jwtConfig, initMailer(logger))
-	apiHandler := api.NewHandler(apiService, logger)
+	apiHandler := handlers.NewHandler(apiService, logger)
 	router := gin.New()
 	rg := router.Group("/v1")
 	apiHandler.Register(rg)

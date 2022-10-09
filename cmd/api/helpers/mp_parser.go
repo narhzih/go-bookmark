@@ -1,4 +1,4 @@
-package mp_parser
+package helpers
 
 import (
 	"bytes"
@@ -11,6 +11,12 @@ import (
 	"net/url"
 	"os"
 )
+
+type MpParser struct {
+	InstagramParser string
+	TwitterParser   string
+	YoutubeParser   string
+}
 
 func ParseLink(link string) (string, error) {
 	requestBody, err := json.Marshal(map[string]interface{}{})

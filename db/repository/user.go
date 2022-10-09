@@ -8,6 +8,7 @@ type UserRepository interface {
 	GetUserByTwitterID(twitterId string) (user models.User, err error)
 	GetUserById(userId int) (user models.User, err error)
 	GetUserByUsername(username string) (user models.User, err error)
+	GetUserByEmail(userEmail string) (user models.User, err error)
 	GetUserAndAuth(user models.User) (userAndAuth models.UserAuth, err error)
 	UpdateUserPassword(userId int, password string) error
 	UpdateUser(updatedBody models.User) (models.User, error)

@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"fmt"
@@ -7,8 +7,8 @@ import (
 	"strings"
 )
 
-func (s Service) PipeExists(pipeId, userId int64) (bool, error) {
-	pipe, err := s.DB.GetPipe(pipeId, userId)
+func (s Services) PipeExists(pipeId, userId int64) (bool, error) {
+	pipe, err := s.Repositories.Pipe.GetPipe(pipeId, userId)
 	if err != nil {
 		return false, err
 	}
@@ -19,8 +19,8 @@ func (s Service) PipeExists(pipeId, userId int64) (bool, error) {
 	return true, nil
 }
 
-func (s Service) UserOwnsPipe(pipeId, userId int64) (bool, error) {
-	pipe, err := s.DB.GetPipe(pipeId, userId)
+func (s Services) UserOwnsPipe(pipeId, userId int64) (bool, error) {
+	pipe, err := s.Repositories.Pipe.GetPipe(pipeId, userId)
 	if err != nil {
 		return false, err
 	}
@@ -32,7 +32,7 @@ func (s Service) UserOwnsPipe(pipeId, userId int64) (bool, error) {
 	return true, nil
 }
 
-func (s Service) GetPlatformFromLink(link string) (string, error) {
+func (s Services) GetPlatformFromLink(link string) (string, error) {
 	linkSplit := strings.Split(link, "://")[1]
 	r, _ := regexp.Compile("^((?:https?:)?\\/\\/)?((?:www|m)\\.)?((?:youtube(-nocookie)?\\.com|youtu.be))(\\/(?:[\\w\\-]+\\?v=|embed\\/|v\\/)?)([\\w\\-]+)(\\S+)?$")
 	if strings.HasPrefix(linkSplit, "twitter") || strings.HasPrefix(linkSplit, "www.twitter") {

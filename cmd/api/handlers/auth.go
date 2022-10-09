@@ -1,17 +1,39 @@
-package api
+package handlers
 
 import (
 	"fmt"
+	helpers2 "gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/db"
-	"gitlab.com/trencetech/mypipe-api/pkg/helpers"
 )
 
-func (h *Handler) EmailSignUp(c *gin.Context) {
+type AuthHandler interface {
+	EmailSignUp(c *gin.Context)
+	EmailLogin(c *gin.Context)
+	VerifyAccount(c *gin.Context)
+	ForgotPassword(c *gin.Context)
+	VerifyPasswordResetToken(c *gin.Context)
+	ResetPassword(c *gin.Context)
+	SignInWithGoogle(c *gin.Context)
+	ConnectTwitterAccount(c *gin.Context)
+}
+
+type authHandler struct {
+	app internal.Application
+}
+
+func NewAuthHandler(app internal.Application) AuthHandler {
+	return authHandler{
+		app: app,
+	}
+}
+
+func (h authHandler) EmailSignUp(c *gin.Context) {
 	singUpReq := struct {
 		Username    string `json:"username" binding:"required"`
 		ProfileName string `json:"profile_name" binding:"required"`
@@ -20,7 +42,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 	}{}
 
 	if err := c.ShouldBindJSON(&singUpReq); err != nil {
-		errMessage := helpers.ParseErrorMessage(err.Error())
+		errMessage := helpers2.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
@@ -28,7 +50,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		return
 	}
 
-	hashedPassword, err := helpers.HashPassword(singUpReq.Password)
+	hashedPassword, err := helpers2.HashPassword(singUpReq.Password)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went very wrong",
@@ -42,16 +64,16 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 		Email:       singUpReq.Email,
 	}
 
-	user, err := h.service.DB.CreateUserByEmail(userStruct, hashedPassword, "DEFAULT")
+	user, err := h.app.Repositories.User.CreateUserByEmail(userStruct, hashedPassword, "DEFAULT")
 	if err != nil {
 		if err == db.ErrRecordExists {
-			h.logger.Err(err).Msg(err.Error())
+			h.app.Logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Email has already been taken",
 			})
 			return
 		}
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying to register user",
 			"err":     err.Error(),
@@ -61,20 +83,20 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 	var accountVerification models.AccountVerification
 	accountVerification.UserID = user.ID
-	accountVerification.Token = helpers.RandomToken(7)
+	accountVerification.Token = helpers2.RandomToken(7)
 	accountVerification.ExpiresAt = time.Now().Add(7200 * time.Second).Format(time.RFC3339Nano)
-	accountVerification, err = h.service.DB.CreateVerification(accountVerification)
+	accountVerification, err = h.app.Repositories.AccountVerification.CreateVerification(accountVerification)
 	if err != nil {
-		h.logger.Err(err).Msg("An error occurred while trying to generate token details ")
+		h.app.Logger.Err(err).Msg("An error occurred while trying to generate token details ")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
 			"err":     err.Error(),
 		})
 		return
 	}
-	err = h.service.Mailer.SendVerificationEmail([]string{user.Email}, accountVerification.Token)
+	err = h.app.Services.Mailer.SendVerificationEmail([]string{user.Email}, accountVerification.Token)
 	if err != nil {
-		h.logger.Err(err).Msg("An error occurred while trying to send email")
+		h.app.Logger.Err(err).Msg("An error occurred while trying to send email")
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Account created successfully. Please check your email for verification code",
@@ -85,7 +107,7 @@ func (h *Handler) EmailSignUp(c *gin.Context) {
 
 }
 
-func (h *Handler) VerifyAccount(c *gin.Context) {
+func (h authHandler) VerifyAccount(c *gin.Context) {
 	token := c.Param("token")
 	if len(token) <= 0 {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -94,7 +116,7 @@ func (h *Handler) VerifyAccount(c *gin.Context) {
 		return
 	}
 
-	tokenFromDB, err := h.service.DB.GetAccountVerificationByToken(token)
+	tokenFromDB, err := h.app.Repositories.AccountVerification.GetAccountVerificationByToken(token)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -121,7 +143,7 @@ func (h *Handler) VerifyAccount(c *gin.Context) {
 	}
 
 	// Check if the user still exists
-	user, err := h.service.DB.GetUserById(int(tokenFromDB.UserID))
+	user, err := h.app.Repositories.User.GetUserById(int(tokenFromDB.UserID))
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -130,9 +152,9 @@ func (h *Handler) VerifyAccount(c *gin.Context) {
 		}
 	}
 	user.EmailVerified = true
-	user, err = h.service.MarkUserAsVerified(user, tokenFromDB.Token)
+	user, err = h.app.Services.MarkUserAsVerified(user, tokenFromDB.Token)
 	if err != nil {
-		h.logger.Err(err).Msg("Error occurred while verifying user")
+		h.app.Logger.Err(err).Msg("Error occurred while verifying user")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
 			"err":     err.Error(),
@@ -140,9 +162,9 @@ func (h *Handler) VerifyAccount(c *gin.Context) {
 		return
 	}
 
-	authToken, err := h.service.IssueAuthToken(user)
+	authToken, err := h.app.Services.IssueAuthToken(user)
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to automatically log in. Please, log in manually",
 		})
@@ -167,41 +189,41 @@ func (h *Handler) VerifyAccount(c *gin.Context) {
 
 }
 
-func (h *Handler) EmailLogin(c *gin.Context) {
+func (h authHandler) EmailLogin(c *gin.Context) {
 	loginReq := struct {
 		Email    string `json:"email" binding:"required"`
 		Password string `json:"password" binding:"required"`
 	}{}
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		errMessage := helpers.ParseErrorMessage(err.Error())
+		errMessage := helpers2.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
 		})
 		return
 	}
-	user, err := h.service.DB.GetUserByEmail(loginReq.Email)
+	user, err := h.app.Repositories.User.GetUserByEmail(loginReq.Email)
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "User with specified email not found",
 		})
 		return
 	}
 
-	userAndAuth, err := h.service.DB.GetUserAndAuth(user)
+	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(user)
 	if err != nil {
-		h.logger.Err(err).Msg(err.Error())
+		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to sign in user",
 		})
 		return
 	}
-	verifyOk, verifyErr := helpers.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword, userAndAuth.Origin)
+	verifyOk, verifyErr := helpers2.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword, userAndAuth.Origin)
 	if verifyOk {
-		authToken, err := h.service.IssueAuthToken(userAndAuth.User)
+		authToken, err := h.app.Services.IssueAuthToken(userAndAuth.User)
 		if err != nil {
-			h.logger.Err(err).Msg(err.Error())
+			h.app.Logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Error occurred while trying to sign user in",
 			})
@@ -222,7 +244,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 			},
 		})
 	} else {
-		//h.logger.Err(err).Msg(err.Error())
+		//h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": verifyErr.Error(),
 		})
@@ -233,7 +255,7 @@ func (h *Handler) EmailLogin(c *gin.Context) {
 
 }
 
-func (h *Handler) SignInWithGoogle(c *gin.Context) {
+func (h authHandler) SignInWithGoogle(c *gin.Context) {
 	var user models.User
 	var isNewUser bool = false
 
@@ -248,27 +270,27 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 		return
 	}
 
-	claims, err := h.service.ValidateGoogleJWT(signInReq.TokenString, c.Query("device"))
+	claims, err := h.app.Services.ValidateGoogleJWT(signInReq.TokenString, c.Query("device"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid GoogleJWT",
 		})
 		return
 	}
-	h.logger.Info().Msg("google jwt validation successful")
-	user, err = h.service.DB.GetUserByEmail(claims.Email)
+	h.app.Logger.Info().Msg("google jwt validation successful")
+	user, err = h.app.Repositories.User.GetUserByEmail(claims.Email)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			// Create a new user account
-			h.logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.FirstName, claims.Email))
+			h.app.Logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.FirstName, claims.Email))
 			isNewUser = true
 			userCred := models.User{
 				Username: claims.FirstName + " " + claims.LastName,
 				Email:    claims.Email,
 			}
-			user, err = h.service.DB.CreateUserByEmail(userCred, "", "GOOGLE")
+			user, err = h.app.Repositories.User.CreateUserByEmail(userCred, "", "GOOGLE")
 			if err != nil {
-				h.logger.Err(err)
+				h.app.Logger.Err(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"message": "Error occurred while trying to register user",
 				})
@@ -282,7 +304,7 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 		}
 
 	}
-	authToken, err := h.service.IssueAuthToken(user)
+	authToken, err := h.app.Services.IssueAuthToken(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to sign user in",
@@ -306,7 +328,7 @@ func (h *Handler) SignInWithGoogle(c *gin.Context) {
 
 }
 
-func (h *Handler) SignUpWithGoogle(c *gin.Context) {
+func (h authHandler) SignUpWithGoogle(c *gin.Context) {
 	signUpReq := struct {
 		TokenString string `json:"token_string" binding:"required"`
 	}{}
@@ -317,7 +339,7 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 		})
 		return
 	}
-	claims, err := h.service.ValidateGoogleJWT(signUpReq.TokenString, c.Query("device"))
+	claims, err := h.app.Services.ValidateGoogleJWT(signUpReq.TokenString, c.Query("device"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid GoogleJWT",
@@ -328,7 +350,7 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 		Username: claims.FirstName + " " + claims.LastName,
 		Email:    claims.Email,
 	}
-	user, err := h.service.DB.CreateUser(userCred)
+	user, err := h.app.Repositories.User.CreateUser(userCred)
 	if err != nil {
 		if err == db.ErrRecordExists {
 			// This means the user has already registered
@@ -345,7 +367,7 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 		return
 	}
 
-	authToken, err := h.service.IssueAuthToken(user)
+	authToken, err := h.app.Services.IssueAuthToken(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to log user in",
@@ -365,19 +387,19 @@ func (h *Handler) SignUpWithGoogle(c *gin.Context) {
 	})
 }
 
-func (h *Handler) ForgotPassword(c *gin.Context) {
+func (h authHandler) ForgotPassword(c *gin.Context) {
 	req := struct {
 		Email string `json:"email" binding:"required"`
 	}{}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		errMessage := helpers.ParseErrorMessage(err.Error())
+		errMessage := helpers2.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 		})
 		return
 	}
 
-	user, err := h.service.DB.GetUserByEmail(req.Email)
+	user, err := h.app.Repositories.User.GetUserByEmail(req.Email)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -386,17 +408,17 @@ func (h *Handler) ForgotPassword(c *gin.Context) {
 			return
 		}
 
-		h.logger.Err(err).Msg("An error occurred while trying to get user")
+		h.app.Logger.Err(err).Msg("An error occurred while trying to get user")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
 			"err":     err.Error(),
 		})
 		return
 	}
-	token := helpers.RandomToken(8)
-	passwordReset, err := h.service.DB.CreatePasswordResetRecord(user, token)
+	token := helpers2.RandomToken(8)
+	passwordReset, err := h.app.Repositories.PasswordReset.CreatePasswordResetRecord(user, token)
 	if err != nil {
-		h.logger.Err(err).Msg("An error occurred while trying to send password reset token")
+		h.app.Logger.Err(err).Msg("An error occurred while trying to send password reset token")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
 			"err":     err.Error(),
@@ -404,9 +426,9 @@ func (h *Handler) ForgotPassword(c *gin.Context) {
 		return
 	}
 
-	err = h.service.Mailer.SendPasswordResetToken([]string{user.Email}, passwordReset.Token)
+	err = h.app.Services.Mailer.SendPasswordResetToken([]string{user.Email}, passwordReset.Token)
 	if err != nil {
-		h.logger.Err(err).Msg("An error occurred while trying to send password reset token")
+		h.app.Logger.Err(err).Msg("An error occurred while trying to send password reset token")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
 			"err":     err.Error(),
@@ -418,7 +440,7 @@ func (h *Handler) ForgotPassword(c *gin.Context) {
 	})
 }
 
-func (h *Handler) VerifyPasswordResetToken(c *gin.Context) {
+func (h authHandler) VerifyPasswordResetToken(c *gin.Context) {
 	token := c.Param("token")
 	if len(token) <= 0 {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -427,7 +449,7 @@ func (h *Handler) VerifyPasswordResetToken(c *gin.Context) {
 		return
 	}
 
-	passwordReset, err := h.service.DB.GetPasswordResetRecord(token)
+	passwordReset, err := h.app.Repositories.PasswordReset.GetPasswordResetRecord(token)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -442,7 +464,7 @@ func (h *Handler) VerifyPasswordResetToken(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.DB.GetUserById(int(passwordReset.UserID))
+	user, err := h.app.Repositories.User.GetUserById(int(passwordReset.UserID))
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -465,7 +487,7 @@ func (h *Handler) VerifyPasswordResetToken(c *gin.Context) {
 		return
 	}
 
-	passwordReset, err = h.service.DB.UpdatePasswordResetRecord(passwordReset.Token)
+	passwordReset, err = h.app.Repositories.PasswordReset.UpdatePasswordResetRecord(passwordReset.Token)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went wrong",
@@ -488,7 +510,7 @@ func (h *Handler) VerifyPasswordResetToken(c *gin.Context) {
 
 }
 
-func (h *Handler) ResetPassword(c *gin.Context) {
+func (h authHandler) ResetPassword(c *gin.Context) {
 	token := c.Param("token")
 	if len(token) <= 0 {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -498,7 +520,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}
 
 	// Check if token exists in the DB
-	passwordReset, err := h.service.DB.GetPasswordResetRecord(token)
+	passwordReset, err := h.app.Repositories.PasswordReset.GetPasswordResetRecord(token)
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -526,14 +548,14 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}{}
 
 	if err = c.ShouldBindJSON(&resetReq); err != nil {
-		errMessage := helpers.ParseErrorMessage(err.Error())
+		errMessage := helpers2.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 		})
 	}
 
 	// check if user with provided email is found
-	user, err := h.service.DB.GetUserById(int(passwordReset.UserID))
+	user, err := h.app.Repositories.User.GetUserById(int(passwordReset.UserID))
 	if err != nil {
 		if err == db.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -549,7 +571,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}
 
 	// Update the user's password
-	hashedPassword, err := helpers.HashPassword(resetReq.Password)
+	hashedPassword, err := helpers2.HashPassword(resetReq.Password)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something" +
@@ -558,7 +580,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 		})
 		return
 	}
-	err = h.service.DB.UpdateUserPassword(int(user.ID), hashedPassword)
+	err = h.app.Repositories.User.UpdateUserPassword(int(user.ID), hashedPassword)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went very wrong",
@@ -568,18 +590,18 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}
 
 	// Password update successfully, delete the record and generate new login token
-	err = h.service.DB.DeletePasswordResetRecord(passwordReset.Token)
+	err = h.app.Repositories.PasswordReset.DeletePasswordResetRecord(passwordReset.Token)
 	if err != nil {
-		h.logger.Err(err).Msg("An error occurred while trying to delete password reset record")
+		h.app.Logger.Err(err).Msg("An error occurred while trying to delete password reset record")
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Password updated successfully. Please proceed to login with your new password",
 	})
 
-	//authToken, err := h.service.IssueAuthToken(user)
+	//authToken, err := h.app.Services.IssueAuthToken(user)
 	//if err != nil {
-	//	h.logger.Err(err).Msg(err.Error())
+	//	h.app.Logger.Err(err).Msg(err.Error())
 	//	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 	//		"message": "Error occurred while trying to sign user in. Please try to login manually",
 	//	})
@@ -604,13 +626,13 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 
 }
 
-func (h *Handler) ConnectTwitterAccount(c *gin.Context) {
+func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 	req := struct {
 		AccessToken string `json:"accessToken" binding:"required"`
 	}{}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		errMessage := helpers.ParseErrorMessage(err.Error())
+		errMessage := helpers2.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
@@ -618,7 +640,7 @@ func (h *Handler) ConnectTwitterAccount(c *gin.Context) {
 		return
 	}
 
-	user, err := h.service.DB.GetUserById(int(c.GetInt64(KeyUserId)))
+	user, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(KeyUserId)))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Server error",
@@ -626,14 +648,14 @@ func (h *Handler) ConnectTwitterAccount(c *gin.Context) {
 		})
 	}
 
-	user, err = h.service.DB.ConnectToTwitter(user, "my-twitter-id")
+	user, err = h.app.Repositories.User.ConnectToTwitter(user, "my-twitter-id")
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Server error",
 			"err":     err.Error(),
 		})
 	}
-	h.logger.Info().Msg(req.AccessToken)
+	h.app.Logger.Info().Msg(req.AccessToken)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Twitter account connected successfully",

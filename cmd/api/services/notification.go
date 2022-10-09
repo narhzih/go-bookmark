@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"encoding/json"
@@ -8,21 +8,21 @@ import (
 	"os"
 )
 
-func (s Service) CreateTwitterPipeShareNotification(tweetUrl, pipeName string, userId int64) error {
+func (s Services) CreateTwitterPipeShareNotification(tweetUrl, pipeName string, userId int64) error {
 	message := "The following tweet has been successfully saved to " + pipeName + ": " + tweetUrl
-	_, err := s.DB.CreateNotification(userId, message, "")
+	_, err := s.Repositories.Notification.CreateNotification(userId, message, "")
 	if err != nil {
 		return err
 	}
 	return nil
 
 }
-func (s Service) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sharedToId int64) error {
-	sharedPipe, err := s.DB.GetPipe(sharedPipeId, sharerId)
+func (s Services) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sharedToId int64) error {
+	sharedPipe, err := s.Repositories.Pipe.GetPipe(sharedPipeId, sharerId)
 	if err != nil {
 		return err
 	}
-	sharer, err := s.DB.GetUserById(int(sharerId))
+	sharer, err := s.Repositories.User.GetUserById(int(sharerId))
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func (s Service) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, shar
 	}
 	mdToJson, _ := json.Marshal(metadata)
 	message := sharer.ProfileName + " privately shared you pipe with name: " + sharedPipe.Name
-	_, err = s.DB.CreateNotification(sharedToId, message, string(mdToJson))
+	_, err = s.Repositories.Notification.CreateNotification(sharedToId, message, string(mdToJson))
 	if err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func (s Service) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, shar
 	return nil
 }
 
-func (s Service) SendPushNotification(message string, deviceTokens []string) error {
+func (s Services) SendPushNotification(message string, deviceTokens []string) error {
 	msg := &fcm.Message{
 		To: deviceTokens[0],
 		Data: map[string]interface{}{
