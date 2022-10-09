@@ -86,15 +86,16 @@ func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe,
 
 func (p pipeShareActions) CreatePipeReceiver(receiver models.SharedPipeReceiver) (models.SharedPipeReceiver, error) {
 	query := `
-			INSERT INTO shared_pipe_receivers (sharer_id, shared_pipe_id, receiver_id)
-			VALUES ($1, $2, $3)
-			RETURNING id, sharer_id, shared_pipe_id, receiver_id, created_at, modified_at
+			INSERT INTO shared_pipe_receivers (sharer_id, shared_pipe_id, receiver_id, is_accepted)
+			VALUES ($1, $2, $3, $4)
+			RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
 	`
-	err := p.Db.QueryRow(query, receiver.SharerId, receiver.SharedPipeId, receiver.ReceiverID).Scan(
+	err := p.Db.QueryRow(query, receiver.SharerId, receiver.SharedPipeId, receiver.ReceiverID, receiver.IsAccepted).Scan(
 		&receiver.ID,
 		&receiver.SharerId,
 		&receiver.SharedPipeId,
 		&receiver.ReceiverID,
+		&receiver.IsAccepted,
 		&receiver.CreatedAt,
 		&receiver.ModifiedAt,
 	)
@@ -121,7 +122,7 @@ func (p pipeShareActions) GetSharedPipe(pipeId int64) (models.SharedPipe, error)
 		}
 		return models.SharedPipe{}, err
 	}
-	return models.SharedPipe{}, nil
+	return sharedPipe, nil
 }
 
 func (p pipeShareActions) GetSharedPipeByCode(code string) (models.SharedPipe, error) {
@@ -163,7 +164,6 @@ func (p pipeShareActions) GetReceivedPipeRecord(pipeId, userId int64) (models.Sh
 		logger.Err(err)
 		return models.SharedPipeReceiver{}, err
 	}
-	logger.Info().Msg("You have already received this pipe")
 	return sharedPipe, nil
 }
 
