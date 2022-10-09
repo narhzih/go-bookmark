@@ -1,9 +1,11 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	helpers2 "gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/models/response"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"io"
 	"net/http"
@@ -599,32 +601,6 @@ func (h authHandler) ResetPassword(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Password updated successfully. Please proceed to login with your new password",
 	})
-
-	//authToken, err := h.app.Services.IssueAuthToken(user)
-	//if err != nil {
-	//	h.app.Logger.Err(err).Msg(err.Error())
-	//	c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-	//		"message": "Error occurred while trying to sign user in. Please try to login manually",
-	//	})
-	//	return
-	//}
-	//
-	//c.JSON(http.StatusOK, gin.H{
-	//	"message": "Password updated successfully",
-	//	"data": map[string]interface{}{
-	//		"token":         authToken.AccessToken,
-	//		"refresh_token": authToken.RefreshToken,
-	//		"expires_at":    authToken.ExpiresAt,
-	//		"user": map[string]interface{}{
-	//			"id":           user.ID,
-	//			"email":        user.Email,
-	//			"profile_name": user.ProfileName,
-	//			"username":     user.Username,
-	//			"cover_photo":  user.CovertPhoto,
-	//		},
-	//	},
-	//})
-
 }
 
 func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
@@ -657,7 +633,7 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 		})
 		return
 	}
-	twitterHttp.Header.Add("Authorization", "Basic "+req.AccessToken)
+	twitterHttp.Header.Add("Authorization", "Bearer "+req.AccessToken)
 	twitterResponse, err := http.DefaultClient.Do(twitterHttp)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -667,17 +643,23 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 		return
 	}
 
+	if twitterResponse.StatusCode != http.StatusOK {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid access token provided",
+		})
+		return
+	}
+	var twitterUserResponse response.TwitterUserResponse
 	respBody, err := io.ReadAll(twitterResponse.Body)
+	json.Unmarshal(respBody, &twitterUserResponse)
 	h.app.Logger.Info().Msg(string(respBody))
-
-	user, err = h.app.Repositories.User.ConnectToTwitter(user, "my-twitter-id")
+	user, err = h.app.Repositories.User.ConnectToTwitter(user, twitterUserResponse.Data.Id)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Server error",
 			"err":     err.Error(),
 		})
 	}
-	h.app.Logger.Info().Msg(req.AccessToken)
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Twitter account connected successfully",
