@@ -5,6 +5,7 @@ import (
 	helpers2 "gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/db/models"
+	"io"
 	"net/http"
 	"time"
 
@@ -647,6 +648,27 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 			"err":     err.Error(),
 		})
 	}
+
+	// Get user information from twitter api
+	twitterHttp, err := http.NewRequest(http.MethodGet, "https://api.twitter.com/2/users/me", nil)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "we can't proceed to connect your twitter account at the moment. Please try again soon",
+		})
+		return
+	}
+	twitterHttp.Header.Add("Authorization", "Basic "+req.AccessToken)
+	twitterResponse, err := http.DefaultClient.Do(twitterHttp)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while connecting to twitter api!",
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	respBody, err := io.ReadAll(twitterResponse.Body)
+	h.app.Logger.Info().Msg(string(respBody))
 
 	user, err = h.app.Repositories.User.ConnectToTwitter(user, "my-twitter-id")
 	if err != nil {
