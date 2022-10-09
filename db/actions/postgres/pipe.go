@@ -36,11 +36,12 @@ func (p pipeActions) PipeAlreadyExists(pipeName string, userId int64) (bool, err
 
 func (p pipeActions) CreatePipe(pipe models.Pipe) (models.Pipe, error) {
 	var newPipe models.Pipe
-	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo"
+	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo, user_id"
 	err := p.Db.QueryRow(query, pipe.UserID, pipe.Name, pipe.CoverPhoto).Scan(
 		&newPipe.ID,
 		&newPipe.Name,
 		&newPipe.CoverPhoto,
+		&newPipe.UserID,
 	)
 
 	if err != nil {
