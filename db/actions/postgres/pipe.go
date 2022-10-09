@@ -159,7 +159,7 @@ func (p pipeActions) GetPipes(userID int64) ([]models.Pipe, error) {
 				LEFT JOIN bookmarks b ON p.id=b.pipe_id
 				LEFT JOIN users u ON p.user_id=u.id
 			WHERE p.user_id=$1 OR p.id  IN (
-					SELECT spr.shared_pipe_id FROM shared_pipe_receivers spr WHERE receiver_id=$1
+					SELECT spr.shared_pipe_id FROM shared_pipe_receivers spr WHERE receiver_id=$1 AND is_accepted=true
 				)
 			GROUP BY p.id, u.username
 			ORDER BY p.id;
