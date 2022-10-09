@@ -118,6 +118,7 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 				"id":          newPipe.ID,
 				"name":        newPipe.Name,
 				"cover_photo": newPipe.CoverPhoto,
+				"user_id":     newPipe.UserID,
 			},
 		},
 	})

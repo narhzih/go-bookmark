@@ -8,4 +8,5 @@ type PipeShareRepository interface {
 	GetSharedPipe(pipeId int64) (models.SharedPipe, error)
 	GetSharedPipeByCode(code string) (models.SharedPipe, error)
 	GetReceivedPipeRecord(pipeId, userId int64) (models.SharedPipeReceiver, error)
+	AcceptPrivateShare(receiver models.SharedPipeReceiver) (models.SharedPipeReceiver, error)
 }

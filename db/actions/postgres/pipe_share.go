@@ -166,3 +166,27 @@ func (p pipeShareActions) GetReceivedPipeRecord(pipeId, userId int64) (models.Sh
 	logger.Info().Msg("You have already received this pipe")
 	return sharedPipe, nil
 }
+
+func (p pipeShareActions) AcceptPrivateShare(receiver models.SharedPipeReceiver) (models.SharedPipeReceiver, error) {
+	query := `
+	UPDATE shared_pipe_receivers 
+	SET 
+	    is_accepted=true 
+	WHERE receiver_id=$1 AND shared_pipe_id=$2
+	RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
+	`
+
+	err := p.Db.QueryRow(query, receiver.ReceiverID, receiver.SharedPipeId).Scan(
+		&receiver.ID,
+		&receiver.SharerId,
+		&receiver.SharedPipeId,
+		&receiver.ReceiverID,
+		&receiver.IsAccepted,
+		&receiver.CreatedAt,
+		&receiver.ModifiedAt,
+	)
+	if err != nil {
+		return receiver, err
+	}
+	return receiver, nil
+}
