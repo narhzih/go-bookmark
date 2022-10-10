@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"io/ioutil"
 	"net/http"
@@ -77,26 +76,25 @@ func (s Services) generateTokenPair(user models.User) (accessToken, refreshToken
 }
 
 func (s Services) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, error) {
-	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 	claimStruct := GoogleClaims{}
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&claimStruct,
-		retrieveKeyFromPem,
+		nil,
 	)
 
 	if err != nil {
-		logger.Err(err).Msg("could not execute jwt.ParseWithClaims")
+		s.Logger.Err(err).Msg("could not execute jwt.ParseWithClaims")
 		return GoogleClaims{}, err
 	}
 
 	claims, ok := token.Claims.(*GoogleClaims)
 	if !ok {
-		logger.Info().Msg("invalid google JWT")
+		s.Logger.Info().Msg("invalid google JWT")
 		return GoogleClaims{}, errors.New("invalid google JWT")
 	}
 	if claims.Issuer != "accounts.google.com" && claims.Issuer != "https://accounts.google.com" {
-		logger.Info().Msg("GOOGLE_JWT_ERROR: iss is invalid")
+		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: iss is invalid")
 		return GoogleClaims{}, errors.New("iss is invalid")
 	}
 	var googleClientId string
@@ -106,12 +104,12 @@ func (s Services) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, e
 		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_ANDROID")
 	}
 	if claims.Audience != googleClientId {
-		logger.Info().Msg("GOOGLE_JWT_ERROR: aud is invalid")
+		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: aud is invalid")
 		return GoogleClaims{}, errors.New("aud is invalid")
 	}
 
 	if claims.ExpiresAt < time.Now().UTC().Unix() {
-		logger.Info().Msg("GOOGLE_JWT_ERROR: jwt expired")
+		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: jwt expired")
 		return GoogleClaims{}, errors.New("JWT is expired")
 	}
 
