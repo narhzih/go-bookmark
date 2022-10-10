@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/db"
 )
 
 type BookmarkHandler interface {
@@ -67,7 +66,7 @@ func (h bookmarkHandler) CreateBookmark(c *gin.Context) {
 	}
 	bookmark, err = h.app.Repositories.Bookmark.CreateBookmark(bookmark)
 	if err != nil {
-		if err == db.ErrRecordExists {
+		if err == postgres.ErrRecordExists {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "You have already bookmarked this url",
 			})

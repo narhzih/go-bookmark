@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/db"
 )
 
 type AuthHandler interface {
@@ -70,7 +69,7 @@ func (h authHandler) EmailSignUp(c *gin.Context) {
 
 	user, err := h.app.Repositories.User.CreateUserByEmail(userStruct, hashedPassword, "DEFAULT")
 	if err != nil {
-		if err == db.ErrRecordExists {
+		if err == postgres.ErrRecordExists {
 			h.app.Logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Email has already been taken",
@@ -356,7 +355,7 @@ func (h authHandler) SignUpWithGoogle(c *gin.Context) {
 	}
 	user, err := h.app.Repositories.User.CreateUser(userCred)
 	if err != nil {
-		if err == db.ErrRecordExists {
+		if err == postgres.ErrRecordExists {
 			// This means the user has already registered
 			// Automatically log the user into the system
 			c.JSON(http.StatusBadRequest, gin.H{

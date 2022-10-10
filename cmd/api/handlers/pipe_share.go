@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/db"
 	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
@@ -81,7 +80,7 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 		}
 		_, err = h.app.Services.SharePrivatePipe(int64(pipeID), loggedInUser, shareTo)
 		if err != nil {
-			if err == db.ErrPipeShareToNotFound || err == db.ErrCannotSharePipeToSelf {
+			if err == postgres.ErrPipeShareToNotFound || err == postgres.ErrCannotSharePipeToSelf {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 					"message": err.Error(),
 				})

@@ -3,7 +3,7 @@ package services
 import (
 	"fmt"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
-	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 )
 
@@ -57,7 +57,7 @@ func (s Services) CanPreviewAndCanAdd(pipe models.Pipe, userId int64) (bool, err
 		return false, fmt.Errorf("you can't view pipe because it's a private pipe")
 	}
 	if pipeToAdd.SharerID == userId {
-		return false, db.ErrCannotSharePipeToSelf
+		return false, postgres.ErrCannotSharePipeToSelf
 	}
 	return true, nil
 }
