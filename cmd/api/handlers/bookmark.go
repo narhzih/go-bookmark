@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
@@ -101,7 +102,7 @@ func (h bookmarkHandler) GetBookmark(c *gin.Context) {
 	}
 	bookmark, err = h.app.Repositories.Bookmark.GetBookmark(bmId, c.GetInt64(KeyUserId))
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 				"message": "Bookmark not found",
 			})

@@ -2,7 +2,7 @@ package services
 
 import (
 	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
-	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 )
 
@@ -37,7 +37,7 @@ func (s Services) UserWithUsernameExists(username string) (bool, error) {
 
 	_, err := s.Repositories.User.GetUserByUsername(username)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			// This means that there's no record with that user
 			// and we're good to go
 			exits = true
@@ -55,7 +55,7 @@ func (s Services) UserWithUsernameExistsWithUser(username string) (bool, error) 
 
 	_, err := s.Repositories.User.GetUserByUsername(username)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			// This means that there's no record with that user
 			// and we're good to go
 			exits = true
@@ -92,8 +92,8 @@ func (s Services) TokenInUserDeviceTokens(userID int64, deviceToken string) (boo
 func (s Services) TwitterAccountConnected(twitterID string) (models.User, error) {
 	user, err := s.Repositories.User.GetUserByTwitterID(twitterID)
 	if err != nil {
-		if err == db.ErrNoRecord {
-			return models.User{}, db.ErrNoRecord
+		if err == postgres.ErrNoRecord {
+			return models.User{}, postgres.ErrNoRecord
 		}
 		return models.User{}, err
 	}

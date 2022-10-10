@@ -94,6 +94,7 @@ func (p pipeActions) GetPipeByName(pipeName string, userID int64) (models.Pipe, 
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
+			p.Logger.Info().Msg("No pipe was found when searching...")
 			return models.Pipe{}, ErrNoRecord
 		}
 		return models.Pipe{}, err

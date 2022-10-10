@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"regexp"
 	"strings"
 )
@@ -13,7 +13,7 @@ func (s Services) PipeExists(pipeId, userId int64) (bool, error) {
 		return false, err
 	}
 	if pipe.UserID != userId {
-		return false, db.ErrNoRecord
+		return false, postgres.ErrNoRecord
 	}
 
 	return true, nil

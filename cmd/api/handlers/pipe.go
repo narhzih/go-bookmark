@@ -5,13 +5,13 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/db"
 )
 
 type PipeHandler interface {
@@ -138,7 +138,7 @@ func (h pipeHandler) GetPipe(c *gin.Context) {
 
 	pipe, err := h.app.Repositories.Pipe.GetPipe(pipeId, userID)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Pipe not found",
 			})

@@ -6,7 +6,7 @@ import (
 	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
-	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"os"
@@ -64,7 +64,7 @@ func (h userHandler) EditProfile(c *gin.Context) {
 	if len(username) > 0 {
 		userWithUsername, err := h.app.Repositories.User.GetUserByUsername(username)
 		if err != nil {
-			if err != db.ErrNoRecord {
+			if err != postgres.ErrNoRecord {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"message": "An error occurred while getting user",
 					"err":     err.Error(),
@@ -72,7 +72,7 @@ func (h userHandler) EditProfile(c *gin.Context) {
 				return
 			}
 		}
-		if err != db.ErrNoRecord && userWithUsername.ID != c.GetInt64(KeyUserId) {
+		if err != postgres.ErrNoRecord && userWithUsername.ID != c.GetInt64(KeyUserId) {
 			// This means there's another user that is not
 			// the user making the same request who has the same username
 			h.app.Logger.Info().Msg(userWithUsername.Email)
@@ -129,7 +129,7 @@ func (h userHandler) EditProfile(c *gin.Context) {
 
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Could not  update user because user was not found",
 				"err":     err.Error(),
@@ -225,7 +225,7 @@ func (h userHandler) ChangePassword(c *gin.Context) {
 	user, err := h.app.Repositories.User.GetUserById(int(userID))
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "You have to log in to be able to perform this operation",
 			})

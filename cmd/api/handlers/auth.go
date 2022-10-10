@@ -6,6 +6,7 @@ import (
 	helpers2 "gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/models/response"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"io"
 	"net/http"
@@ -121,7 +122,7 @@ func (h authHandler) VerifyAccount(c *gin.Context) {
 
 	tokenFromDB, err := h.app.Repositories.AccountVerification.GetAccountVerificationByToken(token)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Invalid verification token provided",
 			})
@@ -148,7 +149,7 @@ func (h authHandler) VerifyAccount(c *gin.Context) {
 	// Check if the user still exists
 	user, err := h.app.Repositories.User.GetUserById(int(tokenFromDB.UserID))
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "User with the provided token was not found in our record",
 			})
@@ -283,7 +284,7 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 	h.app.Logger.Info().Msg("google jwt validation successful")
 	user, err = h.app.Repositories.User.GetUserByEmail(claims.Email)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			// Create a new user account
 			h.app.Logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.FirstName, claims.Email))
 			isNewUser = true
@@ -404,7 +405,7 @@ func (h authHandler) ForgotPassword(c *gin.Context) {
 
 	user, err := h.app.Repositories.User.GetUserByEmail(req.Email)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "email does not match any account in our record",
 			})
@@ -454,7 +455,7 @@ func (h authHandler) VerifyPasswordResetToken(c *gin.Context) {
 
 	passwordReset, err := h.app.Repositories.PasswordReset.GetPasswordResetRecord(token)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Invalid token provided",
 			})
@@ -469,7 +470,7 @@ func (h authHandler) VerifyPasswordResetToken(c *gin.Context) {
 
 	user, err := h.app.Repositories.User.GetUserById(int(passwordReset.UserID))
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "User with the attached token does not exist",
 			})
@@ -525,7 +526,7 @@ func (h authHandler) ResetPassword(c *gin.Context) {
 	// Check if token exists in the DB
 	passwordReset, err := h.app.Repositories.PasswordReset.GetPasswordResetRecord(token)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Invalid token provided",
 			})
@@ -560,7 +561,7 @@ func (h authHandler) ResetPassword(c *gin.Context) {
 	// check if user with provided email is found
 	user, err := h.app.Repositories.User.GetUserById(int(passwordReset.UserID))
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "user with attached token not found",
 			})

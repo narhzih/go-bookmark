@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
@@ -37,7 +37,7 @@ func (h notificationHandler) GetNotification(c *gin.Context) {
 	h.app.Logger.Info().Msg(fmt.Sprintf("retrieving notification for %+v", notificationId))
 	notification, err = h.app.Repositories.Notification.GetNotification(notificationId, c.GetInt64(KeyUserId))
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 				"message": "Notification not found",
 			})
@@ -102,7 +102,7 @@ func (h notificationHandler) UpdateUserDeviceTokens(c *gin.Context) {
 
 	existingDeviceTokens, err := h.app.Repositories.User.GetUserDeviceTokens(c.GetInt64(KeyUserId))
 	if err != nil {
-		if err != db.ErrNoRecord {
+		if err != postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "An error occurred",
 				"error":   err.Error(),

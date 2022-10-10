@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 )
@@ -39,9 +39,9 @@ func (h twitterBotHandler) BotAddToPipe(c *gin.Context) {
 	user, err := h.app.Services.TwitterAccountConnected(botAddToPipeBody.TwitterID)
 
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusOK, gin.H{
-				"message": `OOPS! Something went wrong! Either you haven't connected your twitter account to your MyPipe account or, you do not have a MyPipe account at all. Either ways, follow this like so I can quickly fix this for you!`,
+				"message": `OOPS! Something went wrong! Either you haven't connected your twitter account to your MyPipe account or, you do not have a MyPipe account at all. Either ways, follow this link so I can quickly fix this for you!`,
 				"data": map[string]interface{}{
 					"link": c.Request.Host + "/v1/bot/twitter/connect-account",
 				},
@@ -55,8 +55,9 @@ func (h twitterBotHandler) BotAddToPipe(c *gin.Context) {
 	}
 	pipe, err = h.app.Repositories.Pipe.GetPipeByName(botAddToPipeBody.PipeName, user.ID)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			// Create a pipe for that user
+			h.app.Logger.Info().Msg("No pipe was found after search... creating a new one")
 			pipe, err = h.app.Repositories.Pipe.CreatePipe(models.Pipe{
 				Name:       botAddToPipeBody.PipeName,
 				UserID:     user.ID,
@@ -68,6 +69,8 @@ func (h twitterBotHandler) BotAddToPipe(c *gin.Context) {
 				})
 			}
 		} else {
+			h.app.Logger.Info().Msg("An entirely different error has occurred...")
+
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "An error occurred while trying to perform operation",
 				"err":     err.Error(),

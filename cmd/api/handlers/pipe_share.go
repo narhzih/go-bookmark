@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"gitlab.com/trencetech/mypipe-api/db"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
 	"strconv"
@@ -112,7 +113,7 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 	// See if the pipe is still sharable
 	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "This pipe cannot be added to your collection because the author has not allowed it!",
 			})
@@ -126,7 +127,7 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 	}
 	pipe, err := h.app.Repositories.Pipe.GetPipeAndResource(pipeToAdd.PipeID, pipeToAdd.SharerID)
 	if err != nil {
-		if err == db.ErrNoRecord {
+		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Pipe not found. Either the author of this pipe has deleted it or has removed the pipe from public access",
 			})
@@ -175,7 +176,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipe(pipeId)
 	if err != nil {
 		switch {
-		case errors.Is(err, db.ErrNoRecord):
+		case errors.Is(err, postgres.ErrNoRecord):
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "This pipe cannot be added to your collection because the author has not allowed it!",
 			})
@@ -203,7 +204,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		_, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(c.Query("code"))
 		if err != nil {
 			switch {
-			case errors.Is(err, db.ErrNoRecord):
+			case errors.Is(err, postgres.ErrNoRecord):
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 					"message": "This pipe cannot be added to your collection because the author has not allowed it!",
 				})
@@ -226,7 +227,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 				"message": "You have already added this pipe to your collection.",
 			})
 			return
-		case err != db.ErrNoRecord:
+		case err != postgres.ErrNoRecord:
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "An error occurred while trying to add pipe to collection.",
 			})
@@ -236,7 +237,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		// get the actual pipe
 		_, err = h.app.Repositories.Pipe.GetPipe(pipeToAdd.PipeID, pipeToAdd.SharerID)
 		if err != nil {
-			if err == db.ErrNoRecord {
+			if err == postgres.ErrNoRecord {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 					"message": "Pipe not found. Either the author of this pipe has deleted it or has removed the pipe from public access",
 				})
