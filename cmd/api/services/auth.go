@@ -77,7 +77,7 @@ func (s Services) generateTokenPair(user models.User) (accessToken, refreshToken
 	return accessToken, refreshToken, expiryTime, nil
 }
 
-func (s Services) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, error) {
+func (s Services) ValidateGoogleJWT(tokenString, device string) (idtoken.Payload, error) {
 	//claimStruct := GoogleClaims{}
 	//token, err := jwt.ParseWithClaims(
 	//	tokenString,
@@ -104,21 +104,21 @@ func (s Services) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, e
 	claims, err := idtoken.Validate(context.Background(), tokenString, googleClientId)
 	if err != nil {
 		s.Logger.Err(err).Msg("Could not run idtoken.Validate")
-		return GoogleClaims{}, errors.New("an error occurred")
+		return idtoken.Payload{}, errors.New("an error occurred")
 	}
 	if claims.Issuer != "accounts.google.com" && claims.Issuer != "https://accounts.google.com" {
 		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: iss is invalid")
-		return GoogleClaims{}, errors.New("iss is invalid")
+		return idtoken.Payload{}, errors.New("iss is invalid")
 	}
 
 	if claims.Audience != googleClientId {
 		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: aud is invalid")
-		return GoogleClaims{}, errors.New("aud is invalid")
+		return idtoken.Payload{}, errors.New("aud is invalid")
 	}
 
-	if claims.ExpiresAt < time.Now().UTC().Unix() {
+	if claims.Expires < time.Now().UTC().Unix() {
 		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: jwt expired")
-		return GoogleClaims{}, errors.New("JWT is expired")
+		return idtoken.Payload{}, errors.New("JWT is expired")
 	}
 
 	return *claims, nil
