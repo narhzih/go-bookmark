@@ -80,7 +80,7 @@ func (s Services) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, e
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		&claimStruct,
-		nil,
+		retrieveKeyFromPem,
 	)
 
 	if err != nil {
