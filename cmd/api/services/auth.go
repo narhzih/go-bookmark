@@ -1,10 +1,12 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"gitlab.com/trencetech/mypipe-api/db/models"
+	"google.golang.org/api/idtoken"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -75,45 +77,61 @@ func (s Services) generateTokenPair(user models.User) (accessToken, refreshToken
 	return accessToken, refreshToken, expiryTime, nil
 }
 
-func (s Services) ValidateGoogleJWT(tokenString, device string) (GoogleClaims, error) {
-	claimStruct := GoogleClaims{}
-	token, err := jwt.ParseWithClaims(
-		tokenString,
-		&claimStruct,
-		nil,
-	)
-
-	if err != nil {
-		s.Logger.Err(err).Msg("could not execute jwt.ParseWithClaims")
-		return GoogleClaims{}, err
-	}
-
-	claims, ok := token.Claims.(*GoogleClaims)
-	if !ok {
-		s.Logger.Info().Msg("invalid google JWT")
-		return GoogleClaims{}, errors.New("invalid google JWT")
-	}
-	if claims.Issuer != "accounts.google.com" && claims.Issuer != "https://accounts.google.com" {
-		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: iss is invalid")
-		return GoogleClaims{}, errors.New("iss is invalid")
-	}
+func (s Services) ValidateGoogleJWT(tokenString, device string) (models.GoogleClaim, error) {
+	//claimStruct := GoogleClaims{}
+	//token, err := jwt.ParseWithClaims(
+	//	tokenString,
+	//	&claimStruct,
+	//	retrieveKeyFromPem,
+	//)
+	//
+	//if err != nil {
+	//	s.Logger.Err(err).Msg("could not execute jwt.ParseWithClaims")
+	//	return GoogleClaims{}, err
+	//}
+	//
+	//claims, ok := token.Claims.(*GoogleClaims)
+	//if !ok {
+	//	s.Logger.Info().Msg("invalid google JWT")
+	//	return GoogleClaims{}, errors.New("invalid google JWT")
+	//}
 	var googleClientId string
 	if device == "ios" {
 		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_IOS")
 	} else {
 		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_ANDROID")
 	}
+	claims, err := idtoken.Validate(context.Background(), tokenString, googleClientId)
+	if err != nil {
+		s.Logger.Err(err).Msg("Could not run idtoken.Validate")
+		return models.GoogleClaim{}, errors.New("an error occurred")
+	}
+	if claims.Issuer != "accounts.google.com" && claims.Issuer != "https://accounts.google.com" {
+		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: iss is invalid")
+		return models.GoogleClaim{}, errors.New("iss is invalid")
+	}
+
 	if claims.Audience != googleClientId {
 		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: aud is invalid")
-		return GoogleClaims{}, errors.New("aud is invalid")
+		return models.GoogleClaim{}, errors.New("aud is invalid")
 	}
 
-	if claims.ExpiresAt < time.Now().UTC().Unix() {
+	if claims.Expires < time.Now().UTC().Unix() {
 		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: jwt expired")
-		return GoogleClaims{}, errors.New("JWT is expired")
+		return models.GoogleClaim{}, errors.New("JWT is expired")
 	}
 
-	return *claims, nil
+	var googleClaim models.GoogleClaim
+	marsh, err := json.Marshal(claims.Claims)
+	if err != nil {
+		return models.GoogleClaim{}, err
+	}
+	err = json.Unmarshal(marsh, &googleClaim)
+	if err != nil {
+		return models.GoogleClaim{}, err
+	}
+
+	return googleClaim, nil
 }
 
 func retrieveKeyFromPem(t *jwt.Token) (interface{}, error) {

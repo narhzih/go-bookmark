@@ -285,10 +285,10 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 	if err != nil {
 		if err == postgres.ErrNoRecord {
 			// Create a new user account
-			h.app.Logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.FirstName, claims.Email))
+			h.app.Logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.GivenName, claims.Email))
 			isNewUser = true
 			userCred := models.User{
-				Username: claims.FirstName + " " + claims.LastName,
+				Username: claims.GivenName + " " + claims.FamilyName,
 				Email:    claims.Email,
 			}
 			user, err = h.app.Repositories.User.CreateUserByEmail(userCred, "", "GOOGLE")
@@ -349,8 +349,9 @@ func (h authHandler) SignUpWithGoogle(c *gin.Context) {
 		})
 		return
 	}
+	h.app.Logger.Info().Msg(fmt.Sprintf("All returned vales -> %v", claims))
 	userCred := models.User{
-		Username: claims.FirstName + " " + claims.LastName,
+		Username: claims.FamilyName + " " + claims.GivenName,
 		Email:    claims.Email,
 	}
 	user, err := h.app.Repositories.User.CreateUser(userCred)
