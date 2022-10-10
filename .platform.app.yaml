@@ -34,7 +34,7 @@ disk: 2048
 
 hooks:
   build:
-    go build -o bin/app
+    go build -o=bin/app ./cmd/api
 
 web:
   upstream:
