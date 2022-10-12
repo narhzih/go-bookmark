@@ -10,7 +10,6 @@ import (
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"io"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -628,32 +627,6 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 	}
 
 	h.app.Logger.Info().Msg(fmt.Sprintf("access token is %v", req.AccessToken))
-	// Trying to use the auth code to get a valid access token
-	twitterAuthCodeR, err := http.NewRequest(http.MethodPost, "https://api.twitter.com/2/oauth2/token", nil)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "we can't proceed to connect your twitter account at the moment. Please try again soon",
-			"err":     err.Error(),
-		})
-		return
-	}
-	twitterAuthCodeR.Header.Add("redirect_uri", "com.mypipeapp://")
-	twitterAuthCodeR.Header.Add("client_id", os.Getenv("TWITTER_API_KEY"))
-	twitterAuthCodeR.Header.Add("grant_type", "authorization_code")
-	twitterAuthCodeR.Header.Add("code_verifier", "challenge")
-	twitterAuthCodeR.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-
-	twitterAuthCodeResp, err := http.DefaultClient.Do(twitterAuthCodeR)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "An error occurred while contacting twitter api",
-			"err":     err.Error(),
-		})
-		return
-	}
-	tRespBody, err := io.ReadAll(twitterAuthCodeResp.Body)
-	h.app.Logger.Info().Msg(string(tRespBody))
-
 	// Make request to api for user information
 	twitterHttp, err := http.NewRequest(http.MethodGet, "https://api.twitter.com/2/users/me", nil)
 	if err != nil {
