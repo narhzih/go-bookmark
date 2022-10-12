@@ -55,7 +55,7 @@ func (u userActions) GetUserByTwitterID(twitterId string) (user models.User, err
 		}
 		return models.User{}, err
 	}
-	return user, err
+	return user, nil
 }
 
 func (u userActions) GetUserById(userId int) (user models.User, err error) {

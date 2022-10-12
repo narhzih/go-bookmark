@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	helpers2 "gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
@@ -654,26 +655,47 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 	var twitterUserResponse response.TwitterUserResponse
 	respBody, err := io.ReadAll(twitterResponse.Body)
 	json.Unmarshal(respBody, &twitterUserResponse)
-	user, err = h.app.Repositories.User.ConnectToTwitter(user, twitterUserResponse.Data.Id)
+	_, err = h.app.Repositories.User.GetUserByTwitterID(twitterUserResponse.Data.Id)
 	if err != nil {
+		switch {
+		case errors.Is(err, postgres.ErrNoRecord):
+			user, err = h.app.Repositories.User.ConnectToTwitter(user, twitterUserResponse.Data.Id)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Server error",
+					"err":     err.Error(),
+				})
+				return
+			}
+
+			c.JSON(http.StatusOK, gin.H{
+				"message": "Twitter account connected successfully",
+				"data": map[string]interface{}{
+					"user": map[string]interface{}{
+						"id":           user.ID,
+						"username":     user.Username,
+						"email":        user.Email,
+						"profile name": user.ProfileName,
+						"cover_photo":  user.CovertPhoto,
+						"twitter_id":   user.TwitterId,
+					},
+				},
+			})
+			return
+		default:
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+		}
+
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Server error",
+			"message": "An error occurred",
 			"err":     err.Error(),
 		})
+		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Twitter account connected successfully",
-		"data": map[string]interface{}{
-			"user": map[string]interface{}{
-				"id":           user.ID,
-				"username":     user.Username,
-				"email":        user.Email,
-				"profile name": user.ProfileName,
-				"cover_photo":  user.CovertPhoto,
-				"twitter_id":   user.TwitterId,
-			},
-		},
+	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+		"message": "This twitter account has already been connected to another account on our database.",
 	})
 
 }
