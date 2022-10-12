@@ -627,7 +627,9 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 		})
 	}
 
-	h.app.Logger.Info().Msg(fmt.Sprintf("access token is %v", req.AccessToken))
+	//h.app.Logger.Info().Msg(fmt.Sprintf("access token is %v", req.AccessToken))
+	// Trying to use the auth code to get a valid access token
+
 	// Make request to api for user information
 	twitterHttp, err := http.NewRequest(http.MethodGet, "https://api.twitter.com/2/users/me", nil)
 	if err != nil {
@@ -655,7 +657,7 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 	var twitterUserResponse response.TwitterUserResponse
 	respBody, err := io.ReadAll(twitterResponse.Body)
 	json.Unmarshal(respBody, &twitterUserResponse)
-	_, err = h.app.Repositories.User.GetUserByTwitterID(twitterUserResponse.Data.Id)
+	existingAcc, err := h.app.Repositories.User.GetUserByTwitterID(twitterUserResponse.Data.Id)
 	if err != nil {
 		switch {
 		case errors.Is(err, postgres.ErrNoRecord):
@@ -687,15 +689,16 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 				"message": err.Error(),
 			})
 		}
-
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "An error occurred",
-			"err":     err.Error(),
+	}
+	// Format error
+	if existingAcc.ID != user.ID {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "This twitter account has already been connected to another account on our database.",
 		})
 		return
 	}
-	c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-		"message": "This twitter account has already been connected to another account on our database.",
+	c.JSON(http.StatusOK, gin.H{
+		"message": "You have already connected your twitter account to your mypipe account. You don't have to connect again",
 	})
 
 }
