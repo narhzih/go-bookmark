@@ -12,4 +12,5 @@ func BootRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	setupPipeRoutes(app, routeGroup)
 	setupNotificationRoutes(app, routeGroup)
 	setupTwitterBotRoutes(app, routeGroup)
+	setupParserRoutes(app, routeGroup)
 }
