@@ -11,6 +11,7 @@ import (
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -278,6 +279,7 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid GoogleJWT",
+			"err":     err.Error(),
 		})
 		return
 	}
@@ -289,7 +291,7 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 			h.app.Logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.GivenName, claims.Email))
 			isNewUser = true
 			userCred := models.User{
-				Username: claims.GivenName + " " + claims.FamilyName,
+				Username: strings.TrimSpace(claims.GivenName),
 				Email:    claims.Email,
 			}
 			user, err = h.app.Repositories.User.CreateUserByEmail(userCred, "", "GOOGLE")
@@ -297,6 +299,7 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 				h.app.Logger.Err(err)
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"message": "Error occurred while trying to register user",
+					"err":     err.Error(),
 				})
 				return
 			}

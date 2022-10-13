@@ -95,14 +95,14 @@ func (s Services) ValidateGoogleJWT(tokenString, device string) (models.GoogleCl
 	//	s.Logger.Info().Msg("invalid google JWT")
 	//	return GoogleClaims{}, errors.New("invalid google JWT")
 	//}
-	s.Logger.Info().Msg(tokenString + "__" + device)
 	var googleClientId string
 	if device == "ios" {
 		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_IOS")
 	} else {
 		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_ANDROID")
 	}
-	claims, err := idtoken.Validate(context.Background(), tokenString, googleClientId)
+	s.Logger.Info().Msg(fmt.Sprintf("app google client id is %v", googleClientId))
+	claims, err := idtoken.Validate(context.Background(), tokenString, "")
 	if err != nil {
 		s.Logger.Err(err).Msg("Could not run idtoken.Validate")
 		return models.GoogleClaim{}, errors.New("an error occurred")
@@ -111,11 +111,12 @@ func (s Services) ValidateGoogleJWT(tokenString, device string) (models.GoogleCl
 		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: iss is invalid")
 		return models.GoogleClaim{}, errors.New("iss is invalid")
 	}
+	s.Logger.Info().Msg(fmt.Sprintf("claims audience is %v", claims.Audience))
 
-	if claims.Audience != googleClientId {
-		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: aud is invalid")
-		return models.GoogleClaim{}, errors.New("aud is invalid")
-	}
+	//if claims.Audience != googleClientId {
+	//	s.Logger.Info().Msg("GOOGLE_JWT_ERROR: aud is invalid")
+	//	return models.GoogleClaim{}, errors.New("aud is invalid")
+	//}
 
 	if claims.Expires < time.Now().UTC().Unix() {
 		s.Logger.Info().Msg("GOOGLE_JWT_ERROR: jwt expired")
