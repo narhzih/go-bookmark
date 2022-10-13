@@ -95,6 +95,7 @@ func (s Services) ValidateGoogleJWT(tokenString, device string) (models.GoogleCl
 	//	s.Logger.Info().Msg("invalid google JWT")
 	//	return GoogleClaims{}, errors.New("invalid google JWT")
 	//}
+	s.Logger.Info().Msg(tokenString + "__" + device)
 	var googleClientId string
 	if device == "ios" {
 		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_IOS")
