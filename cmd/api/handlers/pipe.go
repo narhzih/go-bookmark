@@ -97,11 +97,18 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 		CoverPhoto: photoUrl,
 	}
 	newPipe, err := h.app.Repositories.Pipe.CreatePipe(pipe)
-
+	if err != nil {
+		h.app.Logger.Err(err).Msg(err.Error())
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while trying to create pipe",
+			"err":     err.Error(),
+		})
+		return
+	}
 	// The only error expected to come up when trying to create a pipe
 	// is if there's already a pipe with the same name existing for the
 	// user that's trying to create the pipe. This error will be handled later
-	// TODO: @narhzih - Implement error handling for UNIQUE(user_id, name)
+	fetchedPipe, err := h.app.Repositories.Pipe.GetPipe(newPipe.ID, newPipe.UserID)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -115,10 +122,13 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 		"message": "Pipe created successfully",
 		"data": map[string]interface{}{
 			"pipe": map[string]interface{}{
-				"id":          newPipe.ID,
-				"name":        newPipe.Name,
-				"cover_photo": newPipe.CoverPhoto,
-				"user_id":     newPipe.UserID,
+				"id":          fetchedPipe.ID,
+				"user_id":     fetchedPipe.UserID,
+				"bookmarks":   fetchedPipe.Bookmarks,
+				"name":        fetchedPipe.Name,
+				"created_at":  fetchedPipe.CreatedAt,
+				"modified_at": fetchedPipe.ModifiedAt,
+				"creator":     fetchedPipe.Creator,
 			},
 		},
 	})

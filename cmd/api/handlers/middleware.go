@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
 	"net/http"
 	"strings"
 
@@ -19,7 +20,7 @@ var (
 	InvalidToken = fmt.Errorf("no token present in request")
 )
 
-func AuthRequired(jwtSecret string, logger zerolog.Logger) gin.HandlerFunc {
+func AuthRequired(app internal.Application, jwtSecret string, logger zerolog.Logger) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		authHeader := c.Request.Header.Get("Authorization")
