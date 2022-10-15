@@ -19,6 +19,6 @@ func setupAuthRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	routeGroup.POST("/google-auth", h.SignInWithGoogle)
 
 	authApi := routeGroup.Group("/auth")
-	authApi.Use(middlewares.AuthRequired(app, app.Services.JWTConfig.Key, app.Logger))
+	authApi.Use(middlewares.AuthRequired(app, app.Services.JWTConfig.Key))
 	authApi.POST("/twitter/connect-account", h.ConnectTwitterAccount)
 }

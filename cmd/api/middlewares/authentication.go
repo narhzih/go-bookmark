@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -21,7 +20,7 @@ var (
 	InvalidToken = fmt.Errorf("no token present in request")
 )
 
-func AuthRequired(app internal.Application, jwtSecret string, logger zerolog.Logger) gin.HandlerFunc {
+func AuthRequired(app internal.Application, jwtSecret string) gin.HandlerFunc {
 
 	return func(c *gin.Context) {
 		authHeader := c.Request.Header.Get("Authorization")
@@ -32,14 +31,14 @@ func AuthRequired(app internal.Application, jwtSecret string, logger zerolog.Log
 			})
 
 			if err != nil {
-				logger.Err(err).Msg(err.Error())
+				app.Logger.Err(err).Msg(err.Error())
 				if err == InvalidToken {
 					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 						"message": "You are not logged in. Please log in!",
 					})
 					return
 				}
-				logger.Info().Msg("Error is from here")
+				app.Logger.Info().Msg("Error is from here")
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"message": fmt.Sprintf("could not parse authorization token: %s", err),
 				})
