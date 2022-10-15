@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/handlers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
 )
 
 func setupAuthRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
@@ -18,6 +19,6 @@ func setupAuthRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	routeGroup.POST("/google-auth", h.SignInWithGoogle)
 
 	authApi := routeGroup.Group("/auth")
-	authApi.Use(handlers.AuthRequired(app, app.Services.JWTConfig.Key, app.Logger))
+	authApi.Use(middlewares.AuthRequired(app, app.Services.JWTConfig.Key, app.Logger))
 	authApi.POST("/twitter/connect-account", h.ConnectTwitterAccount)
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
 	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
@@ -32,7 +33,7 @@ func NewUserHandler(app internal.Application) UserHandler {
 func (h userHandler) UserProfile(c *gin.Context) {
 	var userProfile models.Profile
 	var err error
-	userID := c.GetInt64(KeyUserId)
+	userID := c.GetInt64(middlewares.KeyUserId)
 	userProfile, err = h.app.Services.GetUserProfileInformation(userID)
 
 	if err != nil {
@@ -55,7 +56,7 @@ func (h userHandler) UserProfile(c *gin.Context) {
 func (h userHandler) EditProfile(c *gin.Context) {
 
 	updatedUser := models.User{
-		ID: c.GetInt64(KeyUserId),
+		ID: c.GetInt64(middlewares.KeyUserId),
 	}
 	username := c.PostForm("username")
 	profileName := c.PostForm("profile_name")
@@ -72,7 +73,7 @@ func (h userHandler) EditProfile(c *gin.Context) {
 				return
 			}
 		}
-		if err != postgres.ErrNoRecord && userWithUsername.ID != c.GetInt64(KeyUserId) {
+		if err != postgres.ErrNoRecord && userWithUsername.ID != c.GetInt64(middlewares.KeyUserId) {
 			// This means there's another user that is not
 			// the user making the same request who has the same username
 			h.app.Logger.Info().Msg(userWithUsername.Email)
@@ -174,7 +175,7 @@ func (h userHandler) UploadCoverPhoto(c *gin.Context) {
 		return
 	}
 	updatedUserModel := models.User{
-		ID:          c.GetInt64(KeyUserId),
+		ID:          c.GetInt64(middlewares.KeyUserId),
 		CovertPhoto: photoUrl,
 	}
 	user, err := h.app.Repositories.User.UpdateUser(updatedUserModel)
@@ -221,7 +222,7 @@ func (h userHandler) ChangePassword(c *gin.Context) {
 		})
 		return
 	}
-	userID := c.GetInt64(KeyUserId)
+	userID := c.GetInt64(middlewares.KeyUserId)
 	user, err := h.app.Repositories.User.GetUserById(int(userID))
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())

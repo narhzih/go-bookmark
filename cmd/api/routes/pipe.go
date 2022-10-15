@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/handlers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
 )
 
 func setupPipeRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
@@ -12,7 +13,7 @@ func setupPipeRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	pipeShareH := handlers.NewPipeShareHandler(app)
 
 	pipe := routeGroup.Group("/pipe")
-	pipe.Use(handlers.AuthRequired(app, app.Services.JWTConfig.Key, app.Logger))
+	pipe.Use(middlewares.AuthRequired(app, app.Services.JWTConfig.Key, app.Logger))
 	pipe.POST("/", h.CreatePipe)
 	pipe.GET("/:id", h.GetPipe)
 	pipe.POST("/:id/share", pipeShareH.SharePipe)
