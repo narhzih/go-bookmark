@@ -3,6 +3,7 @@ package middlewares
 import (
 	"fmt"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"net/http"
 	"strings"
 
@@ -48,6 +49,7 @@ func AuthRequired(app internal.Application, jwtSecret string, logger zerolog.Log
 			claims := token.Claims.(jwt.MapClaims)
 			username := claims["username"].(string)
 			userId := int64(claims["sub"].(float64))
+			app.Logger.Info().Msg(fmt.Sprintf("parsed username as: %v and userId as %v", username, userId))
 
 			if username == "" || userId == 0 {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -56,9 +58,35 @@ func AuthRequired(app internal.Application, jwtSecret string, logger zerolog.Log
 				return
 			}
 
-			c.Set(KeyUsername, username)
-			c.Set(KeyUserId, userId)
-			c.Next()
+			// see if user still exists
+			loggedInUser, err := app.Repositories.User.GetUserById(int(userId))
+			if err != nil {
+				if err == postgres.ErrNoRecord {
+					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+						"message": "Session expired. Please login again",
+						"err":     err.Error(),
+					})
+					return
+				}
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Authentication error",
+					"err":     err.Error(),
+				})
+				return
+			}
+
+			if loggedInUser.Username == username && loggedInUser.ID == userId {
+				c.Set(KeyUsername, username)
+				c.Set(KeyUserId, userId)
+				c.Next()
+			} else {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"message": "Unauthorized",
+					"err":     err.Error(),
+				})
+				return
+			}
+
 		} else {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "You're not logged in!. Please login to perform this operation.",
