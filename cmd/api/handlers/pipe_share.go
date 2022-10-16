@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
 	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
@@ -34,7 +35,7 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 		return
 	}
 
-	loggedInUser := c.GetInt64(KeyUserId)
+	loggedInUser := c.GetInt64(middlewares.KeyUserId)
 	pipeID, _ := strconv.Atoi(c.Param("id"))
 	_, err := h.app.Repositories.Pipe.GetPipe(int64(pipeID), loggedInUser)
 	if err != nil {
@@ -191,7 +192,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 
 	}
 
-	if pipeToAdd.SharerID == c.GetInt64(KeyUserId) {
+	if pipeToAdd.SharerID == c.GetInt64(middlewares.KeyUserId) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "You cannot add pipe to collection because it's yours!",
 		})
@@ -219,7 +220,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		}
 
 		// See if this user has already added this pipe to their collection
-		_, err = h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.ID, c.GetInt64(KeyUserId))
+		_, err = h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.ID, c.GetInt64(middlewares.KeyUserId))
 		switch {
 		case errors.Is(err, nil):
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -250,7 +251,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 
 		_, err = h.app.Repositories.PipeShare.CreatePipeReceiver(models.SharedPipeReceiver{
 			SharedPipeId: pipeToAdd.ID,
-			ReceiverID:   c.GetInt64(KeyUserId),
+			ReceiverID:   c.GetInt64(middlewares.KeyUserId),
 			IsAccepted:   true,
 		})
 
@@ -262,7 +263,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 			return
 		}
 	case models.PipeShareTypePrivate:
-		pipeShareRecord, err := h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.PipeID, c.GetInt64(KeyUserId))
+		pipeShareRecord, err := h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.PipeID, c.GetInt64(middlewares.KeyUserId))
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "an error occurred while addding pipe to your collection",

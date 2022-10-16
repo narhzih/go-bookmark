@@ -6,6 +6,7 @@ import (
 	"fmt"
 	helpers2 "gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/models/response"
 	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
@@ -622,7 +623,7 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 		return
 	}
 
-	user, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(KeyUserId)))
+	user, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Server error",

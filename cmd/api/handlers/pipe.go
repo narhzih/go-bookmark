@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/rs/zerolog"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
 	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
@@ -41,7 +42,7 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 		return
 	}
 
-	pipeAlreadyExists, err := h.app.Repositories.Pipe.PipeAlreadyExists(pipeName, c.GetInt64(KeyUserId))
+	pipeAlreadyExists, err := h.app.Repositories.Pipe.PipeAlreadyExists(pipeName, c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -92,16 +93,23 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 	}
 	h.app.Logger.Info().Msg("Actual pipe creation has started")
 	pipe := models.Pipe{
-		UserID:     c.GetInt64(KeyUserId),
+		UserID:     c.GetInt64(middlewares.KeyUserId),
 		Name:       pipeName,
 		CoverPhoto: photoUrl,
 	}
 	newPipe, err := h.app.Repositories.Pipe.CreatePipe(pipe)
-
+	if err != nil {
+		h.app.Logger.Err(err).Msg(err.Error())
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while trying to create pipe",
+			"err":     err.Error(),
+		})
+		return
+	}
 	// The only error expected to come up when trying to create a pipe
 	// is if there's already a pipe with the same name existing for the
 	// user that's trying to create the pipe. This error will be handled later
-	// TODO: @narhzih - Implement error handling for UNIQUE(user_id, name)
+	fetchedPipe, err := h.app.Repositories.Pipe.GetPipe(newPipe.ID, newPipe.UserID)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -115,17 +123,20 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 		"message": "Pipe created successfully",
 		"data": map[string]interface{}{
 			"pipe": map[string]interface{}{
-				"id":          newPipe.ID,
-				"name":        newPipe.Name,
-				"cover_photo": newPipe.CoverPhoto,
-				"user_id":     newPipe.UserID,
+				"id":          fetchedPipe.ID,
+				"user_id":     fetchedPipe.UserID,
+				"bookmarks":   fetchedPipe.Bookmarks,
+				"name":        fetchedPipe.Name,
+				"created_at":  fetchedPipe.CreatedAt,
+				"modified_at": fetchedPipe.ModifiedAt,
+				"creator":     fetchedPipe.Creator,
 			},
 		},
 	})
 
 }
 func (h pipeHandler) GetPipe(c *gin.Context) {
-	userID := c.GetInt64(KeyUserId)
+	userID := c.GetInt64(middlewares.KeyUserId)
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
@@ -164,7 +175,7 @@ func (h pipeHandler) GetPipe(c *gin.Context) {
 }
 
 func (h pipeHandler) GetPipeWithResource(c *gin.Context) {
-	userID := c.GetInt64(KeyUserId)
+	userID := c.GetInt64(middlewares.KeyUserId)
 	pipes, err := h.app.Repositories.Pipe.GetPipesOnSteroid(userID)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
@@ -181,7 +192,7 @@ func (h pipeHandler) GetPipeWithResource(c *gin.Context) {
 	})
 }
 func (h pipeHandler) GetPipes(c *gin.Context) {
-	userID := c.GetInt64(KeyUserId)
+	userID := c.GetInt64(middlewares.KeyUserId)
 	pipes, err := h.app.Repositories.Pipe.GetPipes(userID)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
@@ -213,7 +224,7 @@ func (h pipeHandler) UpdatePipe(c *gin.Context) {
 	}
 	pipeName := c.PostForm("name")
 	if len(pipeName) > 0 {
-		pipeAlreadyExists, err := h.app.Repositories.Pipe.PipeAlreadyExists(pipeName, c.GetInt64(KeyUserId))
+		pipeAlreadyExists, err := h.app.Repositories.Pipe.PipeAlreadyExists(pipeName, c.GetInt64(middlewares.KeyUserId))
 		if err != nil {
 			h.app.Logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -263,7 +274,7 @@ func (h pipeHandler) UpdatePipe(c *gin.Context) {
 		pipe.CoverPhoto = photoUrl
 	}
 
-	pipe, err = h.app.Repositories.Pipe.UpdatePipe(c.GetInt64(KeyUserId), pipeId, pipe)
+	pipe, err = h.app.Repositories.Pipe.UpdatePipe(c.GetInt64(middlewares.KeyUserId), pipeId, pipe)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -294,7 +305,7 @@ func (h pipeHandler) DeletePipe(c *gin.Context) {
 		})
 		return
 	}
-	_, err = h.app.Repositories.Pipe.DeletePipe(c.GetInt64(KeyUserId), pipeId)
+	_, err = h.app.Repositories.Pipe.DeletePipe(c.GetInt64(middlewares.KeyUserId), pipeId)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

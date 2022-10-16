@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
 	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
@@ -35,7 +36,7 @@ func (h notificationHandler) GetNotification(c *gin.Context) {
 		return
 	}
 	h.app.Logger.Info().Msg(fmt.Sprintf("retrieving notification for %+v", notificationId))
-	notification, err = h.app.Repositories.Notification.GetNotification(notificationId, c.GetInt64(KeyUserId))
+	notification, err = h.app.Repositories.Notification.GetNotification(notificationId, c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
@@ -72,7 +73,7 @@ func (h notificationHandler) GetNotification(c *gin.Context) {
 }
 
 func (h notificationHandler) GetNotifications(c *gin.Context) {
-	userId := c.GetInt64(KeyUserId)
+	userId := c.GetInt64(middlewares.KeyUserId)
 	notifications, err := h.app.Repositories.Notification.GetNotifications(userId)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -100,7 +101,7 @@ func (h notificationHandler) UpdateUserDeviceTokens(c *gin.Context) {
 		return
 	}
 
-	existingDeviceTokens, err := h.app.Repositories.User.GetUserDeviceTokens(c.GetInt64(KeyUserId))
+	existingDeviceTokens, err := h.app.Repositories.User.GetUserDeviceTokens(c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		if err != postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -112,7 +113,7 @@ func (h notificationHandler) UpdateUserDeviceTokens(c *gin.Context) {
 	}
 	// TODO: Refactor to remove old device tokens if regenerated
 	existingDeviceTokens = append(existingDeviceTokens, reqBody.DeviceToken)
-	existingDeviceTokens, err = h.app.Repositories.User.UpdateUserDeviceTokens(c.GetInt64(KeyUserId), existingDeviceTokens)
+	existingDeviceTokens, err = h.app.Repositories.User.UpdateUserDeviceTokens(c.GetInt64(middlewares.KeyUserId), existingDeviceTokens)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Our system encountered an error. Please try again soon",

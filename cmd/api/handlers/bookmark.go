@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
 	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
 	"gitlab.com/trencetech/mypipe-api/db/models"
 	"net/http"
@@ -46,20 +47,20 @@ func (h bookmarkHandler) CreateBookmark(c *gin.Context) {
 		})
 		return
 	}
-	pipeExits, err := h.app.Services.PipeExists(pipeId, c.GetInt64(KeyUserId))
+	pipeExits, err := h.app.Services.PipeExists(pipeId, c.GetInt64(middlewares.KeyUserId))
 	if !pipeExits {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid pipe to create bookmark",
 		})
 		return
 	}
-	if _, err := h.app.Services.UserOwnsPipe(pipeId, c.GetInt64(KeyUserId)); err != nil {
+	if _, err := h.app.Services.UserOwnsPipe(pipeId, c.GetInt64(middlewares.KeyUserId)); err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"message": err.Error(),
 		})
 	}
 	bookmark = models.Bookmark{
-		UserID:   c.GetInt64(KeyUserId),
+		UserID:   c.GetInt64(middlewares.KeyUserId),
 		PipeID:   pipeId,
 		Platform: detectedPlatform,
 		Url:      bmRequest.Url,
@@ -99,7 +100,7 @@ func (h bookmarkHandler) GetBookmark(c *gin.Context) {
 		})
 		return
 	}
-	bookmark, err = h.app.Repositories.Bookmark.GetBookmark(bmId, c.GetInt64(KeyUserId))
+	bookmark, err = h.app.Repositories.Bookmark.GetBookmark(bmId, c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
@@ -123,7 +124,7 @@ func (h bookmarkHandler) GetBookmark(c *gin.Context) {
 	})
 }
 func (h bookmarkHandler) GetBookmarks(c *gin.Context) {
-	userId := c.GetInt64(KeyUserId)
+	userId := c.GetInt64(middlewares.KeyUserId)
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
@@ -148,7 +149,7 @@ func (h bookmarkHandler) GetBookmarks(c *gin.Context) {
 	})
 }
 func (h bookmarkHandler) DeleteBookmark(c *gin.Context) {
-	userId := c.GetInt64(KeyUserId)
+	userId := c.GetInt64(middlewares.KeyUserId)
 	bmId, err := strconv.ParseInt(c.Param("bmId"), 10, 64)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
