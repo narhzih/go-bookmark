@@ -1,4 +1,4 @@
-runtime: go117
+runtime: go116
 main: ./cmd/api # directory containing api services
 env_variables:
   PORT: 5555
