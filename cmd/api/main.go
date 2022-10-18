@@ -22,6 +22,11 @@ func main() {
 			logger.Err(err).Msg("Could not load environment variables")
 			os.Exit(1)
 		}
+	} else if _, err := os.Stat(".env.docker"); err == nil {
+		if err != nil {
+			logger.Err(err).Msg("Could not load environment variables")
+			os.Exit(1)
+		}
 	}
 
 	db, err := initDb(logger)
