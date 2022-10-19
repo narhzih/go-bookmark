@@ -1,5 +1,6 @@
 .idea
 .env
+.env.prod
 build
 .prettierrc
 bin
