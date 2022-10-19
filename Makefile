@@ -1,15 +1,20 @@
-include .env
+include .env.prod
 
 PG_URL ?= postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DB_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB}?sslmode=${DB_SSL_MODE}
 MIGRATIONS_PATH ?= $(shell pwd)/sql
 
 run/api:
 	@echo "Running api..."
-	go run ./cmd/api
+	APP_ENV=dev go run ./cmd/api
 
-run/build:
+run/build/prod:
 	@echo "Running api through local build..."
-	./bin/api
+	APP_ENV=prod ./bin/api
+
+run/build/dev:
+	@echo "Running api through local build..."
+	APP_ENV=dev ./bin/api
+
 build/api:
 	@echo "Creating binary build for ./cmd/api..."
 	go build -o=./bin/api ./cmd/api
