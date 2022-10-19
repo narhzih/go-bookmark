@@ -15,13 +15,20 @@ import (
 func main() {
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 
-	// ONly require .env file on dev environment
-	if _, err := os.Stat(".env"); err == nil {
-		err := godotenv.Load(".env")
-		if err != nil {
-			logger.Err(err).Msg("Could not load environment variables")
-			os.Exit(1)
-		}
+	// set application environment variable loader
+	appEnv := os.Getenv("APP_ENV")
+	var err error
+	if appEnv == "dev" {
+		logger.Info().Msg("Loading prod env")
+		err = godotenv.Load(".env")
+	}
+	//else {
+	//	logger.Info().Msg("Loading dev env")
+	//	err = godotenv.Load(".env")
+	//}
+	if err != nil {
+		logger.Err(err).Msg("Could not load environment variables")
+		os.Exit(1)
 	}
 
 	db, err := initDb(logger)
