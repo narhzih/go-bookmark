@@ -81,7 +81,6 @@ func AuthRequired(app internal.Application, jwtSecret string) gin.HandlerFunc {
 			} else {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"message": "Unauthorized",
-					"err":     err.Error(),
 				})
 				return
 			}
