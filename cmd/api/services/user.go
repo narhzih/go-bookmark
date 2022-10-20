@@ -1,9 +1,9 @@
 package services
 
 import (
-	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
-	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
-	"gitlab.com/trencetech/mypipe-api/db/models"
+	"github.com/mypipeapp/mypipeapi/cmd/api/helpers"
+	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
+	"github.com/mypipeapp/mypipeapi/db/models"
 )
 
 func (s Services) GetUserProfileInformation(userID int64) (models.Profile, error) {

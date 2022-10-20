@@ -3,9 +3,9 @@ package postgres
 import (
 	"database/sql"
 	"github.com/lib/pq"
+	"github.com/mypipeapp/mypipeapi/db/models"
+	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/db/models"
-	"gitlab.com/trencetech/mypipe-api/db/repository"
 )
 
 type userActions struct {

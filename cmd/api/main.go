@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
+	"github.com/mypipeapp/mypipeapi/cmd/api/services"
+	"github.com/mypipeapp/mypipeapi/cmd/api/services/mailer"
 	psh "github.com/platformsh/config-reader-go/v2"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/services/mailer"
 	"os"
 	"strconv"
 )

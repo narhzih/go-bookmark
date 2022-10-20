@@ -1,6 +1,6 @@
 package repository
 
-import "gitlab.com/trencetech/mypipe-api/db/models"
+import "github.com/mypipeapp/mypipeapi/db/models"
 
 type PipeRepository interface {
 	PipeAlreadyExists(pipeName string, userId int64) (bool, error)

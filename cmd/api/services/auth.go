@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"gitlab.com/trencetech/mypipe-api/db/models"
+	"github.com/mypipeapp/mypipeapi/db/models"
 	"google.golang.org/api/idtoken"
 	"io/ioutil"
 	"net/http"

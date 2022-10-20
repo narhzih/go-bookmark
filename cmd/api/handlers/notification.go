@@ -3,10 +3,10 @@ package handlers
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
-	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
-	"gitlab.com/trencetech/mypipe-api/db/models"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/cmd/api/middlewares"
+	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
+	"github.com/mypipeapp/mypipeapi/db/models"
 	"net/http"
 	"strconv"
 )
