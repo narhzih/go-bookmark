@@ -1,6 +1,6 @@
 package repository
 
-import "gitlab.com/trencetech/mypipe-api/db/models"
+import "github.com/mypipeapp/mypipeapi/db/models"
 
 type NotificationRepository interface {
 	CreateNotification(userId int64, message, metadata string) (models.Notification, error)

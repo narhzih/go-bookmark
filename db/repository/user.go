@@ -1,6 +1,6 @@
 package repository
 
-import "gitlab.com/trencetech/mypipe-api/db/models"
+import "github.com/mypipeapp/mypipeapi/db/models"
 
 type UserRepository interface {
 	CreateUserByEmail(user models.User, password, authOrigin string) (newUser models.User, err error)

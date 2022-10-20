@@ -1,6 +1,6 @@
 package repository
 
-import "gitlab.com/trencetech/mypipe-api/db/models"
+import "github.com/mypipeapp/mypipeapi/db/models"
 
 type AccountVerificationRepository interface {
 	CreateVerification(accountVerification models.AccountVerification) (models.AccountVerification, error)

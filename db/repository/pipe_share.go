@@ -1,6 +1,6 @@
 package repository
 
-import "gitlab.com/trencetech/mypipe-api/db/models"
+import "github.com/mypipeapp/mypipeapi/db/models"
 
 type PipeShareRepository interface {
 	CreatePipeShareRecord(pipeShareData models.SharedPipe, receiver string) (models.SharedPipe, error)

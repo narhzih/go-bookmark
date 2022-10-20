@@ -2,8 +2,8 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/handlers"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/cmd/api/handlers"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 )
 
 func setupParserRoutes(app internal.Application, routeGroup *gin.RouterGroup) {

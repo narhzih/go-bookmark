@@ -2,8 +2,8 @@ package middlewares
 
 import (
 	"fmt"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
 	"net/http"
 	"strings"
 
@@ -81,7 +81,6 @@ func AuthRequired(app internal.Application, jwtSecret string) gin.HandlerFunc {
 			} else {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 					"message": "Unauthorized",
-					"err":     err.Error(),
 				})
 				return
 			}

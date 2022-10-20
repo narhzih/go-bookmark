@@ -1,9 +1,9 @@
 package services
 
 import (
+	"github.com/mypipeapp/mypipeapi/cmd/api/services/mailer"
+	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/services/mailer"
-	"gitlab.com/trencetech/mypipe-api/db/repository"
 )
 
 type Services struct {

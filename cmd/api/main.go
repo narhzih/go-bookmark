@@ -19,6 +19,7 @@ func main() {
 	appEnv := os.Getenv("APP_ENV")
 	var err error
 	if appEnv == "dev" {
+		logger.Info().Msg("Loading prod env")
 		err = godotenv.Load(".env")
 	}
 	//else {
