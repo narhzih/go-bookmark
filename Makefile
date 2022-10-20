@@ -1,4 +1,4 @@
-include .env.prod
+include .env
 
 PG_URL ?= postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DB_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB}?sslmode=${DB_SSL_MODE}
 MIGRATIONS_PATH ?= $(shell pwd)/sql

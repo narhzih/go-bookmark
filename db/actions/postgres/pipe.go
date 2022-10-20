@@ -54,7 +54,7 @@ func (p pipeActions) CreatePipe(pipe models.Pipe) (models.Pipe, error) {
 func (p pipeActions) GetPipe(pipeID, userID int64) (models.Pipe, error) {
 	var pipe models.Pipe
 	query := `
-	SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
+	SELECT p.id, p.name, p.cover_photo, p.created_at, p.modified_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
 	FROM pipes p
 		LEFT JOIN bookmarks b ON p.id=b.pipe_id
 		LEFT JOIN users u ON p.user_id=u.id
@@ -68,6 +68,7 @@ func (p pipeActions) GetPipe(pipeID, userID int64) (models.Pipe, error) {
 		&pipe.Name,
 		&pipe.CoverPhoto,
 		&pipe.CreatedAt,
+		&pipe.ModifiedAt,
 		&pipe.UserID,
 		&pipe.Bookmarks,
 		&pipe.Creator,
@@ -84,12 +85,13 @@ func (p pipeActions) GetPipe(pipeID, userID int64) (models.Pipe, error) {
 
 func (p pipeActions) GetPipeByName(pipeName string, userID int64) (models.Pipe, error) {
 	var pipe models.Pipe
-	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE name=$1 AND user_id=$2 LIMIT 1"
+	query := "SELECT id, name, cover_photo, created_at, modified_at, user_id FROM pipes WHERE name=$1 AND user_id=$2 LIMIT 1"
 	err := p.Db.QueryRow(query, pipeName, userID).Scan(
 		&pipe.ID,
 		&pipe.Name,
 		&pipe.CoverPhoto,
 		&pipe.CreatedAt,
+		&pipe.ModifiedAt,
 		&pipe.UserID,
 	)
 	if err != nil {
@@ -104,12 +106,13 @@ func (p pipeActions) GetPipeByName(pipeName string, userID int64) (models.Pipe, 
 
 func (p pipeActions) GetPipeAndResource(pipeID, userID int64) (models.PipeAndResource, error) {
 	var pipeAndR models.PipeAndResource
-	query := "SELECT id, name, cover_photo, created_at, user_id FROM pipes WHERE id=$1 AND user_id=$2"
+	query := "SELECT id, name, cover_photo, created_at, modified_at, user_id FROM pipes WHERE id=$1 AND user_id=$2"
 	err := p.Db.QueryRow(query, pipeID, userID).Scan(
 		&pipeAndR.Pipe.ID,
 		&pipeAndR.Pipe.Name,
 		&pipeAndR.Pipe.CoverPhoto,
 		&pipeAndR.Pipe.CreatedAt,
+		&pipeAndR.Pipe.ModifiedAt,
 		&pipeAndR.Pipe.UserID,
 	)
 	if err != nil {
@@ -127,7 +130,7 @@ func (p pipeActions) GetPipeAndResource(pipeID, userID int64) (models.PipeAndRes
 func (p pipeActions) GetPipesOnSteroid(userID int64) ([]models.Pipe, error) {
 	var pipes []models.Pipe
 	query := `
-				SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks 
+				SELECT p.id, p.name, p.cover_photo, p.created_at, p.modified_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks 
 				FROM pipes p 
 				    LEFT JOIN bookmarks b ON p.id=b.pipe_id 
 				WHERE p.user_id=$1 
@@ -140,7 +143,15 @@ func (p pipeActions) GetPipesOnSteroid(userID int64) ([]models.Pipe, error) {
 	defer rows.Close()
 	for rows.Next() {
 		var pipe models.Pipe
-		if err := rows.Scan(&pipe.ID, &pipe.Name, &pipe.CoverPhoto, &pipe.CreatedAt, &pipe.UserID, &pipe.Bookmarks); err != nil {
+		if err := rows.Scan(
+			&pipe.ID,
+			&pipe.Name,
+			&pipe.CoverPhoto,
+			&pipe.CreatedAt,
+			&pipe.ModifiedAt,
+			&pipe.UserID,
+			&pipe.Bookmarks,
+		); err != nil {
 			return pipes, err
 		}
 
@@ -155,7 +166,7 @@ func (p pipeActions) GetPipesOnSteroid(userID int64) ([]models.Pipe, error) {
 func (p pipeActions) GetPipes(userID int64) ([]models.Pipe, error) {
 	var pipes []models.Pipe
 	query := `
-			SELECT p.id, p.name, p.cover_photo, p.created_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
+			SELECT p.id, p.name, p.cover_photo, p.created_at, p.modified_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
 			FROM pipes p
 				LEFT JOIN bookmarks b ON p.id=b.pipe_id
 				LEFT JOIN users u ON p.user_id=u.id
@@ -177,6 +188,7 @@ func (p pipeActions) GetPipes(userID int64) ([]models.Pipe, error) {
 			&pipe.Name,
 			&pipe.CoverPhoto,
 			&pipe.CreatedAt,
+			&pipe.ModifiedAt,
 			&pipe.UserID,
 			&pipe.Bookmarks,
 			&pipe.Creator,
@@ -223,25 +235,28 @@ func (p pipeActions) UpdatePipe(userID int64, pipeID int64, updatedBody models.P
 		return pipe, nil
 	} else {
 		if len(updatedBody.Name) > 0 && len(updatedBody.CoverPhoto) > 0 {
-			query := "UPDATE pipes SET name=$1,cover_photo=$2, modified_at=$3 WHERE id=$4 AND user_id=$5 RETURNING id, name, cover_photo"
+			query := "UPDATE pipes SET name=$1,cover_photo=$2, modified_at=$3 WHERE id=$4 AND user_id=$5 RETURNING id, name, cover_photo, modified_at"
 			err = p.Db.QueryRow(query, updatedBody.Name, updatedBody.CoverPhoto, time.Now(), pipeID, userID).Scan(
 				&pipe.ID,
 				&pipe.Name,
 				&pipe.CoverPhoto,
+				&pipe.ModifiedAt,
 			)
 		} else if len(updatedBody.Name) > 0 {
-			query := "UPDATE pipes SET name=$1, modified_at=$2 WHERE id=$3 AND user_id=$4 RETURNING id, name, cover_photo"
+			query := "UPDATE pipes SET name=$1, modified_at=$2 WHERE id=$3 AND user_id=$4 RETURNING id, name, cover_photo, modified_at"
 			err = p.Db.QueryRow(query, updatedBody.Name, time.Now(), pipeID, userID).Scan(
 				&pipe.ID,
 				&pipe.Name,
 				&pipe.CoverPhoto,
+				&pipe.ModifiedAt,
 			)
 		} else if len(updatedBody.CoverPhoto) > 0 {
-			query := "UPDATE pipes SET cover_photo=$1, modified_at=$2 WHERE id=$3 AND user_id=$4 RETURNING id, name, cover_photo"
+			query := "UPDATE pipes SET cover_photo=$1, modified_at=$2 WHERE id=$3 AND user_id=$4 RETURNING id, name, cover_photo, modified_at"
 			err = p.Db.QueryRow(query, updatedBody.CoverPhoto, time.Now(), pipeID, userID).Scan(
 				&pipe.ID,
 				&pipe.Name,
 				&pipe.CoverPhoto,
+				&pipe.ModifiedAt,
 			)
 		}
 
@@ -271,7 +286,7 @@ func (p pipeActions) UpdatePipeName(userID int64, pipeID int64, pipeName string)
 	}
 
 	// Update the pipe
-	updateQuery := "UPDATE pipes SET name=$1, modified_at=CURRENT_TIMESTAMP WHERE id=$2 RETURNING id, name, cover_photo, created_at, modified_at, user_id"
+	updateQuery := "UPDATE pipes SET name=$1, modified_at=now() WHERE id=$2 RETURNING id, name, cover_photo, created_at, modified_at, user_id"
 	err = p.Db.QueryRow(updateQuery, pipe.ID).Scan(
 		&pipe.ID,
 		&pipe.Name,
@@ -299,7 +314,7 @@ func (p pipeActions) UpdatePipeCoverPhoto(userID int64, pipeID int64, pipeCp str
 	}
 
 	// Update the pipe
-	updateQuery := "UPDATE pipes SET cover_photo=$1, modified_at=CURRENT_TIMESTAMP WHERE id=$2 RETURNING id, name, cover_photo, created_at, modified_at, user_id"
+	updateQuery := "UPDATE pipes SET cover_photo=$1, modified_at=now() WHERE id=$2 RETURNING id, name, cover_photo, created_at, modified_at, user_id"
 	err = p.Db.QueryRow(updateQuery, pipe.CoverPhoto).Scan(
 		&pipe.ID,
 		&pipe.Name,
