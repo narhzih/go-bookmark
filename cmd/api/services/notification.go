@@ -3,7 +3,7 @@ package services
 import (
 	"encoding/json"
 	"github.com/appleboy/go-fcm"
-	"gitlab.com/trencetech/mypipe-api/db/models"
+	"github.com/mypipeapp/mypipeapi/db/models"
 	"log"
 	"os"
 )

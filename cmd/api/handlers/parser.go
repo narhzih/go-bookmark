@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"github.com/gin-gonic/gin"
-	helpers2 "gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	helpers2 "github.com/mypipeapp/mypipeapi/cmd/api/helpers"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 	"net/http"
 )
 

@@ -1,6 +1,6 @@
 package repository
 
-import "gitlab.com/trencetech/mypipe-api/db/models"
+import "github.com/mypipeapp/mypipeapi/db/models"
 
 type PasswordResetRepository interface {
 	CreatePasswordResetRecord(user models.User, token string) (models.PasswordReset, error)

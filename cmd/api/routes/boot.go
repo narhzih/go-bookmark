@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 )
 
 func BootRoutes(app internal.Application, routeGroup *gin.RouterGroup) {

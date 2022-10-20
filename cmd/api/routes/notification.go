@@ -2,9 +2,9 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/handlers"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
+	"github.com/mypipeapp/mypipeapi/cmd/api/handlers"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/cmd/api/middlewares"
 )
 
 func setupNotificationRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
