@@ -8,7 +8,6 @@ RUN go mod download
 
 # Copy project files and build
 COPY . /mypipeapp
-RUN rm .env.prod && rm .env
 
 # Create build
 RUN CGO_ENABLED=0 GOOS=linux go build -a --installsuffix cgo -o bin/api ./cmd/api
