@@ -21,4 +21,5 @@ func setupAuthRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	authApi := routeGroup.Group("/auth")
 	authApi.Use(middlewares.AuthRequired(app, app.Services.JWTConfig.Key))
 	authApi.POST("/twitter/connect-account", h.ConnectTwitterAccount)
+	authApi.GET("/twitter/connected-account", h.GetConnectedTwitterAccount)
 }
