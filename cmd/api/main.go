@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt"
 	"github.com/joho/godotenv"
+	"github.com/mypipeapp/mypipeapi/cmd/api/services"
+	"github.com/mypipeapp/mypipeapi/cmd/api/services/mailer"
 	psh "github.com/platformsh/config-reader-go/v2"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/services/mailer"
 	"os"
 	"strconv"
 )
@@ -15,13 +15,19 @@ import (
 func main() {
 	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 
-	// ONly require .env file on dev environment
-	if _, err := os.Stat(".env"); err == nil {
-		err := godotenv.Load(".env")
-		if err != nil {
-			logger.Err(err).Msg("Could not load environment variables")
-			os.Exit(1)
-		}
+	// set application environment variable loader
+	appEnv := os.Getenv("APP_ENV")
+	var err error
+	if appEnv == "dev" {
+		err = godotenv.Load(".env")
+	}
+	//else {
+	//	logger.Info().Msg("Loading dev env")
+	//	err = godotenv.Load(".env")
+	//}
+	if err != nil {
+		logger.Err(err).Msg("Could not load environment variables")
+		os.Exit(1)
 	}
 
 	db, err := initDb(logger)
