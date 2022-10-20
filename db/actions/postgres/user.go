@@ -293,6 +293,25 @@ func (u userActions) ConnectToTwitter(user models.User, twitterId string) (model
 	return updatedUser, nil
 }
 
+func (u userActions) DisconnectTwitter(user models.User) (models.User, error) {
+	updatedUser := models.User{}
+	query := `UPDATE users SET twitter_id='' WHERE id=$1 RETURNING id, username, profile_name, email, twitter_id, cover_photo`
+	err := u.Db.QueryRow(query, user.ID).Scan(
+		&updatedUser.ID,
+		&updatedUser.Username,
+		&updatedUser.ProfileName,
+		&updatedUser.Email,
+		&updatedUser.TwitterId,
+		&updatedUser.CovertPhoto,
+	)
+
+	if err != nil {
+		return updatedUser, err
+	}
+
+	return updatedUser, nil
+}
+
 func (u userActions) CreateUserByEmail(user models.User, password string, authOrigin string) (newUser models.User, err error) {
 	query := `INSERT INTO users (email, username, profile_name) VALUES ($1, $2, $3) RETURNING id, email, user, profile_name`
 	err = u.Db.QueryRow(query, user.Email, user.Username, user.ProfileName).Scan(

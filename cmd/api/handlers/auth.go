@@ -29,6 +29,7 @@ type AuthHandler interface {
 	SignInWithGoogle(c *gin.Context)
 	ConnectTwitterAccount(c *gin.Context)
 	GetConnectedTwitterAccount(c *gin.Context)
+	DisconnectTwitterAccount(c *gin.Context)
 }
 
 type authHandler struct {
@@ -705,4 +706,31 @@ func (h authHandler) GetConnectedTwitterAccount(c *gin.Context) {
 	})
 	// Get twitter current information
 }
-func (h authHandler) DisconnectTwitterAccount(c *gin.Context) {}
+func (h authHandler) DisconnectTwitterAccount(c *gin.Context) {
+	authenticatedUser, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	if authenticatedUser.TwitterId == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "No twitter handle connected to this account",
+		})
+		return
+	}
+
+	user, err := h.app.Repositories.User.DisconnectTwitter(authenticatedUser)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while disconnecting user acccount",
+			"err":     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"user": user,
+	})
+}
