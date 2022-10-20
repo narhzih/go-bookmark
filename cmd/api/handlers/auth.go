@@ -12,6 +12,7 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -673,7 +674,7 @@ func (h authHandler) GetConnectedTwitterAccount(c *gin.Context) {
 		})
 		return
 	}
-	// TODO: add twitter authentication header
+	twitterHttp.Header.Add("Authorization", fmt.Sprintf("Bearer %v", os.Getenv("BEARER_TOKEN")))
 
 	twitterResponse, err := http.DefaultClient.Do(twitterHttp)
 	if err != nil {
@@ -693,10 +694,13 @@ func (h authHandler) GetConnectedTwitterAccount(c *gin.Context) {
 	respBody, err := io.ReadAll(twitterResponse.Body)
 	json.Unmarshal(respBody, &twitterUserResponse)
 	c.JSON(http.StatusOK, gin.H{
-		"details": map[string]interface{}{
-			"username": twitterUserResponse.Data.Username,
-			"name":     twitterUserResponse.Data.Name,
-			"id":       twitterUserResponse.Data.Id,
+		"loggedInUser": authenticatedUser,
+		"twitterAccount": map[string]interface{}{
+			"details": map[string]interface{}{
+				"username": twitterUserResponse.Data.Username,
+				"name":     twitterUserResponse.Data.Name,
+				"id":       twitterUserResponse.Data.Id,
+			},
 		},
 	})
 	// Get twitter current information
