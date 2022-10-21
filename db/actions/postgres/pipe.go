@@ -120,10 +120,11 @@ func (p pipeActions) GetPipeAndResource(pipeID, userID int64) (models.PipeAndRes
 	}
 	// get bookmarks
 	// TODO: uncomment the below line
-	//pipeAndR.Bookmarks, err = db.GetBookmarks(userID, pipeID)
-	//if err != nil {
-	//	return models.PipeAndResource{}, nil
-	//}
+	bActions := NewBookmarkActions(p.Db, p.Logger)
+	pipeAndR.Bookmarks, err = bActions.GetBookmarks(userID, pipeID)
+	if err != nil {
+		return models.PipeAndResource{}, nil
+	}
 	return pipeAndR, nil
 }
 

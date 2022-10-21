@@ -111,6 +111,8 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 	code := c.Query("code")
 	// See if the pipe is still sharable
+	authenticatedUser, _ := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+
 	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
 		if err == postgres.ErrNoRecord {
@@ -125,6 +127,26 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 		})
 		return
 	}
+
+	// If it's a private pipe, check if this user is allowed to see it
+	if pipeToAdd.Type == models.PipeShareTypePrivate {
+		_, err := h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.ID, authenticatedUser.ID)
+		if err != nil {
+			if err == postgres.ErrNoRecord {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"message": "You cannot view this pipe because it's a private pipe",
+				})
+				return
+			}
+
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Our server encountered an error. Please try again in few minutes",
+				"err":     err.Error(),
+			})
+			return
+		}
+	}
+
 	pipe, err := h.app.Repositories.Pipe.GetPipeAndResource(pipeToAdd.PipeID, pipeToAdd.SharerID)
 	if err != nil {
 		if err == postgres.ErrNoRecord {

@@ -158,7 +158,6 @@ func (p pipeShareActions) GetReceivedPipeRecord(pipeId, userId int64) (models.Sh
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Info().Msg("The logged in user hasn't received this  pipe yet")
 			return models.SharedPipeReceiver{}, ErrNoRecord
 		}
 		logger.Info().Msg("There's a specific error somewhere")
