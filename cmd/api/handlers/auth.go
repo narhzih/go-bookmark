@@ -731,6 +731,7 @@ func (h authHandler) DisconnectTwitterAccount(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
-		"user": user,
+		"message": "Account disconnected successfully",
+		"user":    user,
 	})
 }

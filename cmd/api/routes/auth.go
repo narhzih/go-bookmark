@@ -22,5 +22,5 @@ func setupAuthRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	authApi.Use(middlewares.AuthRequired(app, app.Services.JWTConfig.Key))
 	authApi.POST("/twitter/connect-account", h.ConnectTwitterAccount)
 	authApi.GET("/twitter/connected-account", h.GetConnectedTwitterAccount)
-	authApi.PATCH("/twitter/disconnect-account", h.DisconnectTwitterAccount)
+	authApi.POST("/twitter/disconnect-account", h.DisconnectTwitterAccount)
 }

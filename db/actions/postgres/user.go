@@ -59,13 +59,16 @@ func (u userActions) GetUserByTwitterID(twitterId string) (user models.User, err
 }
 
 func (u userActions) GetUserById(userId int) (user models.User, err error) {
-	query := `SELECT id, username, email, profile_name, cover_photo FROM users where id=$1 LIMIT 1`
+	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at FROM users where id=$1 LIMIT 1`
 	if err = u.Db.QueryRow(query, userId).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.ProfileName,
 		&user.CovertPhoto,
+		&user.TwitterId,
+		&user.CreatedAt,
+		&user.ModifiedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, ErrNoRecord
@@ -76,11 +79,16 @@ func (u userActions) GetUserById(userId int) (user models.User, err error) {
 }
 
 func (u userActions) GetUserByEmail(userEmail string) (user models.User, err error) {
-	query := `SELECT id, username, email FROM users where email=$1 LIMIT 1`
+	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at FROM users where email=$1 LIMIT 1`
 	if err = u.Db.QueryRow(query, userEmail).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
+		&user.ProfileName,
+		&user.CovertPhoto,
+		&user.TwitterId,
+		&user.CreatedAt,
+		&user.ModifiedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, ErrNoRecord
@@ -91,12 +99,16 @@ func (u userActions) GetUserByEmail(userEmail string) (user models.User, err err
 }
 
 func (u userActions) GetUserByUsername(username string) (user models.User, err error) {
-	query := `SELECT id, username, email, profile_name FROM users where username=$1 LIMIT 1`
+	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at  FROM users where username=$1 LIMIT 1`
 	if err = u.Db.QueryRow(query, username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.ProfileName,
+		&user.CovertPhoto,
+		&user.TwitterId,
+		&user.CreatedAt,
+		&user.ModifiedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, ErrNoRecord
@@ -157,75 +169,89 @@ func (u userActions) UpdateUser(updatedBody models.User) (models.User, error) {
 	} else {
 		if len(updatedBody.Username) > 0 && len(updatedBody.ProfileName) > 0 && len(updatedBody.CovertPhoto) > 0 {
 
-			query := "UPDATE users SET username=$1, profile_name=$2, cover_photo=$3 WHERE id=$4 RETURNING id, username, email, profile_name, cover_photo"
+			query := "UPDATE users SET username=$1, profile_name=$2, cover_photo=$3 WHERE id=$4 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
 			err = u.Db.QueryRow(query, updatedBody.Username, updatedBody.ProfileName, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,
 				&user.Email,
 				&user.ProfileName,
 				&user.CovertPhoto,
+				&user.TwitterId,
+				&user.ModifiedAt,
 			)
 		} else if len(updatedBody.Username) > 0 && len(updatedBody.ProfileName) > 0 {
 
-			query := "UPDATE users SET username=$1, profile_name=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo"
+			query := "UPDATE users SET username=$1, profile_name=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
 			err = u.Db.QueryRow(query, updatedBody.Username, updatedBody.ProfileName, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,
 				&user.Email,
 				&user.ProfileName,
 				&user.CovertPhoto,
+				&user.TwitterId,
+				&user.ModifiedAt,
 			)
 		} else if len(updatedBody.Username) > 0 && len(updatedBody.CovertPhoto) > 0 {
 			// For usual edit
 
-			query := "UPDATE users SET username=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo"
+			query := "UPDATE users SET username=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
 			err = u.Db.QueryRow(query, updatedBody.Username, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,
 				&user.Email,
 				&user.ProfileName,
 				&user.CovertPhoto,
+				&user.TwitterId,
+				&user.ModifiedAt,
 			)
 		} else if len(updatedBody.ProfileName) > 0 && len(updatedBody.CovertPhoto) > 0 {
 			// For usual edit
 
-			query := "UPDATE users SET profile_name=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo"
+			query := "UPDATE users SET profile_name=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
 			err = u.Db.QueryRow(query, updatedBody.ProfileName, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,
 				&user.Email,
 				&user.ProfileName,
 				&user.CovertPhoto,
+				&user.TwitterId,
+				&user.ModifiedAt,
 			)
 		} else if len(updatedBody.Username) > 0 {
 
-			query := "UPDATE users SET username=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo"
+			query := "UPDATE users SET username=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
 			err = u.Db.QueryRow(query, updatedBody.Username, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,
 				&user.Email,
 				&user.ProfileName,
 				&user.CovertPhoto,
+				&user.TwitterId,
+				&user.ModifiedAt,
 			)
 		} else if len(updatedBody.CovertPhoto) > 0 {
 			u.Logger.Info().Msg("Saving cover photo to database")
-			query := "UPDATE users SET cover_photo=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo"
+			query := "UPDATE users SET cover_photo=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
 			err = u.Db.QueryRow(query, updatedBody.CovertPhoto, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,
 				&user.Email,
 				&user.ProfileName,
 				&user.CovertPhoto,
+				&user.TwitterId,
+				&user.ModifiedAt,
 			)
 		} else if len(updatedBody.ProfileName) > 0 {
 
-			query := "UPDATE users SET profile_name=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo"
+			query := "UPDATE users SET profile_name=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
 			err = u.Db.QueryRow(query, updatedBody.ProfileName, updatedBody.ID).Scan(
 				&user.ID,
 				&user.Username,
 				&user.Email,
 				&user.ProfileName,
 				&user.CovertPhoto,
+				&user.TwitterId,
+				&user.ModifiedAt,
 			)
 		}
 
@@ -295,7 +321,7 @@ func (u userActions) ConnectToTwitter(user models.User, twitterId string) (model
 
 func (u userActions) DisconnectTwitter(user models.User) (models.User, error) {
 	updatedUser := models.User{}
-	query := `UPDATE users SET twitter_id='' WHERE id=$1 RETURNING id, username, profile_name, email, twitter_id, cover_photo`
+	query := `UPDATE users SET twitter_id='', modified_at=now() WHERE id=$1 RETURNING id, username, profile_name, email, twitter_id, cover_photo`
 	err := u.Db.QueryRow(query, user.ID).Scan(
 		&updatedUser.ID,
 		&updatedUser.Username,
