@@ -92,3 +92,5 @@ func (h parserHandler) ParseLink(c *gin.Context) {
 	}
 	c.Data(http.StatusOK, "application/json", []byte(parsedLink))
 }
+
+func (h parserHandler) TwitterParser(c *gin.Context) {}
