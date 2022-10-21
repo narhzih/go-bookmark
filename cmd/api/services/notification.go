@@ -2,9 +2,9 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/appleboy/go-fcm"
 	"github.com/mypipeapp/mypipeapi/db/models"
-	"log"
 	"os"
 )
 
@@ -64,9 +64,9 @@ func (s Services) SendPushNotification(message string, deviceTokens []string) er
 	// Send the message and receive the response without retries.
 	response, err := client.Send(msg)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
-	log.Printf("%#v\n", response)
+	s.Logger.Info().Msg(fmt.Sprintf("%#v\n", response))
 	return nil
 }
