@@ -30,6 +30,7 @@ type SharedPipeReceiver struct {
 
 // MDPrivatePipeShare - Metadata definitions for notification
 type MDPrivatePipeShare struct {
-	Sharer User `json:"sharer"`
-	Pipe   Pipe `json:"pipe"`
+	Sharer User   `json:"sharer"`
+	Pipe   Pipe   `json:"pipe"`
+	Code   string `json:"code"`
 }

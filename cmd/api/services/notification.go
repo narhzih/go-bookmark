@@ -26,9 +26,14 @@ func (s Services) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sha
 	if err != nil {
 		return err
 	}
+	pipeShareRecord, err := s.Repositories.PipeShare.GetSharedPipe(sharedPipeId)
+	if err != nil {
+		return err
+	}
 	metadata := models.MDPrivatePipeShare{
 		Pipe:   sharedPipe,
 		Sharer: sharer,
+		Code:   pipeShareRecord.Code,
 	}
 	mdToJson, _ := json.Marshal(metadata)
 	message := sharer.ProfileName + " privately shared you pipe with name: " + sharedPipe.Name
