@@ -186,17 +186,9 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 }
 
 func (h pipeShareHandler) AddPipe(c *gin.Context) {
-	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		h.app.Logger.Err(err).Msg(err.Error())
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid pipe ID",
-		})
-		return
-	}
-
+	code := c.Query("code")
 	// See if the pipe is an actual pipe
-	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipe(pipeId)
+	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
 		switch {
 		case errors.Is(err, postgres.ErrNoRecord):
