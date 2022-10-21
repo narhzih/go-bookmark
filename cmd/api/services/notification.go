@@ -1,10 +1,15 @@
 package services
 
 import (
+	"context"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
+	firebase "firebase.google.com/go"
+	"firebase.google.com/go/messaging"
 	"fmt"
-	"github.com/appleboy/go-fcm"
 	"github.com/mypipeapp/mypipeapi/db/models"
+	"google.golang.org/api/option"
 	"os"
 )
 
@@ -42,31 +47,74 @@ func (s Services) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sha
 		return err
 	}
 
+	// try to send push notification
+	userDeviceTokens, err := s.Repositories.User.GetUserDeviceTokens(sharedToId)
+	switch {
+	case errors.Is(err, nil):
+		pnErr := s.SendPushNotification("Pipe share", message, userDeviceTokens)
+		if pnErr != nil {
+			s.Logger.Err(err).Msg("An error occurred while sending push notification")
+		}
+	default:
+		s.Logger.Err(err).Msg("An error occurred but not while sending push notifications")
+	}
 	return nil
 }
 
-func (s Services) SendPushNotification(message string, deviceTokens []string) error {
-	msg := &fcm.Message{
-		To: deviceTokens[0],
-		Data: map[string]interface{}{
-			"message": message,
-		},
-		Notification: &fcm.Notification{
-			Title: "My pipe notification",
-			Body:  "Notification body",
-		},
-	}
-
-	client, err := fcm.NewClient(os.Getenv("GFCM_SERVER_KEY"))
+func (s Services) SendPushNotification(title, message string, deviceTokens []string) error {
+	decodedKey, err := getDecodedFireBaseKey()
 	if err != nil {
 		return err
 	}
-	// Send the message and receive the response without retries.
-	response, err := client.Send(msg)
+	opts := []option.ClientOption{option.WithCredentialsJSON(decodedKey)}
+	app, err := firebase.NewApp(context.Background(), nil, opts...)
+	if err != nil {
+		return err
+	}
+
+	firebaseClient, err := app.Messaging(context.Background())
+	if err != nil {
+		return err
+	}
+	//msg := &fcm.Message{
+	//	To: deviceTokens[0],
+	//	Data: map[string]interface{}{
+	//		"message": message,
+	//	},
+	//	Notification: &fcm.Notification{
+	//		Title: "My pipe notification",
+	//		Body:  "Notification body",
+	//	},
+	//}
+	//client, err := fcm.NewClient(os.Getenv("GFCM_SERVER_KEY"))
+	//if err != nil {
+	//	return err
+	//}
+	//response, err := client.Send(msg)
+	response, err := firebaseClient.SendMulticast(context.Background(), &messaging.MulticastMessage{
+		Notification: &messaging.Notification{
+			Title: title,
+			Body:  message,
+		},
+		Tokens: deviceTokens,
+	})
+
 	if err != nil {
 		return err
 	}
 
 	s.Logger.Info().Msg(fmt.Sprintf("%#v\n", response))
 	return nil
+}
+
+func getDecodedFireBaseKey() ([]byte, error) {
+
+	fireBaseAuthKey := os.Getenv("GFCM_SERVER_KEY")
+
+	decodedKey, err := base64.StdEncoding.DecodeString(fireBaseAuthKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return decodedKey, nil
 }
