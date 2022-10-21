@@ -175,8 +175,9 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 		"message": "Preview successful",
 		"data": map[string]interface{}{
 			"user": map[string]interface{}{
-				"username": sharer.Username,
-				"name":     sharer.ProfileName,
+				"username":    sharer.Username,
+				"name":        sharer.ProfileName,
+				"cover_photo": sharer.CovertPhoto,
 			},
 			"pipe": pipe,
 		},

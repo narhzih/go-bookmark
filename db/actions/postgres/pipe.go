@@ -106,7 +106,14 @@ func (p pipeActions) GetPipeByName(pipeName string, userID int64) (models.Pipe, 
 
 func (p pipeActions) GetPipeAndResource(pipeID, userID int64) (models.PipeAndResource, error) {
 	var pipeAndR models.PipeAndResource
-	query := "SELECT id, name, cover_photo, created_at, modified_at, user_id FROM pipes WHERE id=$1 AND user_id=$2"
+	query := `
+	SELECT p.id, p.name, p.cover_photo, p.created_at, p.modified_at, p.user_id, u.username
+	FROM pipes p 
+		LEFT JOIN users u ON p.user_id=u.id
+	WHERE p.id=$1 AND p.user_id=$2
+	GROUP BY p.id, u.username
+	LIMIT 1
+	`
 	err := p.Db.QueryRow(query, pipeID, userID).Scan(
 		&pipeAndR.Pipe.ID,
 		&pipeAndR.Pipe.Name,
@@ -114,12 +121,12 @@ func (p pipeActions) GetPipeAndResource(pipeID, userID int64) (models.PipeAndRes
 		&pipeAndR.Pipe.CreatedAt,
 		&pipeAndR.Pipe.ModifiedAt,
 		&pipeAndR.Pipe.UserID,
+		&pipeAndR.Pipe.Creator,
 	)
 	if err != nil {
 		return models.PipeAndResource{}, nil
 	}
 	// get bookmarks
-	// TODO: uncomment the below line
 	bActions := NewBookmarkActions(p.Db, p.Logger)
 	pipeAndR.Bookmarks, err = bActions.GetBookmarks(userID, pipeID)
 	if err != nil {
@@ -167,15 +174,15 @@ func (p pipeActions) GetPipesOnSteroid(userID int64) ([]models.Pipe, error) {
 func (p pipeActions) GetPipes(userID int64) ([]models.Pipe, error) {
 	var pipes []models.Pipe
 	query := `
-			SELECT p.id, p.name, p.cover_photo, p.created_at, p.modified_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
-			FROM pipes p
-				LEFT JOIN bookmarks b ON p.id=b.pipe_id
-				LEFT JOIN users u ON p.user_id=u.id
-			WHERE p.user_id=$1 OR p.id  IN (
-					SELECT spr.shared_pipe_id FROM shared_pipe_receivers spr WHERE receiver_id=$1 AND is_accepted=true
-				)
-			GROUP BY p.id, u.username
-			ORDER BY p.id;
+	SELECT p.id, p.name, p.cover_photo, p.created_at, p.modified_at, p.user_id, COUNT(b.pipe_id) AS total_bookmarks, u.username
+	FROM pipes p
+		LEFT JOIN bookmarks b ON p.id=b.pipe_id
+		LEFT JOIN users u ON p.user_id=u.id
+	WHERE p.user_id=$1 OR p.id  IN (
+			SELECT spr.shared_pipe_id FROM shared_pipe_receivers spr WHERE receiver_id=$1 AND is_accepted=true
+		)
+	GROUP BY p.id, u.username
+	ORDER BY p.id;
 	`
 	rows, err := p.Db.Query(query, userID)
 	if err != nil {
