@@ -16,4 +16,5 @@ type UserRepository interface {
 	GetUserDeviceTokens(userId int64) ([]string, error)
 	UpdateUserDeviceTokens(userId int64, deviceTokens []string) ([]string, error)
 	ConnectToTwitter(user models.User, twitterId string) (models.User, error)
+	DisconnectTwitter(user models.User) (models.User, error)
 }

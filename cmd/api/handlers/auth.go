@@ -12,6 +12,7 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -27,6 +28,8 @@ type AuthHandler interface {
 	ResetPassword(c *gin.Context)
 	SignInWithGoogle(c *gin.Context)
 	ConnectTwitterAccount(c *gin.Context)
+	GetConnectedTwitterAccount(c *gin.Context)
+	DisconnectTwitterAccount(c *gin.Context)
 }
 
 type authHandler struct {
@@ -334,66 +337,6 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 		},
 	})
 
-}
-
-func (h authHandler) SignUpWithGoogle(c *gin.Context) {
-	signUpReq := struct {
-		TokenString string `json:"token_string" binding:"required"`
-	}{}
-
-	if err := c.ShouldBindJSON(&signUpReq); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid request body",
-		})
-		return
-	}
-	claims, err := h.app.Services.ValidateGoogleJWT(signUpReq.TokenString, c.Query("device"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid GoogleJWT",
-		})
-		return
-	}
-	h.app.Logger.Info().Msg(fmt.Sprintf("All returned vales -> %v", claims))
-	userCred := models.User{
-		Username: claims.FamilyName + " " + claims.GivenName,
-		Email:    claims.Email,
-	}
-	user, err := h.app.Repositories.User.CreateUser(userCred)
-	if err != nil {
-		if err == postgres.ErrRecordExists {
-			// This means the user has already registered
-			// Automatically log the user into the system
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "Email has already been taken. Please provide a unique email",
-			})
-			return
-		}
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Error occurred while trying to register user",
-		})
-		return
-	}
-
-	authToken, err := h.app.Services.IssueAuthToken(user)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"message": "Error occurred while trying to log user in",
-		})
-	}
-	c.JSON(http.StatusAccepted, gin.H{
-		"message": "You can start organizing your life right away!",
-		"data": map[string]interface{}{
-			"token":         authToken.AccessToken,
-			"refresh_token": authToken.RefreshToken,
-			"user": map[string]interface{}{
-				"id":       user.ID,
-				"username": user.Username,
-				"email":    user.Email,
-			},
-		},
-	})
 }
 
 func (h authHandler) ForgotPassword(c *gin.Context) {
@@ -705,4 +648,90 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 		"message": "You have already connected your twitter account to your mypipe account. You don't have to connect again",
 	})
 
+}
+
+func (h authHandler) GetConnectedTwitterAccount(c *gin.Context) {
+	authenticatedUser, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+	if authenticatedUser.TwitterId == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "No twitter handle connected to this account",
+		})
+		return
+	}
+
+	// Fetch user information from Twitter
+	url := fmt.Sprintf("https://api.twitter.com/2/users/%v", authenticatedUser.TwitterId)
+	twitterHttp, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "an error occurred while connecting to twitter api",
+			"err":     err.Error(),
+		})
+		return
+	}
+	twitterHttp.Header.Add("Authorization", fmt.Sprintf("Bearer %v", os.Getenv("BEARER_TOKEN")))
+
+	twitterResponse, err := http.DefaultClient.Do(twitterHttp)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while connecting to twitter api!",
+			"err":     err.Error(),
+		})
+		return
+	}
+	if twitterResponse.StatusCode != http.StatusOK {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "Invalid access token provided",
+		})
+		return
+	}
+	var twitterUserResponse response.TwitterUserResponse
+	respBody, err := io.ReadAll(twitterResponse.Body)
+	json.Unmarshal(respBody, &twitterUserResponse)
+	c.JSON(http.StatusOK, gin.H{
+		"loggedInUser": authenticatedUser,
+		"twitterAccount": map[string]interface{}{
+			"details": map[string]interface{}{
+				"username": twitterUserResponse.Data.Username,
+				"name":     twitterUserResponse.Data.Name,
+				"id":       twitterUserResponse.Data.Id,
+			},
+		},
+	})
+	// Get twitter current information
+}
+func (h authHandler) DisconnectTwitterAccount(c *gin.Context) {
+	authenticatedUser, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"message": "Unauthorized",
+		})
+		return
+	}
+
+	if authenticatedUser.TwitterId == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "No twitter handle connected to this account",
+		})
+		return
+	}
+
+	user, err := h.app.Repositories.User.DisconnectTwitter(authenticatedUser)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "An error occurred while disconnecting user acccount",
+			"err":     err.Error(),
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Account disconnected successfully",
+		"user":    user,
+	})
 }

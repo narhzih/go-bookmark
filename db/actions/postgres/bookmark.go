@@ -41,13 +41,14 @@ func (b bookmarkActions) CreateBookmark(bm models.Bookmark) (models.Bookmark, er
 func (b bookmarkActions) GetBookmark(bmID, userID int64) (models.Bookmark, error) {
 	var bookmark models.Bookmark
 
-	query := "SELECT id, user_id, pipe_id, platform, url FROM bookmarks WHERE id=$1 AND user_id=$2 LIMIT 1"
+	query := "SELECT id, user_id, pipe_id, platform, url, created_at FROM bookmarks WHERE id=$1 AND user_id=$2 LIMIT 1"
 	err := b.Db.QueryRow(query, bmID, userID).Scan(
 		&bookmark.ID,
 		&bookmark.UserID,
 		&bookmark.PipeID,
 		&bookmark.Platform,
 		&bookmark.Url,
+		&bookmark.CreatedAt,
 	)
 	if err != nil {
 		return models.Bookmark{}, err
@@ -57,7 +58,7 @@ func (b bookmarkActions) GetBookmark(bmID, userID int64) (models.Bookmark, error
 
 func (b bookmarkActions) GetBookmarks(userID, pipeID int64) ([]models.Bookmark, error) {
 	var bookmarks []models.Bookmark
-	query := "SELECT id, user_id, pipe_id, url, platform FROM bookmarks WHERE user_id=$1 AND pipe_id=$2"
+	query := "SELECT id, user_id, pipe_id, url, platform, created_at FROM bookmarks WHERE user_id=$1 AND pipe_id=$2"
 	rows, err := b.Db.Query(query, userID, pipeID)
 	if err != nil {
 		return bookmarks, err
@@ -66,7 +67,14 @@ func (b bookmarkActions) GetBookmarks(userID, pipeID int64) ([]models.Bookmark, 
 
 	for rows.Next() {
 		var bookmark models.Bookmark
-		if err := rows.Scan(&bookmark.ID, &bookmark.UserID, &bookmark.PipeID, &bookmark.Url, &bookmark.Platform); err != nil {
+		if err := rows.Scan(
+			&bookmark.ID,
+			&bookmark.UserID,
+			&bookmark.PipeID,
+			&bookmark.Url,
+			&bookmark.Platform,
+			&bookmark.CreatedAt,
+		); err != nil {
 			return bookmarks, err
 		}
 		bookmarks = append(bookmarks, bookmark)

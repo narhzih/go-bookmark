@@ -2,9 +2,9 @@ package services
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/appleboy/go-fcm"
 	"github.com/mypipeapp/mypipeapi/db/models"
-	"log"
 	"os"
 )
 
@@ -26,9 +26,14 @@ func (s Services) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sha
 	if err != nil {
 		return err
 	}
+	pipeShareRecord, err := s.Repositories.PipeShare.GetSharedPipe(sharedPipeId)
+	if err != nil {
+		return err
+	}
 	metadata := models.MDPrivatePipeShare{
 		Pipe:   sharedPipe,
 		Sharer: sharer,
+		Code:   pipeShareRecord.Code,
 	}
 	mdToJson, _ := json.Marshal(metadata)
 	message := sharer.ProfileName + " privately shared you pipe with name: " + sharedPipe.Name
@@ -59,9 +64,9 @@ func (s Services) SendPushNotification(message string, deviceTokens []string) er
 	// Send the message and receive the response without retries.
 	response, err := client.Send(msg)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
-	log.Printf("%#v\n", response)
+	s.Logger.Info().Msg(fmt.Sprintf("%#v\n", response))
 	return nil
 }
