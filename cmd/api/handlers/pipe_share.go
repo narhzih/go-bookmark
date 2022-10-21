@@ -174,12 +174,12 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Preview successful",
 		"data": map[string]interface{}{
-			"user": map[string]interface{}{
+			"sharer": map[string]interface{}{
 				"username":    sharer.Username,
 				"name":        sharer.ProfileName,
 				"cover_photo": sharer.CovertPhoto,
 			},
-			"pipe": pipe,
+			"fullPipeData": pipe,
 		},
 	})
 

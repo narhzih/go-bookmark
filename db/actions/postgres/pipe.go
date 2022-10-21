@@ -107,8 +107,9 @@ func (p pipeActions) GetPipeByName(pipeName string, userID int64) (models.Pipe, 
 func (p pipeActions) GetPipeAndResource(pipeID, userID int64) (models.PipeAndResource, error) {
 	var pipeAndR models.PipeAndResource
 	query := `
-	SELECT p.id, p.name, p.cover_photo, p.created_at, p.modified_at, p.user_id, u.username
+	SELECT p.id, p.name, p.cover_photo, p.created_at, p.modified_at, p.user_id , COUNT(b.pipe_id) AS total_bookmarks, u.username
 	FROM pipes p 
+	    LEFT JOIN bookmarks b ON p.id=b.pipe_id
 		LEFT JOIN users u ON p.user_id=u.id
 	WHERE p.id=$1 AND p.user_id=$2
 	GROUP BY p.id, u.username
@@ -121,6 +122,7 @@ func (p pipeActions) GetPipeAndResource(pipeID, userID int64) (models.PipeAndRes
 		&pipeAndR.Pipe.CreatedAt,
 		&pipeAndR.Pipe.ModifiedAt,
 		&pipeAndR.Pipe.UserID,
+		&pipeAndR.Pipe.Bookmarks,
 		&pipeAndR.Pipe.Creator,
 	)
 	if err != nil {
