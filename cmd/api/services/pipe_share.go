@@ -40,6 +40,7 @@ func (s Services) SharePrivatePipe(pipeId, userId int64, shareTo string) (models
 	sharedPipeModel.PipeID = pipeToBeShared.ID
 	sharedPipeModel.SharerID = pipeToBeShared.UserID
 	sharedPipeModel.Type = "private"
+	sharedPipeModel.Code = helpers.RandomToken(15)
 	// Parse an empty string to the receiver since it's a public pipe sharer
 	sharedPipeModel, err = s.Repositories.PipeShare.CreatePipeShareRecord(sharedPipeModel, shareTo)
 	if err != nil {

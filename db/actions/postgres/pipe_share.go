@@ -55,16 +55,17 @@ func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe,
 		}
 		//var sharedTo model.SharedPipeReceiver
 		query = `
-				INSERT INTO shared_pipes (sharer_id, pipe_id, type) 
-				VALUES ($1, $2, $3) 
-				RETURNING id, sharer_id, pipe_id, type
+				INSERT INTO shared_pipes (sharer_id, pipe_id, type, code) 
+				VALUES ($1, $2, $3, $4) 
+				RETURNING id, sharer_id, pipe_id, type, code
 		
 		`
-		err = p.Db.QueryRow(query, pipeShareData.SharerID, pipeShareData.PipeID, pipeShareData.Type).Scan(
+		err = p.Db.QueryRow(query, pipeShareData.SharerID, pipeShareData.PipeID, pipeShareData.Type, pipeShareData.Code).Scan(
 			&pipeShareData.ID,
 			&pipeShareData.SharerID,
 			&pipeShareData.PipeID,
 			&pipeShareData.Type,
+			&pipeShareData.Code,
 		)
 		_, err = p.CreatePipeReceiver(models.SharedPipeReceiver{
 			SharerId:     pipeShareData.SharerID,
