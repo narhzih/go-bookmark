@@ -9,6 +9,7 @@ import (
 
 type ParserHandler interface {
 	TwitterLinkParser(c *gin.Context)
+	TwitterExpandedParser(c *gin.Context)
 	YoutubeLinkParser(c *gin.Context)
 	ParseLink(c *gin.Context)
 }
@@ -93,4 +94,38 @@ func (h parserHandler) ParseLink(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", []byte(parsedLink))
 }
 
-func (h parserHandler) TwitterParser(c *gin.Context) {}
+func (h parserHandler) TwitterExpandedParser(c *gin.Context) {
+	reqBody := struct {
+		Link string `json:"link"`
+	}{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		errMessage := helpers2.ParseErrorMessage(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": errMessage,
+			"err":     err.Error(),
+		})
+		return
+	}
+	chatId := helpers2.GetTwitterChatId(reqBody.Link)
+	expandedResponse, err := h.app.Services.ExpandTweet(chatId)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "an error occurred while connecting to twitter api",
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	completeTweet, err := h.app.Services.GetThreadByConversationID(expandedResponse.Data[0].ConversationID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "an error occurred while connecting to twitter api",
+			"err":     err.Error(),
+		})
+		return
+	}
+	//c.JSON(http.StatusOK, gin.H{
+	//	"tweet": expandedResponse,
+	//})
+	c.Data(http.StatusOK, "application/json", []byte(completeTweet))
+}
