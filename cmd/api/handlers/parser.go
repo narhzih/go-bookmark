@@ -1,15 +1,17 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
 	helpers2 "github.com/mypipeapp/mypipeapi/cmd/api/helpers"
 	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/db/models"
 	"net/http"
 )
 
 type ParserHandler interface {
 	TwitterLinkParser(c *gin.Context)
-	TwitterExpandedParser(c *gin.Context)
+	GetCompleteThreadOfATweet(c *gin.Context)
 	YoutubeLinkParser(c *gin.Context)
 	ParseLink(c *gin.Context)
 }
@@ -94,7 +96,7 @@ func (h parserHandler) ParseLink(c *gin.Context) {
 	c.Data(http.StatusOK, "application/json", []byte(parsedLink))
 }
 
-func (h parserHandler) TwitterExpandedParser(c *gin.Context) {
+func (h parserHandler) GetCompleteThreadOfATweet(c *gin.Context) {
 	reqBody := struct {
 		Link string `json:"link"`
 	}{}
@@ -116,7 +118,8 @@ func (h parserHandler) TwitterExpandedParser(c *gin.Context) {
 		return
 	}
 
-	completeTweet, err := h.app.Services.GetThreadByConversationID(expandedResponse.Data[0].ConversationID)
+	expandedData := expandedResponse.Data[0]
+	authorInfo, err := h.app.Services.GetFullUserInformation(expandedData.AuthorID)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "an error occurred while connecting to twitter api",
@@ -124,8 +127,21 @@ func (h parserHandler) TwitterExpandedParser(c *gin.Context) {
 		})
 		return
 	}
-	//c.JSON(http.StatusOK, gin.H{
-	//	"tweet": expandedResponse,
-	//})
-	c.Data(http.StatusOK, "application/json", []byte(completeTweet))
+	completeTweet, err := h.app.Services.GetThreadByConversationID(expandedData.ConversationID, authorInfo.Data.Username)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "an error occurred while connecting to twitter api",
+			"err":     err.Error(),
+		})
+		return
+	}
+	var thread models.TwitterExpandedResponse
+	json.Unmarshal([]byte(completeTweet), &thread)
+	thread.Data = append(thread.Data, expandedData)
+	c.JSON(http.StatusOK, gin.H{
+		"thread": thread,
+		"author": authorInfo,
+	})
+
+	//c.Data(http.StatusOK, "application/json", []byte(completeTweet))
 }

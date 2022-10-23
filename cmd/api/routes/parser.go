@@ -11,7 +11,7 @@ func setupParserRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	parser := routeGroup.Group("/parse-link")
 	//parser.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
 	parser.POST("/twitter", h.TwitterLinkParser)
-	parser.POST("/twitter-expanded", h.TwitterExpandedParser)
+	parser.POST("/twitter/thread", h.GetCompleteThreadOfATweet)
 	parser.POST("/youtube", h.YoutubeLinkParser)
 	parser.POST("/others", h.ParseLink)
 }
