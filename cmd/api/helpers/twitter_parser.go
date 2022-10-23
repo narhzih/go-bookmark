@@ -13,7 +13,7 @@ import (
 )
 
 func ParseTwitterLink(twitterLink string) (string, error) {
-	chatId := getChatId(twitterLink)
+	chatId := GetTwitterChatId(twitterLink)
 	timeout := time.Duration(10 * time.Second)
 	requestBody, err := json.Marshal(map[string]interface{}{})
 	client := http.Client{Timeout: timeout}
@@ -37,7 +37,7 @@ func ParseTwitterLink(twitterLink string) (string, error) {
 	return responseToString, nil
 }
 
-func getChatId(twitterLink string) interface{} {
+func GetTwitterChatId(twitterLink string) string {
 	linkSlice := strings.Split(twitterLink, "/")
 	chatId := linkSlice[len(linkSlice)-1]
 	return chatId
