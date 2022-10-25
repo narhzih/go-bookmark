@@ -8,4 +8,5 @@ type Repositories struct {
 	AccountVerification AccountVerificationRepository
 	Notification        NotificationRepository
 	PasswordReset       PasswordResetRepository
+	Tag                 TagRepository
 }

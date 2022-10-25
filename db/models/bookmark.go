@@ -8,5 +8,6 @@ type Bookmark struct {
 	PipeID    int64     `json:"pipe_id"`
 	Platform  string    `json:"platform"`
 	Url       string    `json:"url"`
+	Tags      []string  `json:"tags"`
 	CreatedAt time.Time `json:"created_at"`
 }
