@@ -141,9 +141,11 @@ func (h bookmarkHandler) GetBookmark(c *gin.Context) {
 		"message": "bookmarked fetched successfully",
 		"data": map[string]interface{}{
 			"bookmark": map[string]interface{}{
-				"id":       bookmark.ID,
-				"url":      bookmark.Url,
-				"platform": bookmark.Platform,
+				"id":        bookmark.ID,
+				"url":       bookmark.Url,
+				"platform":  bookmark.Platform,
+				"createdAt": bookmark.CreatedAt,
+				"tags":      bookmark.Tags,
 			},
 		},
 	})

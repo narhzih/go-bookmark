@@ -53,6 +53,7 @@ func (b bookmarkActions) GetBookmark(bmID, userID int64) (models.Bookmark, error
 	if err != nil {
 		return models.Bookmark{}, err
 	}
+	bookmark, _ = b.ParseTags(bookmark)
 	return bookmark, nil
 }
 
@@ -77,6 +78,7 @@ func (b bookmarkActions) GetBookmarks(userID, pipeID int64) ([]models.Bookmark, 
 		); err != nil {
 			return bookmarks, err
 		}
+		bookmark, _ = b.ParseTags(bookmark)
 		bookmarks = append(bookmarks, bookmark)
 	}
 
