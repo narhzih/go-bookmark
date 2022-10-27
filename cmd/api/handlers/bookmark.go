@@ -131,10 +131,13 @@ func (h bookmarkHandler) GetBookmark(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 				"message": "Bookmark not found",
 			})
+			return
 		}
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Unable to retreive bookmark",
+			"message": "Unable to retrieve bookmark",
+			"err":     err.Error(),
 		})
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
