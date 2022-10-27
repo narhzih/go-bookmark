@@ -105,3 +105,31 @@ func (b bookmarkActions) DeleteBookmark(bmID, userID int64) (bool, error) {
 	}
 	return true, nil
 }
+
+func (b bookmarkActions) ParseTags(bookmark models.Bookmark) (models.Bookmark, error) {
+	query := `
+	SELECT bt.id, bt.tag_id, bt.bookmark_id, t.name 
+	FROM bookmark_tag bt 
+		INNER JOIN tags t on bt.tag_id = t.id
+	WHERE bookmark_id=$1
+    `
+
+	rows, err := b.Db.Query(query, bookmark.ID)
+	if err != nil {
+		b.Logger.Err(err).Msg("there was an error parsing tags on bookmark")
+		return bookmark, err
+	}
+	for rows.Next() {
+		bookmarkToTag := models.BookmarkToTag{}
+		_ = rows.Scan(
+			&bookmarkToTag.ID,
+			&bookmarkToTag.TagId,
+			&bookmarkToTag.BookmarkId,
+			&bookmarkToTag.TagName,
+		)
+
+		bookmark.Tags = append(bookmark.Tags, bookmarkToTag.TagName)
+	}
+
+	return bookmark, nil
+}

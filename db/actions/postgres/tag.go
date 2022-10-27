@@ -1,10 +1,12 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
+	"time"
 )
 
 type tagActions struct {
@@ -25,10 +27,10 @@ func (t tagActions) CreateTag(tag models.Tag) (models.Tag, error) {
 	`
 
 	err := t.Db.QueryRow(query, tag.Name).Scan(
-		&tag.Id,
-		&tag.Name,
-		&tag.CreatedAt,
-		&tag.ModifiedAt,
+		&createdTag.Id,
+		&createdTag.Name,
+		&createdTag.CreatedAt,
+		&createdTag.ModifiedAt,
 	)
 	if err != nil {
 		return tag, err
@@ -85,32 +87,34 @@ func (t tagActions) GetTagByName(name string) (models.Tag, error) {
 	return tag, nil
 }
 
-func (t tagActions) AddTagsToBookmark(bmId string, tags []models.Tag) error {
+func (t tagActions) AddTagsToBookmark(bmId int64, tags []models.Tag) error {
 	// This call assumes the bookmark exists already
 	for _, tag := range tags {
-
-		tag, err := t.GetTagByName(tag.Name)
+		eTag, err := t.GetTagByName(tag.Name)
 		if err != nil {
 			// if there's not existing tag, create one
 			if err == ErrNoRecord {
-				tag, err = t.CreateTag(tag)
+				eTag, err = t.CreateTag(tag)
 				if err != nil {
-					return err
+					t.Logger.Err(err).Msg("an error occurred while creating new tag")
 				}
 			}
 
-			return err
+			if err != ErrNoRecord {
+				t.Logger.Err(err).Msg("some weird type of error")
+			}
 		}
-
 		query := `
 		INSERT INTO bookmark_tag (bookmark_id, tag_id)
 		VALUES ($1, $2)
 		RETURNING id, bookmark_id, tag_id, created_at, modified_at
 		`
 
-		_, err = t.Db.Exec(query, bmId, tag.Id)
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		_, err = t.Db.ExecContext(ctx, query, bmId, eTag.Id)
 		if err != nil {
-			return err
+			t.Logger.Err(err).Msg("an error occurred while creating new tag")
 		}
 	}
 	return nil

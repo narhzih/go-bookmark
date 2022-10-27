@@ -7,6 +7,7 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -28,7 +29,8 @@ func NewBookmarkHandler(app internal.Application) BookmarkHandler {
 
 func (h bookmarkHandler) CreateBookmark(c *gin.Context) {
 	bmRequest := struct {
-		Url string `json:"url" binding:"required"`
+		Url  string `json:"url" binding:"required"`
+		Tags string `json:"tags"`
 	}{}
 	if err := c.ShouldBindJSON(&bmRequest); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -79,13 +81,36 @@ func (h bookmarkHandler) CreateBookmark(c *gin.Context) {
 		})
 		return
 	}
+
+	// add tags to bookmark
+	if strings.TrimSpace(bmRequest.Tags) != "" {
+		parsedTags := strings.Split(bmRequest.Tags, ",")
+		var tagsSlice []models.Tag
+		for _, tagString := range parsedTags {
+			tagData := models.Tag{Name: strings.TrimSpace(tagString)}
+			tagsSlice = append(tagsSlice, tagData)
+		}
+
+		err = h.app.Repositories.Tag.AddTagsToBookmark(bookmark.ID, tagsSlice)
+		if err != nil {
+			h.app.Logger.Err(err).Msg("error occurred while trying to save tags")
+		}
+	}
+
+	// don't really care if there's any error for now
+	bookmark, _ = h.app.Repositories.Bookmark.ParseTags(bookmark)
+
+	// parse the tags as part of the bookmarks and send it back
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Url bookmarked successfully",
 		"data": map[string]interface{}{
 			"bookmark": map[string]interface{}{
-				"id":       bookmark.ID,
-				"url":      bookmark.Url,
-				"platform": bookmark.Platform,
+				"id":        bookmark.ID,
+				"url":       bookmark.Url,
+				"platform":  bookmark.Platform,
+				"tags":      bookmark.Tags,
+				"createdAt": bookmark.CreatedAt,
 			},
 		},
 	})
