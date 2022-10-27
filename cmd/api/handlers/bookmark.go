@@ -60,6 +60,7 @@ func (h bookmarkHandler) CreateBookmark(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"message": err.Error(),
 		})
+		return
 	}
 	bookmark = models.Bookmark{
 		UserID:   c.GetInt64(middlewares.KeyUserId),
