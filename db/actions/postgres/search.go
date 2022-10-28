@@ -25,7 +25,7 @@ func (s searchActions) SearchThroughPipes(name string, userId int64) ([]models.P
 		LEFT JOIN bookmarks b ON p.id=b.pipe_id
 		LEFT JOIN users u ON p.user_id=u.id
 	WHERE 
-	    p.user_id=$2
+	    p.user_id=$1
 	    AND p.name ILIKE '%' || $2 || '%'
 	GROUP BY p.id, u.username
 	ORDER BY p.id
