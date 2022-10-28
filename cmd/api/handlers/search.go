@@ -25,11 +25,11 @@ func NewSearchHandler(app internal.Application) SearchHandler {
 
 func (h searchHandler) Search(c *gin.Context) {
 	req := struct {
-		Name string `query:"name"`
-		Type string `query:"type"`
+		Name string `form:"name"`
+		Type string `form:"type"`
 	}{}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.Bind(&req); err != nil {
 		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
@@ -90,7 +90,7 @@ func (h searchHandler) Search(c *gin.Context) {
 		})
 
 	case models.SearchTypeAll:
-		bookmarks, err := h.app.Repositories.Search.SearchThroughPipes(req.Name, c.GetInt64(middlewares.KeyUserId))
+		bookmarks, err := h.app.Repositories.Search.SearchThroughTags(req.Name, c.GetInt64(middlewares.KeyUserId))
 		if err != nil {
 			if err == postgres.ErrNoRecord {
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
