@@ -60,6 +60,7 @@ func (h searchHandler) Search(c *gin.Context) {
 			"query": req.Type,
 			"result": map[string]interface{}{
 				"pipes": pipes,
+				"total": len(pipes),
 			},
 		})
 
@@ -84,11 +85,56 @@ func (h searchHandler) Search(c *gin.Context) {
 			"query": req.Type,
 			"result": map[string]interface{}{
 				"bookmarks": bookmarks,
+				"total":     len(bookmarks),
 			},
 		})
 
 	case models.SearchTypeAll:
-		panic("implement search for all (both tags and pipes)")
+		bookmarks, err := h.app.Repositories.Search.SearchThroughPipes(req.Name, c.GetInt64(middlewares.KeyUserId))
+		if err != nil {
+			if err == postgres.ErrNoRecord {
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"message": fmt.Sprintf("no results found for %v", req.Name),
+				})
+				return
+			}
+
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "an error occurred",
+				"err":     err.Error(),
+			})
+			return
+		}
+		pipes, err := h.app.Repositories.Search.SearchThroughPipes(req.Name, c.GetInt64(middlewares.KeyUserId))
+		if err != nil {
+			if err == postgres.ErrNoRecord {
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"message": fmt.Sprintf("no results found for %v", req.Name),
+				})
+				return
+			}
+
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "an error occurred",
+				"err":     err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"data": map[string]interface{}{
+				"pipes": map[string]interface{}{
+					"result": pipes,
+					"total":  len(pipes),
+				},
+				"bookmarks": map[string]interface{}{
+					"result": bookmarks,
+					"total":  len(bookmarks),
+				},
+				"total": len(bookmarks) + len(pipes),
+			},
+		})
+
 	default:
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Invalid search type. valid search types are: *all*, *tags* and *pipes*",
