@@ -9,4 +9,5 @@ type Repositories struct {
 	Notification        NotificationRepository
 	PasswordReset       PasswordResetRepository
 	Tag                 TagRepository
+	Search              SearchRepository
 }

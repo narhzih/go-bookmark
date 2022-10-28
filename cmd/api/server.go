@@ -31,6 +31,7 @@ func serveApp(db *sql.DB, logger zerolog.Logger) {
 		AccountVerification: postgres.NewAccountVerificationActions(db, logger),
 		PasswordReset:       postgres.NewPasswordResetActions(db, logger),
 		Tag:                 postgres.NewTagActions(db, logger),
+		Search:              postgres.NewSearchActions(db, logger),
 	}
 
 	jwtConfig, err := initJWTConfig()

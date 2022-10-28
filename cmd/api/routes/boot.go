@@ -13,4 +13,5 @@ func BootRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	setupNotificationRoutes(app, routeGroup)
 	setupTwitterBotRoutes(app, routeGroup)
 	setupParserRoutes(app, routeGroup)
+	setupSearchRoutes(app, routeGroup)
 }
