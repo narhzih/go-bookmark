@@ -2,9 +2,9 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/handlers"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
+	"github.com/mypipeapp/mypipeapi/cmd/api/handlers"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/cmd/api/middlewares"
 )
 
 func setupAuthRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
@@ -21,4 +21,6 @@ func setupAuthRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	authApi := routeGroup.Group("/auth")
 	authApi.Use(middlewares.AuthRequired(app, app.Services.JWTConfig.Key))
 	authApi.POST("/twitter/connect-account", h.ConnectTwitterAccount)
+	authApi.GET("/twitter/connected-account", h.GetConnectedTwitterAccount)
+	authApi.POST("/twitter/disconnect-account", h.DisconnectTwitterAccount)
 }

@@ -3,8 +3,8 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"github.com/mypipeapp/mypipeapi/db"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/db"
 	"os"
 	"strconv"
 )

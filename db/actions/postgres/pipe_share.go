@@ -3,9 +3,9 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
+	"github.com/mypipeapp/mypipeapi/db/models"
+	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/db/models"
-	"gitlab.com/trencetech/mypipe-api/db/repository"
 	"os"
 )
 
@@ -55,16 +55,17 @@ func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe,
 		}
 		//var sharedTo model.SharedPipeReceiver
 		query = `
-				INSERT INTO shared_pipes (sharer_id, pipe_id, type) 
-				VALUES ($1, $2, $3) 
-				RETURNING id, sharer_id, pipe_id, type
+				INSERT INTO shared_pipes (sharer_id, pipe_id, type, code) 
+				VALUES ($1, $2, $3, $4) 
+				RETURNING id, sharer_id, pipe_id, type, code
 		
 		`
-		err = p.Db.QueryRow(query, pipeShareData.SharerID, pipeShareData.PipeID, pipeShareData.Type).Scan(
+		err = p.Db.QueryRow(query, pipeShareData.SharerID, pipeShareData.PipeID, pipeShareData.Type, pipeShareData.Code).Scan(
 			&pipeShareData.ID,
 			&pipeShareData.SharerID,
 			&pipeShareData.PipeID,
 			&pipeShareData.Type,
+			&pipeShareData.Code,
 		)
 		_, err = p.CreatePipeReceiver(models.SharedPipeReceiver{
 			SharerId:     pipeShareData.SharerID,
@@ -157,7 +158,6 @@ func (p pipeShareActions) GetReceivedPipeRecord(pipeId, userId int64) (models.Sh
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			logger.Info().Msg("The logged in user hasn't received this  pipe yet")
 			return models.SharedPipeReceiver{}, ErrNoRecord
 		}
 		logger.Info().Msg("There's a specific error somewhere")

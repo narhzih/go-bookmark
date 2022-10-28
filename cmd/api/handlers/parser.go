@@ -1,14 +1,17 @@
 package handlers
 
 import (
+	"encoding/json"
 	"github.com/gin-gonic/gin"
-	helpers2 "gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	helpers2 "github.com/mypipeapp/mypipeapi/cmd/api/helpers"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/db/models"
 	"net/http"
 )
 
 type ParserHandler interface {
 	TwitterLinkParser(c *gin.Context)
+	GetCompleteThreadOfATweet(c *gin.Context)
 	YoutubeLinkParser(c *gin.Context)
 	ParseLink(c *gin.Context)
 }
@@ -91,4 +94,54 @@ func (h parserHandler) ParseLink(c *gin.Context) {
 		return
 	}
 	c.Data(http.StatusOK, "application/json", []byte(parsedLink))
+}
+
+func (h parserHandler) GetCompleteThreadOfATweet(c *gin.Context) {
+	reqBody := struct {
+		Link string `json:"link"`
+	}{}
+	if err := c.ShouldBindJSON(&reqBody); err != nil {
+		errMessage := helpers2.ParseErrorMessage(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": errMessage,
+			"err":     err.Error(),
+		})
+		return
+	}
+	chatId := helpers2.GetTwitterChatId(reqBody.Link)
+	expandedResponse, err := h.app.Services.ExpandTweet(chatId)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "an error occurred while connecting to twitter api",
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	expandedData := expandedResponse.Data[0]
+	authorInfo, err := h.app.Services.GetFullUserInformation(expandedData.AuthorID)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "an error occurred while connecting to twitter api",
+			"err":     err.Error(),
+		})
+		return
+	}
+	completeTweet, err := h.app.Services.GetThreadByConversationID(expandedData.ConversationID, authorInfo.Data.Username)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "an error occurred while connecting to twitter api",
+			"err":     err.Error(),
+		})
+		return
+	}
+	var thread models.TwitterExpandedResponse
+	json.Unmarshal([]byte(completeTweet), &thread)
+	thread.Data = append(thread.Data, expandedData)
+	c.JSON(http.StatusOK, gin.H{
+		"thread": thread,
+		"author": authorInfo,
+	})
+
+	//c.Data(http.StatusOK, "application/json", []byte(completeTweet))
 }

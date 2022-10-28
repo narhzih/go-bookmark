@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/cmd/api/routes"
+	"github.com/mypipeapp/mypipeapi/cmd/api/services"
+	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
+	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/routes"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/services"
-	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
-	"gitlab.com/trencetech/mypipe-api/db/repository"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,6 +29,9 @@ func serveApp(db *sql.DB, logger zerolog.Logger) {
 		Bookmark:            postgres.NewBookmarkActions(db, logger),
 		Notification:        postgres.NewNotificationActions(db, logger),
 		AccountVerification: postgres.NewAccountVerificationActions(db, logger),
+		PasswordReset:       postgres.NewPasswordResetActions(db, logger),
+		Tag:                 postgres.NewTagActions(db, logger),
+		Search:              postgres.NewSearchActions(db, logger),
 	}
 
 	jwtConfig, err := initJWTConfig()

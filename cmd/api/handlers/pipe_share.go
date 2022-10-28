@@ -4,10 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/middlewares"
-	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
-	"gitlab.com/trencetech/mypipe-api/db/models"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/cmd/api/middlewares"
+	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
+	"github.com/mypipeapp/mypipeapi/db/models"
 	"net/http"
 	"strconv"
 )
@@ -111,6 +111,8 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 	code := c.Query("code")
 	// See if the pipe is still sharable
+	authenticatedUser, _ := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+
 	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
 		if err == postgres.ErrNoRecord {
@@ -125,6 +127,26 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 		})
 		return
 	}
+
+	// If it's a private pipe, check if this user is allowed to see it
+	if pipeToAdd.Type == models.PipeShareTypePrivate {
+		_, err := h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.ID, authenticatedUser.ID)
+		if err != nil {
+			if err == postgres.ErrNoRecord {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"message": "You cannot view this pipe because it's a private pipe",
+				})
+				return
+			}
+
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "Our server encountered an error. Please try again in few minutes",
+				"err":     err.Error(),
+			})
+			return
+		}
+	}
+
 	pipe, err := h.app.Repositories.Pipe.GetPipeAndResource(pipeToAdd.PipeID, pipeToAdd.SharerID)
 	if err != nil {
 		if err == postgres.ErrNoRecord {
@@ -152,28 +174,21 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Preview successful",
 		"data": map[string]interface{}{
-			"user": map[string]interface{}{
-				"username": sharer.Username,
-				"name":     sharer.ProfileName,
+			"sharer": map[string]interface{}{
+				"username":    sharer.Username,
+				"name":        sharer.ProfileName,
+				"cover_photo": sharer.CovertPhoto,
 			},
-			"pipe": pipe,
+			"fullPipeData": pipe,
 		},
 	})
 
 }
 
 func (h pipeShareHandler) AddPipe(c *gin.Context) {
-	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		h.app.Logger.Err(err).Msg(err.Error())
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid pipe ID",
-		})
-		return
-	}
-
+	code := c.Query("code")
 	// See if the pipe is an actual pipe
-	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipe(pipeId)
+	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
 		switch {
 		case errors.Is(err, postgres.ErrNoRecord):

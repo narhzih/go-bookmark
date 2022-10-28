@@ -1,6 +1,6 @@
 package repository
 
-import "gitlab.com/trencetech/mypipe-api/db/models"
+import "github.com/mypipeapp/mypipeapi/db/models"
 
 type UserRepository interface {
 	CreateUserByEmail(user models.User, password, authOrigin string) (newUser models.User, err error)
@@ -16,4 +16,5 @@ type UserRepository interface {
 	GetUserDeviceTokens(userId int64) ([]string, error)
 	UpdateUserDeviceTokens(userId int64, deviceTokens []string) ([]string, error)
 	ConnectToTwitter(user models.User, twitterId string) (models.User, error)
+	DisconnectTwitter(user models.User) (models.User, error)
 }

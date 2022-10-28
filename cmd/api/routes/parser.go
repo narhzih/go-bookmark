@@ -2,8 +2,8 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/handlers"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/internal"
+	"github.com/mypipeapp/mypipeapi/cmd/api/handlers"
+	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 )
 
 func setupParserRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
@@ -11,6 +11,7 @@ func setupParserRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	parser := routeGroup.Group("/parse-link")
 	//parser.Use(AuthRequired(h.service.JWTConfig.Key, h.logger))
 	parser.POST("/twitter", h.TwitterLinkParser)
+	parser.POST("/twitter/thread", h.GetCompleteThreadOfATweet)
 	parser.POST("/youtube", h.YoutubeLinkParser)
 	parser.POST("/others", h.ParseLink)
 }

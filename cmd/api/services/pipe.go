@@ -2,7 +2,7 @@ package services
 
 import (
 	"fmt"
-	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
+	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
 	"regexp"
 	"strings"
 )

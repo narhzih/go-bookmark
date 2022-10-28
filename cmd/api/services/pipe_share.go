@@ -2,9 +2,9 @@ package services
 
 import (
 	"fmt"
-	"gitlab.com/trencetech/mypipe-api/cmd/api/helpers"
-	"gitlab.com/trencetech/mypipe-api/db/actions/postgres"
-	"gitlab.com/trencetech/mypipe-api/db/models"
+	"github.com/mypipeapp/mypipeapi/cmd/api/helpers"
+	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
+	"github.com/mypipeapp/mypipeapi/db/models"
 )
 
 func (s Services) SharePublicPipe(pipeId, userId int64) (models.SharedPipe, error) {
@@ -40,6 +40,7 @@ func (s Services) SharePrivatePipe(pipeId, userId int64, shareTo string) (models
 	sharedPipeModel.PipeID = pipeToBeShared.ID
 	sharedPipeModel.SharerID = pipeToBeShared.UserID
 	sharedPipeModel.Type = "private"
+	sharedPipeModel.Code = helpers.RandomToken(15)
 	// Parse an empty string to the receiver since it's a public pipe sharer
 	sharedPipeModel, err = s.Repositories.PipeShare.CreatePipeShareRecord(sharedPipeModel, shareTo)
 	if err != nil {
