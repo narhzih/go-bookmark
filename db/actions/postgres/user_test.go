@@ -14,7 +14,7 @@ func Test_user_CreateUserByEmail(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := newTestDb(t)
 			userA := NewUserActions(db, logger)
-			gotUser, gotErr := userA.CreateUser(tc.inputUser)
+			gotUser, gotErr := userA.CreateUserByEmail(tc.inputUser, "", "DEFAULT")
 			assert.Equal(t, tc.wantErr, gotErr)
 
 			// in the case of a successful creation

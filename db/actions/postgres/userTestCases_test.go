@@ -25,6 +25,25 @@ var createUserByEmailTestCases = map[string]struct {
 		},
 		wantErr: nil,
 	},
+	"duplicate name": {
+		inputUser: models.User{
+			Email:       "user5@gmail.com",
+			Username:    "user1",
+			ProfileName: "user1",
+		},
+		wantUser: models.User{},
+		wantErr:  ErrRecordExists,
+	},
+
+	"duplicate email": {
+		inputUser: models.User{
+			Email:       "user1@gmail.com",
+			Username:    "user5",
+			ProfileName: "user5",
+		},
+		wantUser: models.User{},
+		wantErr:  ErrRecordExists,
+	},
 }
 
 // getUserByEmailTestCases - test cases for GetUserByEmail operations
