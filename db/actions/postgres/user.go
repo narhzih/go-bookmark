@@ -22,12 +22,28 @@ func NewUserActions(db *sql.DB, logger zerolog.Logger) repository.UserRepository
 	}
 }
 
-func (u userActions) CreateUser(user models.User) (newUser models.User, err error) {
-	query := `INSERT INTO users (username, email) VALUES ($1, $2) RETURNING id, username, email`
-	err = u.Db.QueryRow(query, user.Username, user.Email).Scan(
+// ----------------------------------------------------------------
+// --------------- CREATION OPERATIONS ----------------------------
+// ----------------------------------------------------------------
+
+// CreateUser - Creates a basic user record in the users table
+func (u userActions) CreateUser(user models.User) (models.User, error) {
+	var newUser models.User
+	query := `
+	INSERT INTO users 
+	    (username, email) 
+	VALUES ($1, $2) 
+	RETURNING id, username, email, profile_name, cover_photo, twitter_id, email_verified, created_at, modified_at`
+	err := u.Db.QueryRow(query, user.Username, user.Email).Scan(
 		&newUser.ID,
 		&newUser.Username,
 		&newUser.Email,
+		&newUser.ProfileName,
+		&newUser.CovertPhoto,
+		&newUser.TwitterId,
+		&newUser.EmailVerified,
+		&newUser.CreatedAt,
+		&newUser.ModifiedAt,
 	)
 	if err != nil {
 		if dbErr, ok := err.(*pq.Error); ok {
@@ -42,13 +58,17 @@ func (u userActions) CreateUser(user models.User) (newUser models.User, err erro
 	return newUser, err
 }
 
+// CreateUserByEmail - creates a basic user record in users table
+// and also adds a record for that user in user_auth table
 func (u userActions) CreateUserByEmail(user models.User, password string, authOrigin string) (models.User, error) {
+	// TODO: add sql transactions to the operations in this function since it performs 2
+	// 		 database operations that are dependent on each other
 	var newUser models.User
 	query := `
 	INSERT INTO users 
 	    (email, username, profile_name) 
 	VALUES ($1, $2, $3) 
-	RETURNING id, email, username, profile_name, email_verified
+	RETURNING id, username, email, profile_name, cover_photo, twitter_id, email_verified, created_at, modified_at
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -56,12 +76,16 @@ func (u userActions) CreateUserByEmail(user models.User, password string, authOr
 
 	err := u.Db.QueryRowContext(ctx, query, user.Email, user.Username, user.ProfileName).Scan(
 		&newUser.ID,
-		&newUser.Email,
 		&newUser.Username,
+		&newUser.Email,
 		&newUser.ProfileName,
+		&newUser.CovertPhoto,
+		&newUser.TwitterId,
 		&newUser.EmailVerified,
+		&newUser.CreatedAt,
+		&newUser.ModifiedAt,
 	)
-	//u.Logger.Info().Msg(fmt.Sprintf("inserting for user with email:%v and username: %v", user.Email, user.Username))
+
 	if err != nil {
 		if dbErr, ok := err.(*pq.Error); ok {
 			if dbErr.Code == "23505" {
@@ -71,7 +95,7 @@ func (u userActions) CreateUserByEmail(user models.User, password string, authOr
 		return models.User{}, err
 	}
 
-	// create authentication record options
+	// create authentication record for the user
 	var authQuery string
 	var secondQueryValue string
 	if authOrigin == "" || authOrigin == "DEFAULT" {
@@ -91,8 +115,18 @@ func (u userActions) CreateUserByEmail(user models.User, password string, authOr
 	return newUser, nil
 }
 
+// ----------------------------------------------------------------
+// --------------- RETRIEVAL OPERATIONS ---------------------------
+// ----------------------------------------------------------------
+
+// GetUserByTwitterID - Retrieves a user by their twitter id value
 func (u userActions) GetUserByTwitterID(twitterId string) (user models.User, err error) {
-	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id FROM users where twitter_id=$1 LIMIT 1`
+	query := `
+	SELECT id, username, email, profile_name, cover_photo, twitter_id, email_verified, created_at, modified_at 
+	FROM users 
+	WHERE twitter_id=$1 
+	LIMIT 1`
+
 	if err = u.Db.QueryRow(query, twitterId).Scan(
 		&user.ID,
 		&user.Username,
@@ -100,6 +134,9 @@ func (u userActions) GetUserByTwitterID(twitterId string) (user models.User, err
 		&user.ProfileName,
 		&user.CovertPhoto,
 		&user.TwitterId,
+		&user.EmailVerified,
+		&user.CreatedAt,
+		&user.ModifiedAt,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return models.User{}, ErrNoRecord
@@ -109,6 +146,7 @@ func (u userActions) GetUserByTwitterID(twitterId string) (user models.User, err
 	return user, nil
 }
 
+// GetUserById - Retrieves a user by their registered ID
 func (u userActions) GetUserById(userId int) (user models.User, err error) {
 	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at FROM users where id=$1 LIMIT 1`
 	if err = u.Db.QueryRow(query, userId).Scan(
@@ -129,6 +167,7 @@ func (u userActions) GetUserById(userId int) (user models.User, err error) {
 	return user, err
 }
 
+// GetUserByEmail - Retrieves a user by their email
 func (u userActions) GetUserByEmail(userEmail string) (user models.User, err error) {
 	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at FROM users where email=$1 LIMIT 1`
 	if err = u.Db.QueryRow(query, userEmail).Scan(
@@ -149,6 +188,7 @@ func (u userActions) GetUserByEmail(userEmail string) (user models.User, err err
 	return user, err
 }
 
+// GetUserByUsername - Retrieves a user by their username
 func (u userActions) GetUserByUsername(username string) (user models.User, err error) {
 	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at  FROM users where username=$1 LIMIT 1`
 	if err = u.Db.QueryRow(query, username).Scan(
@@ -182,6 +222,20 @@ func (u userActions) GetUserAndAuth(user models.User) (userAndAuth models.UserAu
 
 	return userAndAuth, nil
 }
+
+func (u userActions) GetUserDeviceTokens(userID int64) ([]string, error) {
+	var deviceTokens []string
+	query := `SELECT device_tokens FROM users WHERE id=$1`
+	err := u.Db.QueryRow(query, userID).Scan(pq.Array(&deviceTokens))
+	if err != nil {
+		return deviceTokens, err
+	}
+	return deviceTokens, nil
+}
+
+// ----------------------------------------------------------------
+// --------------- UPDATE OPERATIONS ------------------------------
+// ----------------------------------------------------------------
 
 func (u userActions) UpdateUserPassword(userId int, password string) error {
 	authQuery := "UPDATE user_auth SET hashed_password=$1 WHERE user_id=$2"
@@ -329,16 +383,6 @@ func (u userActions) VerifyUser(user models.User) (models.User, error) {
 		return user, err
 	}
 	return user, nil
-}
-
-func (u userActions) GetUserDeviceTokens(userID int64) ([]string, error) {
-	var deviceTokens []string
-	query := `SELECT device_tokens FROM users WHERE id=$1`
-	err := u.Db.QueryRow(query, userID).Scan(pq.Array(&deviceTokens))
-	if err != nil {
-		return deviceTokens, err
-	}
-	return deviceTokens, nil
 }
 
 func (u userActions) UpdateUserDeviceTokens(userID int64, deviceTokens []string) ([]string, error) {
