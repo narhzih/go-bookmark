@@ -26,43 +26,13 @@ func NewUserActions(db *sql.DB, logger zerolog.Logger) repository.UserRepository
 // --------------- CREATION OPERATIONS ----------------------------
 // ----------------------------------------------------------------
 
-// CreateUser - Creates a basic user record in the users table
-func (u userActions) CreateUser(user models.User) (models.User, error) {
-	var newUser models.User
-	query := `
-	INSERT INTO users 
-	    (username, email) 
-	VALUES ($1, $2) 
-	RETURNING id, username, email, profile_name, cover_photo, twitter_id, email_verified, created_at, modified_at`
-	err := u.Db.QueryRow(query, user.Username, user.Email).Scan(
-		&newUser.ID,
-		&newUser.Username,
-		&newUser.Email,
-		&newUser.ProfileName,
-		&newUser.CovertPhoto,
-		&newUser.TwitterId,
-		&newUser.EmailVerified,
-		&newUser.CreatedAt,
-		&newUser.ModifiedAt,
-	)
-	if err != nil {
-		if dbErr, ok := err.(*pq.Error); ok {
-			if dbErr.Code == "23505" {
-				u.Logger.Err(dbErr).Msg("duplicate record")
-				return newUser, ErrRecordExists
-			}
-		}
-		return models.User{}, err
-	}
-
-	return newUser, err
-}
-
 // CreateUserByEmail - creates a basic user record in users table
 // and also adds a record for that user in user_auth table
 func (u userActions) CreateUserByEmail(user models.User, password string, authOrigin string) (models.User, error) {
-	// TODO: add sql transactions to the operations in this function since it performs 2
-	// 		 database operations that are dependent on each other
+	tx, err := u.Db.Begin()
+	if err != nil {
+		return models.User{}, err
+	}
 	var newUser models.User
 	query := `
 	INSERT INTO users 
@@ -74,7 +44,7 @@ func (u userActions) CreateUserByEmail(user models.User, password string, authOr
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	err := u.Db.QueryRowContext(ctx, query, user.Email, user.Username, user.ProfileName).Scan(
+	err = tx.QueryRowContext(ctx, query, user.Email, user.Username, user.ProfileName).Scan(
 		&newUser.ID,
 		&newUser.Username,
 		&newUser.Email,
@@ -87,6 +57,7 @@ func (u userActions) CreateUserByEmail(user models.User, password string, authOr
 	)
 
 	if err != nil {
+		tx.Rollback()
 		if dbErr, ok := err.(*pq.Error); ok {
 			if dbErr.Code == "23505" {
 				return newUser, ErrRecordExists
@@ -107,9 +78,14 @@ func (u userActions) CreateUserByEmail(user models.User, password string, authOr
 		authQuery = "INSERT INTO user_auth (user_id, origin) VALUES ($1, $2)"
 
 	}
-	_, err = u.Db.ExecContext(ctx, authQuery, newUser.ID, secondQueryValue)
+	_, err = tx.ExecContext(ctx, authQuery, newUser.ID, secondQueryValue)
 	if err != nil {
+		tx.Rollback()
 		u.Logger.Err(err).Msg("Could not create user for auth")
+		return models.User{}, err
+	}
+	err = tx.Commit()
+	if err != nil {
 		return models.User{}, err
 	}
 	return newUser, nil
