@@ -4,17 +4,17 @@ import "github.com/mypipeapp/mypipeapi/db/models"
 
 var bookmarkTestCases = map[string]struct {
 	inputBookmark models.Bookmark
-	gotBookmark   models.Bookmark
-	gotErr        error
+	wantBookmark  models.Bookmark
+	wantErr       error
 }{
-	"valid bookmark": {
+	"successful bookmark creation": {
 		inputBookmark: models.Bookmark{},
-		gotBookmark:   models.Bookmark{},
-		gotErr:        nil,
+		wantBookmark:  models.Bookmark{},
+		wantErr:       nil,
 	},
-	"invalid bookmark": {
+	"existing bookmark": {
 		inputBookmark: models.Bookmark{},
-		gotBookmark:   models.Bookmark{},
-		gotErr:        nil,
+		wantBookmark:  models.Bookmark{},
+		wantErr:       nil,
 	},
 }
