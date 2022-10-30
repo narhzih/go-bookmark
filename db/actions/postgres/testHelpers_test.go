@@ -3,7 +3,10 @@ package postgres
 import (
 	"database/sql"
 	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
+	"github.com/rs/zerolog"
 	"os"
 	"testing"
 )
@@ -12,13 +15,15 @@ const (
 	skipMessage = "postgres: skipping integration test"
 )
 
+var logger = zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+
 // newTestDb prepares the test database by applying migrations and populating with test data.
 // It returns a connection to the test database.
 func newTestDb(t *testing.T) *sql.DB {
 	t.Helper()
 
 	// establish a connection to the test database
-	err := godotenv.Load("../../../../.env")
+	err := godotenv.Load("../../../.env")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +35,7 @@ func newTestDb(t *testing.T) *sql.DB {
 	}
 
 	// run up migrations for creating tables
-	m, err := migrate.New("file://../../../../migrations/", dsn)
+	m, err := migrate.New("file://../../../migrations/", dsn)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +46,7 @@ func newTestDb(t *testing.T) *sql.DB {
 	}
 
 	// populate tables
-	execSqlScript(t, db, "./testdata/populate_data.sql")
+	execSqlScript(t, db, "./mock/mock.sql")
 
 	// register a cleanup function for when the test is completed
 	t.Cleanup(func() {

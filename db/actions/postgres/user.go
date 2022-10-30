@@ -1,11 +1,13 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"github.com/lib/pq"
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
+	"time"
 )
 
 type userActions struct {
@@ -38,6 +40,55 @@ func (u userActions) CreateUser(user models.User) (newUser models.User, err erro
 	}
 
 	return newUser, err
+}
+
+func (u userActions) CreateUserByEmail(user models.User, password string, authOrigin string) (models.User, error) {
+	var newUser models.User
+	query := `
+	INSERT INTO users 
+	    (email, username, profile_name) 
+	VALUES ($1, $2, $3) 
+	RETURNING id, email, username, profile_name, email_verified
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	err := u.Db.QueryRowContext(ctx, query, user.Email, user.Username, user.ProfileName).Scan(
+		&newUser.ID,
+		&newUser.Email,
+		&newUser.Username,
+		&newUser.ProfileName,
+		&newUser.EmailVerified,
+	)
+	//u.Logger.Info().Msg(fmt.Sprintf("inserting for user with email:%v and username: %v", user.Email, user.Username))
+	if err != nil {
+		if dbErr, ok := err.(*pq.Error); ok {
+			if dbErr.Code == "23505" {
+				return newUser, ErrRecordExists
+			}
+		}
+		return models.User{}, err
+	}
+
+	// create authentication record options
+	var authQuery string
+	var secondQueryValue string
+	if authOrigin == "" || authOrigin == "DEFAULT" {
+		secondQueryValue = password
+		authQuery = "INSERT INTO user_auth (user_id, hashed_password) VALUES ($1, $2)"
+
+	} else {
+		secondQueryValue = authOrigin
+		authQuery = "INSERT INTO user_auth (user_id, origin) VALUES ($1, $2)"
+
+	}
+	_, err = u.Db.ExecContext(ctx, authQuery, newUser.ID, secondQueryValue)
+	if err != nil {
+		u.Logger.Err(err).Msg("Could not create user for auth")
+		return models.User{}, err
+	}
+	return newUser, nil
 }
 
 func (u userActions) GetUserByTwitterID(twitterId string) (user models.User, err error) {
@@ -336,41 +387,4 @@ func (u userActions) DisconnectTwitter(user models.User) (models.User, error) {
 	}
 
 	return updatedUser, nil
-}
-
-func (u userActions) CreateUserByEmail(user models.User, password string, authOrigin string) (newUser models.User, err error) {
-	query := `INSERT INTO users (email, username, profile_name) VALUES ($1, $2, $3) RETURNING id, email, user, profile_name`
-	err = u.Db.QueryRow(query, user.Email, user.Username, user.ProfileName).Scan(
-		&newUser.ID,
-		&newUser.Email,
-		&newUser.Username,
-		&newUser.ProfileName,
-	)
-	if err != nil {
-		if dbErr, ok := err.(*pq.Error); ok {
-			if dbErr.Code == "23505" {
-				u.Logger.Err(dbErr).Msg("duplicate record")
-				return newUser, ErrRecordExists
-			}
-		}
-		return models.User{}, err
-	}
-	var authQuery string
-	var secondQueryValue string
-	if authOrigin == "" || authOrigin == "DEFAULT" {
-		secondQueryValue = password
-		authQuery = "INSERT INTO user_auth (user_id, hashed_password) VALUES ($1, $2)"
-
-	} else {
-		secondQueryValue = authOrigin
-		authQuery = "INSERT INTO user_auth (user_id, origin) VALUES ($1, $2)"
-
-	}
-	_, err = u.Db.Exec(authQuery, newUser.ID, secondQueryValue)
-	if err != nil {
-		u.Logger.Err(err).Msg("Could not create user for auth")
-		return models.User{}, err
-	}
-
-	return newUser, err
 }

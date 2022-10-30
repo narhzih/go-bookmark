@@ -45,6 +45,7 @@ run/test/e2e:
 .PHONY: run/test/all
 run/test/all:
 	@echo "Running all tests in the codebase"
+	@go test -race -vet=off ./...
 
 # --- QUALITY CONTROL ---
 ## audit: tidy and vendor dependencies and format, vet and test codebase

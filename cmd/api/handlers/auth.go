@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	helpers2 "github.com/mypipeapp/mypipeapi/cmd/api/helpers"
+	"github.com/mypipeapp/mypipeapi/cmd/api/helpers"
 	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 	"github.com/mypipeapp/mypipeapi/cmd/api/middlewares"
 	"github.com/mypipeapp/mypipeapi/cmd/api/models/response"
@@ -51,7 +51,7 @@ func (h authHandler) EmailSignUp(c *gin.Context) {
 	}{}
 
 	if err := c.ShouldBindJSON(&singUpReq); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
@@ -59,7 +59,7 @@ func (h authHandler) EmailSignUp(c *gin.Context) {
 		return
 	}
 
-	hashedPassword, err := helpers2.HashPassword(singUpReq.Password)
+	hashedPassword, err := helpers.HashPassword(singUpReq.Password)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went very wrong",
@@ -92,7 +92,7 @@ func (h authHandler) EmailSignUp(c *gin.Context) {
 
 	var accountVerification models.AccountVerification
 	accountVerification.UserID = user.ID
-	accountVerification.Token = helpers2.RandomToken(7)
+	accountVerification.Token = helpers.RandomToken(7)
 	accountVerification.ExpiresAt = time.Now().Add(7200 * time.Second).Format(time.RFC3339Nano)
 	accountVerification, err = h.app.Repositories.AccountVerification.CreateVerification(accountVerification)
 	if err != nil {
@@ -204,7 +204,7 @@ func (h authHandler) EmailLogin(c *gin.Context) {
 		Password string `json:"password" binding:"required"`
 	}{}
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
@@ -228,7 +228,7 @@ func (h authHandler) EmailLogin(c *gin.Context) {
 		})
 		return
 	}
-	verifyOk, verifyErr := helpers2.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword, userAndAuth.Origin)
+	verifyOk, verifyErr := helpers.VerifyPassword(loginReq.Password, userAndAuth.HashedPassword, userAndAuth.Origin)
 	if verifyOk {
 		authToken, err := h.app.Services.IssueAuthToken(userAndAuth.User)
 		if err != nil {
@@ -344,7 +344,7 @@ func (h authHandler) ForgotPassword(c *gin.Context) {
 		Email string `json:"email" binding:"required"`
 	}{}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 		})
@@ -367,7 +367,7 @@ func (h authHandler) ForgotPassword(c *gin.Context) {
 		})
 		return
 	}
-	token := helpers2.RandomToken(8)
+	token := helpers.RandomToken(8)
 	passwordReset, err := h.app.Repositories.PasswordReset.CreatePasswordResetRecord(user, token)
 	if err != nil {
 		h.app.Logger.Err(err).Msg("An error occurred while trying to send password reset token")
@@ -500,7 +500,7 @@ func (h authHandler) ResetPassword(c *gin.Context) {
 	}{}
 
 	if err = c.ShouldBindJSON(&resetReq); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 		})
@@ -523,7 +523,7 @@ func (h authHandler) ResetPassword(c *gin.Context) {
 	}
 
 	// Update the user's password
-	hashedPassword, err := helpers2.HashPassword(resetReq.Password)
+	hashedPassword, err := helpers.HashPassword(resetReq.Password)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something" +
@@ -558,7 +558,7 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 	}{}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
