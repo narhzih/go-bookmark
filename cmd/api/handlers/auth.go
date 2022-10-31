@@ -152,7 +152,7 @@ func (h authHandler) VerifyAccount(c *gin.Context) {
 	}
 
 	// Check if the user still exists
-	user, err := h.app.Repositories.User.GetUserById(int(tokenFromDB.UserID))
+	user, err := h.app.Repositories.User.GetUserById(tokenFromDB.UserID)
 	if err != nil {
 		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -220,7 +220,7 @@ func (h authHandler) EmailLogin(c *gin.Context) {
 		return
 	}
 
-	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(user)
+	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -416,7 +416,7 @@ func (h authHandler) VerifyPasswordResetToken(c *gin.Context) {
 		return
 	}
 
-	user, err := h.app.Repositories.User.GetUserById(int(passwordReset.UserID))
+	user, err := h.app.Repositories.User.GetUserById(passwordReset.UserID)
 	if err != nil {
 		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -507,7 +507,7 @@ func (h authHandler) ResetPassword(c *gin.Context) {
 	}
 
 	// check if user with provided email is found
-	user, err := h.app.Repositories.User.GetUserById(int(passwordReset.UserID))
+	user, err := h.app.Repositories.User.GetUserById(passwordReset.UserID)
 	if err != nil {
 		if err == postgres.ErrNoRecord {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -532,7 +532,7 @@ func (h authHandler) ResetPassword(c *gin.Context) {
 		})
 		return
 	}
-	err = h.app.Repositories.User.UpdateUserPassword(int(user.ID), hashedPassword)
+	err = h.app.Repositories.User.UpdateUserPassword(user.ID, hashedPassword)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Something went very wrong",
@@ -566,7 +566,7 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 		return
 	}
 
-	user, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+	user, err := h.app.Repositories.User.GetUserById(c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Server error",
@@ -651,7 +651,7 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 }
 
 func (h authHandler) GetConnectedTwitterAccount(c *gin.Context) {
-	authenticatedUser, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+	authenticatedUser, err := h.app.Repositories.User.GetUserById(c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"message": "Unauthorized",
@@ -707,7 +707,7 @@ func (h authHandler) GetConnectedTwitterAccount(c *gin.Context) {
 	// Get twitter current information
 }
 func (h authHandler) DisconnectTwitterAccount(c *gin.Context) {
-	authenticatedUser, err := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+	authenticatedUser, err := h.app.Repositories.User.GetUserById(c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 			"message": "Unauthorized",

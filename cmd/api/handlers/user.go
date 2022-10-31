@@ -223,7 +223,7 @@ func (h userHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 	userID := c.GetInt64(middlewares.KeyUserId)
-	user, err := h.app.Repositories.User.GetUserById(int(userID))
+	user, err := h.app.Repositories.User.GetUserById(userID)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		if err == postgres.ErrNoRecord {
@@ -239,7 +239,7 @@ func (h userHandler) ChangePassword(c *gin.Context) {
 		})
 		return
 	}
-	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(user)
+	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		h.app.Logger.Err(err).Msg("An error occurred while trying to get user from the database")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -258,7 +258,7 @@ func (h userHandler) ChangePassword(c *gin.Context) {
 			})
 			return
 		}
-		err = h.app.Repositories.User.UpdateUserPassword(int(userAndAuth.User.ID), newPasswordHash)
+		err = h.app.Repositories.User.UpdateUserPassword(userAndAuth.User.ID, newPasswordHash)
 		if err != nil {
 			h.app.Logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

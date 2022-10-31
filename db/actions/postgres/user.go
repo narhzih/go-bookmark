@@ -103,7 +103,10 @@ func (u userActions) GetUserByTwitterID(twitterId string) (user models.User, err
 	WHERE twitter_id=$1 
 	LIMIT 1`
 
-	if err = u.Db.QueryRow(query, twitterId).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err = u.Db.QueryRowContext(ctx, query, twitterId).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -123,9 +126,17 @@ func (u userActions) GetUserByTwitterID(twitterId string) (user models.User, err
 }
 
 // GetUserById - Retrieves a user by their registered ID
-func (u userActions) GetUserById(userId int) (user models.User, err error) {
-	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at FROM users where id=$1 LIMIT 1`
-	if err = u.Db.QueryRow(query, userId).Scan(
+func (u userActions) GetUserById(userId int64) (user models.User, err error) {
+	query := `
+	SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at 
+	FROM users 
+	WHERE id=$1 
+	LIMIT 1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err = u.Db.QueryRowContext(ctx, query, userId).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -145,8 +156,16 @@ func (u userActions) GetUserById(userId int) (user models.User, err error) {
 
 // GetUserByEmail - Retrieves a user by their email
 func (u userActions) GetUserByEmail(userEmail string) (user models.User, err error) {
-	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at FROM users where email=$1 LIMIT 1`
-	if err = u.Db.QueryRow(query, userEmail).Scan(
+	query := `
+	SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at 
+	FROM users 
+	WHERE email=$1 
+	LIMIT 1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err = u.Db.QueryRowContext(ctx, query, userEmail).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -166,8 +185,16 @@ func (u userActions) GetUserByEmail(userEmail string) (user models.User, err err
 
 // GetUserByUsername - Retrieves a user by their username
 func (u userActions) GetUserByUsername(username string) (user models.User, err error) {
-	query := `SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at  FROM users where username=$1 LIMIT 1`
-	if err = u.Db.QueryRow(query, username).Scan(
+	query := `
+	SELECT id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at  
+	FROM users 
+	WHERE username=$1 
+	LIMIT 1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err = u.Db.QueryRowContext(ctx, query, username).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
@@ -185,16 +212,46 @@ func (u userActions) GetUserByUsername(username string) (user models.User, err e
 	return user, err
 }
 
-func (u userActions) GetUserAndAuth(user models.User) (userAndAuth models.UserAuth, err error) {
-	query := "SELECT hashed_password, origin FROM user_auth WHERE user_id=$1"
-	err = u.Db.QueryRow(query, user.ID).Scan(
+// GetUserAndAuth gets user and their authentication credentials
+func (u userActions) GetUserAndAuth(userId int64) (models.UserAuth, error) {
+	var userAndAuth models.UserAuth
+
+	query := `
+	SELECT 
+	    ua.hashed_password, 
+	    ua.origin, 
+	    u.id, 
+	    u.username, 
+	    u.email, 
+	    u.email_verified, 
+	    u.profile_name, 
+	    u.cover_photo, 
+	    u.twitter_id
+	FROM user_auth ua
+		INNER JOIN users u on u.id = ua.user_id
+	WHERE ua.user_id=$1 
+	LIMIT 1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := u.Db.QueryRowContext(ctx, query, userId).Scan(
 		&userAndAuth.HashedPassword,
 		&userAndAuth.Origin,
+		&userAndAuth.User.ID,
+		&userAndAuth.User.Username,
+		&userAndAuth.User.Email,
+		&userAndAuth.User.EmailVerified,
+		&userAndAuth.User.ProfileName,
+		&userAndAuth.User.CovertPhoto,
+		&userAndAuth.User.TwitterId,
 	)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.UserAuth{}, ErrNoRecord
+		}
 		return models.UserAuth{}, err
 	}
-	userAndAuth.User = user
 
 	return userAndAuth, nil
 }
@@ -202,7 +259,11 @@ func (u userActions) GetUserAndAuth(user models.User) (userAndAuth models.UserAu
 func (u userActions) GetUserDeviceTokens(userID int64) ([]string, error) {
 	var deviceTokens []string
 	query := `SELECT device_tokens FROM users WHERE id=$1`
-	err := u.Db.QueryRow(query, userID).Scan(pq.Array(&deviceTokens))
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := u.Db.QueryRowContext(ctx, query, userID).Scan(pq.Array(&deviceTokens))
 	if err != nil {
 		return deviceTokens, err
 	}
@@ -213,7 +274,7 @@ func (u userActions) GetUserDeviceTokens(userID int64) ([]string, error) {
 // --------------- UPDATE OPERATIONS ------------------------------
 // ----------------------------------------------------------------
 
-func (u userActions) UpdateUserPassword(userId int, password string) error {
+func (u userActions) UpdateUserPassword(userId int64, password string) error {
 	authQuery := "UPDATE user_auth SET hashed_password=$1 WHERE user_id=$2"
 	_, err := u.Db.Exec(authQuery, password, userId)
 	if err != nil {

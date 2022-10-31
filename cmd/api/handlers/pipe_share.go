@@ -111,7 +111,7 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 	code := c.Query("code")
 	// See if the pipe is still sharable
-	authenticatedUser, _ := h.app.Repositories.User.GetUserById(int(c.GetInt64(middlewares.KeyUserId)))
+	authenticatedUser, _ := h.app.Repositories.User.GetUserById(c.GetInt64(middlewares.KeyUserId))
 
 	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
@@ -161,7 +161,7 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 		})
 		return
 	}
-	sharer, err := h.app.Repositories.User.GetUserById(int(pipeToAdd.SharerID))
+	sharer, err := h.app.Repositories.User.GetUserById(pipeToAdd.SharerID)
 	if err != nil {
 		h.app.Logger.Err(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

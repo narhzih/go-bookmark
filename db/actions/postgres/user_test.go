@@ -26,6 +26,51 @@ func Test_user_CreateUserByEmail(t *testing.T) {
 	}
 }
 
+func Test_user_GetUserByTwitterID(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	testCases := getUserByTwitterIDTestCases
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := newTestDb(t)
+			ua := NewUserActions(db, logger)
+			gotUser, gotErr := ua.GetUserByTwitterID(tc.inputUserTwitterID)
+			assert.Equal(t, tc.wantErr, gotErr)
+
+			if nil == gotErr {
+				assert.Equal(t, tc.wantUser.ID, gotUser.ID)
+				assert.Equal(t, tc.wantUser.TwitterId, gotUser.TwitterId)
+				assert.Equal(t, tc.wantUser.Email, gotUser.Email)
+				assert.Equal(t, tc.wantUser.Username, gotUser.Username)
+			}
+		})
+	}
+}
+
+func Test_user_GetUserById(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	testCases := getUserByIdTestCases
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := newTestDb(t)
+			ua := NewUserActions(db, logger)
+			gotUser, gotErr := ua.GetUserById(tc.inputUserId)
+			assert.Equal(t, tc.wantErr, gotErr)
+
+			if nil == gotErr {
+				assert.Equal(t, tc.wantUser.ID, gotUser.ID)
+				assert.Equal(t, tc.wantUser.Email, gotUser.Email)
+				assert.Equal(t, tc.wantUser.Username, gotUser.Username)
+			}
+		})
+	}
+}
+
 func Test_user_GetUserByEmail(t *testing.T) {
 	if testing.Short() {
 		t.Skip(skipMessage)
@@ -38,7 +83,76 @@ func Test_user_GetUserByEmail(t *testing.T) {
 			userA := NewUserActions(db, logger)
 			gotUser, gotErr := userA.GetUserByEmail(testCase.inputUserEmail)
 			assert.Equal(t, testCase.wantErr, gotErr)
-			assert.Equal(t, testCase.wantUser.Email, gotUser.Email)
+
+			if nil == gotErr {
+				assert.Equal(t, testCase.wantUser.Email, gotUser.Email)
+				assert.Equal(t, testCase.wantUser.Username, gotUser.Username)
+			}
+		})
+	}
+}
+
+func Test_user_GetUserByUsername(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	testCases := getUserByUsernameTestCases
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := newTestDb(t)
+			userA := NewUserActions(db, logger)
+			gotUser, gotErr := userA.GetUserByUsername(testCase.inputUserUsername)
+			assert.Equal(t, testCase.wantErr, gotErr)
+
+			if nil == gotErr {
+				assert.Equal(t, testCase.wantUser.Email, gotUser.Email)
+				assert.Equal(t, testCase.wantUser.Username, gotUser.Username)
+			}
+		})
+	}
+}
+
+func Test_user_GetUserAndAuth(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	testCases := getUserAndAuthTestCases
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := newTestDb(t)
+			userA := NewUserActions(db, logger)
+			gotUser, gotErr := userA.GetUserAndAuth(testCase.inputUserId)
+			assert.Equal(t, testCase.wantErr, gotErr)
+
+			if nil == gotErr {
+				assert.Equal(t, testCase.wantUser.HashedPassword, gotUser.HashedPassword)
+				assert.Equal(t, testCase.wantUser.User.Email, gotUser.User.Email)
+				assert.Equal(t, testCase.wantUser.User.Username, gotUser.User.Username)
+			}
+		})
+	}
+}
+
+func Test_user_GetUserDeviceTokens(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	testCases := getUserDeviceTokensTestCases
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := newTestDb(t)
+			userA := NewUserActions(db, logger)
+			gotDeviceTokens, gotErr := userA.GetUserDeviceTokens(testCase.inputUserId)
+			assert.Equal(t, testCase.wantErr, gotErr)
+
+			if nil == gotErr {
+				assert.Equal(t, len(testCase.wantDeviceTokens), len(gotDeviceTokens))
+				assert.Equal(t, testCase.wantDeviceTokens[0], gotDeviceTokens[0])
+				assert.Equal(t, testCase.wantDeviceTokens[1], gotDeviceTokens[1])
+			}
 		})
 	}
 }
