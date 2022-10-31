@@ -257,6 +257,7 @@ func (u userActions) GetUserAndAuth(userId int64) (models.UserAuth, error) {
 	return userAndAuth, nil
 }
 
+// GetUserDeviceTokens gets user device tokens
 func (u userActions) GetUserDeviceTokens(userID int64) ([]string, error) {
 	var deviceTokens []string
 	query := `SELECT device_tokens FROM users WHERE id=$1`
@@ -275,6 +276,7 @@ func (u userActions) GetUserDeviceTokens(userID int64) ([]string, error) {
 // --------------- UPDATE OPERATIONS ------------------------------
 // ----------------------------------------------------------------
 
+// UpdateUserPassword updates a user's password
 func (u userActions) UpdateUserPassword(userId int64, password string) error {
 	authQuery := "UPDATE user_auth SET hashed_password=$1 WHERE user_id=$2"
 	_, err := u.Db.Exec(authQuery, password, userId)
@@ -286,6 +288,7 @@ func (u userActions) UpdateUserPassword(userId int64, password string) error {
 	return nil
 }
 
+// UpdateUser updates user information
 func (u userActions) UpdateUser(updatedBody models.User) (models.User, error) {
 	var user models.User
 	query := `
@@ -346,6 +349,7 @@ func (u userActions) UpdateUser(updatedBody models.User) (models.User, error) {
 	return user, nil
 }
 
+// VerifyUser sets a user's email_verified field to true
 func (u userActions) VerifyUser(user models.User) (models.User, error) {
 	query := `UPDATE users SET email_verified=true WHERE id=$1 RETURNING id, email, username, profile_name, cover_photo`
 	err := u.Db.QueryRow(query, user.ID).Scan(
@@ -362,6 +366,7 @@ func (u userActions) VerifyUser(user models.User) (models.User, error) {
 	return user, nil
 }
 
+// UpdateUserDeviceTokens updates user device tokens
 func (u userActions) UpdateUserDeviceTokens(userID int64, deviceTokens []string) ([]string, error) {
 	var userDeviceTokens []string
 	query := `UPDATE users SET device_tokens=$1 WHERE id=$2 RETURNING device_tokens`
@@ -372,6 +377,7 @@ func (u userActions) UpdateUserDeviceTokens(userID int64, deviceTokens []string)
 	return userDeviceTokens, nil
 }
 
+// ConnectToTwitter sets user twitter_id field
 func (u userActions) ConnectToTwitter(user models.User, twitterId string) (models.User, error) {
 	updatedUser := models.User{}
 	query := `UPDATE users SET twitter_id=$1 WHERE id=$2 RETURNING id, username, profile_name, email, twitter_id, cover_photo`
@@ -391,6 +397,7 @@ func (u userActions) ConnectToTwitter(user models.User, twitterId string) (model
 	return updatedUser, nil
 }
 
+// DisconnectTwitter  set's user twitter_id field to empty
 func (u userActions) DisconnectTwitter(user models.User) (models.User, error) {
 	updatedUser := models.User{}
 	query := `UPDATE users SET twitter_id='', modified_at=now() WHERE id=$1 RETURNING id, username, profile_name, email, twitter_id, cover_photo`
