@@ -287,125 +287,50 @@ func (u userActions) UpdateUserPassword(userId int64, password string) error {
 
 func (u userActions) UpdateUser(updatedBody models.User) (models.User, error) {
 	var user models.User
-	selectQuery := "SELECT id, username, email, profile_name, cover_photo FROM users WHERE id=$1 LIMIT 1"
-	err := u.Db.QueryRow(selectQuery, updatedBody.ID).Scan(
+	query := `
+	UPDATE users 
+	SET
+	    username=$2,
+	    email=$3,
+	    profile_name=$4,
+	    cover_photo=$5,
+	    twitter_id=$6
+	    
+	WHERE id=$1 
+	RETURNING id, username, email, profile_name, cover_photo, twitter_id, created_at, modified_at`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := u.Db.QueryRowContext(
+		ctx,
+		query,
+		updatedBody.ID,
+		updatedBody.Username,
+		updatedBody.Email,
+		updatedBody.ProfileName,
+		updatedBody.CovertPhoto,
+		updatedBody.TwitterId,
+	).Scan(
 		&user.ID,
 		&user.Username,
 		&user.Email,
 		&user.ProfileName,
 		&user.CovertPhoto,
+		&user.TwitterId,
+		&user.CreatedAt,
+		&user.ModifiedAt,
 	)
-
 	if err != nil {
-
 		if err == sql.ErrNoRows {
 			return models.User{}, ErrNoRecord
 		}
 		return models.User{}, err
 	}
 
-	if len(updatedBody.Username) <= 0 && len(updatedBody.CovertPhoto) <= 0 && len(updatedBody.ProfileName) <= 0 {
-		// Just return the original user if there's nothing to udpate
-
-		return user, nil
-	} else {
-		if len(updatedBody.Username) > 0 && len(updatedBody.ProfileName) > 0 && len(updatedBody.CovertPhoto) > 0 {
-
-			query := "UPDATE users SET username=$1, profile_name=$2, cover_photo=$3 WHERE id=$4 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
-			err = u.Db.QueryRow(query, updatedBody.Username, updatedBody.ProfileName, updatedBody.CovertPhoto, updatedBody.ID).Scan(
-				&user.ID,
-				&user.Username,
-				&user.Email,
-				&user.ProfileName,
-				&user.CovertPhoto,
-				&user.TwitterId,
-				&user.ModifiedAt,
-			)
-		} else if len(updatedBody.Username) > 0 && len(updatedBody.ProfileName) > 0 {
-
-			query := "UPDATE users SET username=$1, profile_name=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
-			err = u.Db.QueryRow(query, updatedBody.Username, updatedBody.ProfileName, updatedBody.ID).Scan(
-				&user.ID,
-				&user.Username,
-				&user.Email,
-				&user.ProfileName,
-				&user.CovertPhoto,
-				&user.TwitterId,
-				&user.ModifiedAt,
-			)
-		} else if len(updatedBody.Username) > 0 && len(updatedBody.CovertPhoto) > 0 {
-			// For usual edit
-
-			query := "UPDATE users SET username=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
-			err = u.Db.QueryRow(query, updatedBody.Username, updatedBody.CovertPhoto, updatedBody.ID).Scan(
-				&user.ID,
-				&user.Username,
-				&user.Email,
-				&user.ProfileName,
-				&user.CovertPhoto,
-				&user.TwitterId,
-				&user.ModifiedAt,
-			)
-		} else if len(updatedBody.ProfileName) > 0 && len(updatedBody.CovertPhoto) > 0 {
-			// For usual edit
-
-			query := "UPDATE users SET profile_name=$1, cover_photo=$2 WHERE id=$3 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
-			err = u.Db.QueryRow(query, updatedBody.ProfileName, updatedBody.CovertPhoto, updatedBody.ID).Scan(
-				&user.ID,
-				&user.Username,
-				&user.Email,
-				&user.ProfileName,
-				&user.CovertPhoto,
-				&user.TwitterId,
-				&user.ModifiedAt,
-			)
-		} else if len(updatedBody.Username) > 0 {
-
-			query := "UPDATE users SET username=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
-			err = u.Db.QueryRow(query, updatedBody.Username, updatedBody.ID).Scan(
-				&user.ID,
-				&user.Username,
-				&user.Email,
-				&user.ProfileName,
-				&user.CovertPhoto,
-				&user.TwitterId,
-				&user.ModifiedAt,
-			)
-		} else if len(updatedBody.CovertPhoto) > 0 {
-			u.Logger.Info().Msg("Saving cover photo to database")
-			query := "UPDATE users SET cover_photo=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
-			err = u.Db.QueryRow(query, updatedBody.CovertPhoto, updatedBody.ID).Scan(
-				&user.ID,
-				&user.Username,
-				&user.Email,
-				&user.ProfileName,
-				&user.CovertPhoto,
-				&user.TwitterId,
-				&user.ModifiedAt,
-			)
-		} else if len(updatedBody.ProfileName) > 0 {
-
-			query := "UPDATE users SET profile_name=$1 WHERE id=$2 RETURNING id, username, email, profile_name, cover_photo, twitter_id, modified_at"
-			err = u.Db.QueryRow(query, updatedBody.ProfileName, updatedBody.ID).Scan(
-				&user.ID,
-				&user.Username,
-				&user.Email,
-				&user.ProfileName,
-				&user.CovertPhoto,
-				&user.TwitterId,
-				&user.ModifiedAt,
-			)
-		}
-
-		if err != nil {
-			u.Logger.Err(err).Msg("Error from here from updating profile")
-			u.Logger.Err(err).Msg(err.Error())
-			return user, err
-		}
-
-		return user, nil
-	}
+	return user, nil
 }
+
 func (u userActions) VerifyUser(user models.User) (models.User, error) {
 	query := `UPDATE users SET email_verified=true WHERE id=$1 RETURNING id, email, username, profile_name, cover_photo`
 	err := u.Db.QueryRow(query, user.ID).Scan(

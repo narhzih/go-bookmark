@@ -216,15 +216,17 @@ func (h authHandler) EmailLogin(c *gin.Context) {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "User with specified email not found",
+			"err":     err.Error(),
 		})
 		return
 	}
 
-	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(c.GetInt64(middlewares.KeyUserId))
+	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(user.ID)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "Error occurred while trying to sign in user",
+			"err":     err.Error(),
 		})
 		return
 	}

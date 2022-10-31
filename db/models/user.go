@@ -13,11 +13,11 @@ type GoogleClaim struct {
 
 type User struct {
 	ID            int64     `json:"id"`
-	Username      string    `json:"username"`
-	Email         string    `json:"email"`
-	ProfileName   string    `json:"profile_name"`
-	TwitterId     string    `json:"twitter_id"`
-	CovertPhoto   string    `json:"cover_photo"`
+	Username      string    `json:"username,omitempty"`
+	Email         string    `json:"email,omitempty"`
+	ProfileName   string    `json:"profile_name,omitempty"`
+	TwitterId     string    `json:"twitter_id,omitempty"`
+	CovertPhoto   string    `json:"cover_photo,omitempty"`
 	EmailVerified bool      `json:"email_verified"`
 	CreatedAt     time.Time `json:"created_at"`
 	ModifiedAt    time.Time `json:"modified_at"`
