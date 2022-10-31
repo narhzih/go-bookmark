@@ -171,3 +171,49 @@ var getUserDeviceTokensTestCases = map[string]struct {
 		wantErr:          nil,
 	},
 }
+
+var updatedUserTestCases = map[string]struct {
+	inputUser models.User
+	wantUser  models.User
+	wantErr   error
+}{
+	"success": {
+		inputUser: models.User{
+			ID:          1,
+			Username:    "user1_updated",
+			Email:       "user1@gmail.com",
+			TwitterId:   "1234567890",
+			CovertPhoto: "https://images.unsplash.com/photo-1611608822650-925c227ef4d2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8aGFuZHNvbWUlMjBtYW58ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60",
+		},
+		wantUser: models.User{
+			ID:          1,
+			Username:    "user1_updated",
+			Email:       "user1@gmail.com",
+			TwitterId:   "1234567890",
+			CovertPhoto: "https://images.unsplash.com/photo-1611608822650-925c227ef4d2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8aGFuZHNvbWUlMjBtYW58ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60",
+		},
+		wantErr: nil,
+	},
+	"duplicate username": {
+		inputUser: models.User{
+			ID:          1,
+			Username:    "user2",
+			Email:       "user1@gmail.com",
+			TwitterId:   "1234567890",
+			CovertPhoto: "https://images.unsplash.com/photo-1611608822650-925c227ef4d2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8aGFuZHNvbWUlMjBtYW58ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60",
+		},
+		wantUser: models.User{},
+		wantErr:  ErrDuplicateUsername,
+	},
+	"duplicate email": {
+		inputUser: models.User{
+			ID:          1,
+			Username:    "user1",
+			Email:       "user2@gmail.com",
+			TwitterId:   "1234567890",
+			CovertPhoto: "https://images.unsplash.com/photo-1611608822650-925c227ef4d2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8Nnx8aGFuZHNvbWUlMjBtYW58ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60",
+		},
+		wantUser: models.User{},
+		wantErr:  ErrDuplicateEmail,
+	},
+}

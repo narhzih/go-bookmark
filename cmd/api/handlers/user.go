@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/mypipeapp/mypipeapi/cmd/api/helpers"
@@ -148,19 +149,33 @@ func (h userHandler) EditProfile(c *gin.Context) {
 	user, err = h.app.Repositories.User.UpdateUser(user)
 
 	if err != nil {
-		if err == postgres.ErrNoRecord {
+		switch {
+		case errors.Is(err, postgres.ErrNoRecord):
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "Could not update user because user was not found",
 				"err":     err.Error(),
 			})
 			return
+		case errors.Is(err, postgres.ErrDuplicateEmail):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "user with email already exits",
+				"err":     err.Error(),
+			})
+			return
+		case errors.Is(err, postgres.ErrDuplicateUsername):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "user with username already exits",
+				"err":     err.Error(),
+			})
+			return
+		default:
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred while trying to update user",
+				"err":     err.Error(),
+			})
+			return
 		}
 
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "An error occurred when trying to update user",
-			"err":     err.Error(),
-		})
-		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

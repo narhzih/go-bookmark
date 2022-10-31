@@ -7,6 +7,7 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
+	"strings"
 	"time"
 )
 
@@ -325,6 +326,20 @@ func (u userActions) UpdateUser(updatedBody models.User) (models.User, error) {
 		if err == sql.ErrNoRows {
 			return models.User{}, ErrNoRecord
 		}
+
+		if dbErr, ok := err.(*pq.Error); ok {
+			if dbErr.Code == "23505" {
+				errKey := parseUserUpdateDuplicateMessage(dbErr.Error())
+				switch errKey {
+				case "username":
+					return models.User{}, ErrDuplicateUsername
+				case "email":
+					return models.User{}, ErrDuplicateEmail
+				case "twitter_id":
+					return models.User{}, ErrDuplicateTwitterID
+				}
+			}
+		}
 		return models.User{}, err
 	}
 
@@ -393,4 +408,12 @@ func (u userActions) DisconnectTwitter(user models.User) (models.User, error) {
 	}
 
 	return updatedUser, nil
+}
+
+func parseUserUpdateDuplicateMessage(errMessage string) string {
+	firstSplit := strings.Split(errMessage, ":")[1]
+	secondSplit := strings.Split(firstSplit, "\"")[1]
+	desiredKey := strings.Split(secondSplit, "_")[1]
+
+	return desiredKey
 }

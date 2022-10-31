@@ -156,3 +156,24 @@ func Test_user_GetUserDeviceTokens(t *testing.T) {
 		})
 	}
 }
+
+func Test_user_UpdateUser(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	testCases := updatedUserTestCases
+	for name, testCase := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := newTestDb(t)
+			userA := NewUserActions(db, logger)
+			gotUser, gotErr := userA.UpdateUser(testCase.inputUser)
+			assert.Equal(t, testCase.wantErr, gotErr)
+
+			if nil == gotErr {
+				assert.Equal(t, testCase.wantUser.Email, gotUser.Email)
+				assert.Equal(t, testCase.wantUser.Username, gotUser.Username)
+			}
+		})
+	}
+}
