@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"github.com/lib/pq"
 	"github.com/mypipeapp/mypipeapi/db/models"
@@ -21,10 +22,15 @@ func NewPipeActions(db *sql.DB, logger zerolog.Logger) repository.PipeRepository
 	}
 }
 
+// PipeAlreadyExists checks if a pipe exits in a user's collection
 func (p pipeActions) PipeAlreadyExists(pipeName string, userId int64) (bool, error) {
 	var pipe models.Pipe
-	query := "SELECT id, name FROM pipes WHERE name=$1 AND user_id=$2 LIMIT 1"
-	err := p.Db.QueryRow(query, pipeName, userId).Scan(&pipe.ID, &pipe.Name)
+	query := `SELECT id, name FROM pipes WHERE name=$1 AND user_id=$2 LIMIT 1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(ctx, query, pipeName, userId).Scan(&pipe.ID, &pipe.Name)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// NO record exits
@@ -35,10 +41,20 @@ func (p pipeActions) PipeAlreadyExists(pipeName string, userId int64) (bool, err
 	return true, nil
 }
 
+// CreatePipe creates a new pipe
 func (p pipeActions) CreatePipe(pipe models.Pipe) (models.Pipe, error) {
 	var newPipe models.Pipe
-	query := "INSERT INTO pipes (user_id, name, cover_photo) VALUES($1, $2, $3) RETURNING id, name, cover_photo, user_id"
-	err := p.Db.QueryRow(query, pipe.UserID, pipe.Name, pipe.CoverPhoto).Scan(
+	query := `
+	INSERT INTO pipes 
+	    (user_id, name, cover_photo) 
+	VALUES($1, $2, $3) 
+	RETURNING id, name, cover_photo, user_id
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(ctx, query, pipe.UserID, pipe.Name, pipe.CoverPhoto).Scan(
 		&newPipe.ID,
 		&newPipe.Name,
 		&newPipe.CoverPhoto,
