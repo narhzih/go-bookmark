@@ -27,7 +27,7 @@ func (s Services) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sha
 	if err != nil {
 		return err
 	}
-	sharer, err := s.Repositories.User.GetUserById(int(sharerId))
+	sharer, err := s.Repositories.User.GetUserById(sharerId)
 	if err != nil {
 		return err
 	}

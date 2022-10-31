@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/mypipeapp/mypipeapi/cmd/api/helpers"
 	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 	"github.com/mypipeapp/mypipeapi/cmd/api/middlewares"
@@ -54,43 +57,62 @@ func (h userHandler) UserProfile(c *gin.Context) {
 }
 
 func (h userHandler) EditProfile(c *gin.Context) {
+	req := struct {
+		Username    string `form:"username" json:"username,omitempty"`
+		Email       string `form:"email" json:"email,omitempty"`
+		ProfileName string `form:"profile_name" json:"profile_name,omitempty"`
+		TwitterId   string `form:"twitter_id" json:"twitter_id,omitempty"`
+	}{}
 
-	updatedUser := models.User{
-		ID: c.GetInt64(middlewares.KeyUserId),
-	}
-	username := c.PostForm("username")
-	profileName := c.PostForm("profile_name")
-
-	// Check if there's already a user with the same username
-	if len(username) > 0 {
-		userWithUsername, err := h.app.Repositories.User.GetUserByUsername(username)
-		if err != nil {
-			if err != postgres.ErrNoRecord {
-				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-					"message": "An error occurred while getting user",
-					"err":     err.Error(),
-				})
-				return
-			}
-		}
-		if err != postgres.ErrNoRecord && userWithUsername.ID != c.GetInt64(middlewares.KeyUserId) {
-			// This means there's another user that is not
-			// the user making the same request who has the same username
-			h.app.Logger.Info().Msg(userWithUsername.Email)
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "username has already been taken by another user",
-			})
-			return
-		}
-
-		updatedUser.Username = username
-	}
-	if len(profileName) > 0 {
-		updatedUser.ProfileName = profileName
+	if err := c.ShouldBind(&req); err != nil {
+		errMessage := helpers.ParseErrorMessage(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": errMessage,
+			"err":     err.Error(),
+		})
+		return
 	}
 
-	// At this point, username and profile_name validation passes
-	// Try uploading the image to Cloud if any was parsed
+	// fetch the current logged in user first
+	user, _ := h.app.Repositories.User.GetUserById(c.GetInt64(middlewares.KeyUserId))
+	userBytes, err := json.Marshal(&user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "our server encountered an error",
+			"err":     "Could not bind existing user body",
+		})
+		return
+	}
+
+	reqBytes, err := json.Marshal(&req)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "our server encountered an error",
+			"err":     "Could not bind request body",
+		})
+		return
+	}
+
+	patchBody, err := jsonpatch.MergePatch(userBytes, reqBytes)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "our server encountered an error",
+			"err":     "Could not merge user and request bytes",
+		})
+		return
+	}
+
+	err = json.Unmarshal(patchBody, &user)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "our server encountered an error",
+			"err":     "Could not unmarhshal user body",
+		})
+		return
+	}
+
+	// if there's a cover photo sent alongside the request, upload it and update the
+	// request body
 	file, _, err := c.Request.FormFile("cover_photo")
 	if err != nil {
 		if err != http.ErrMissingFile {
@@ -122,27 +144,38 @@ func (h userHandler) EditProfile(c *gin.Context) {
 			return
 		}
 
-		updatedUser.CovertPhoto = photoUrl
+		user.CovertPhoto = photoUrl
 	}
-	h.app.Logger.Info().Msg("Photo url after property setting is - " + updatedUser.CovertPhoto)
-	user, err := h.app.Repositories.User.UpdateUser(updatedUser)
-	h.app.Logger.Info().Msg("Photo url after normal upload is - " + user.CovertPhoto)
+	user, err = h.app.Repositories.User.UpdateUser(user)
 
 	if err != nil {
-		h.app.Logger.Err(err).Msg(err.Error())
-		if err == postgres.ErrNoRecord {
+		switch {
+		case errors.Is(err, postgres.ErrNoRecord):
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "Could not  update user because user was not found",
+				"message": "Could not update user because user was not found",
+				"err":     err.Error(),
+			})
+			return
+		case errors.Is(err, postgres.ErrDuplicateEmail):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "user with email already exits",
+				"err":     err.Error(),
+			})
+			return
+		case errors.Is(err, postgres.ErrDuplicateUsername):
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "user with username already exits",
+				"err":     err.Error(),
+			})
+			return
+		default:
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred while trying to update user",
 				"err":     err.Error(),
 			})
 			return
 		}
 
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "An error occurred when trying to update user",
-			"err":     err.Error(),
-		})
-		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -223,7 +256,7 @@ func (h userHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 	userID := c.GetInt64(middlewares.KeyUserId)
-	user, err := h.app.Repositories.User.GetUserById(int(userID))
+	user, err := h.app.Repositories.User.GetUserById(userID)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		if err == postgres.ErrNoRecord {
@@ -239,7 +272,7 @@ func (h userHandler) ChangePassword(c *gin.Context) {
 		})
 		return
 	}
-	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(user)
+	userAndAuth, err := h.app.Repositories.User.GetUserAndAuth(c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		h.app.Logger.Err(err).Msg("An error occurred while trying to get user from the database")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -258,7 +291,7 @@ func (h userHandler) ChangePassword(c *gin.Context) {
 			})
 			return
 		}
-		err = h.app.Repositories.User.UpdateUserPassword(int(userAndAuth.User.ID), newPasswordHash)
+		err = h.app.Repositories.User.UpdateUserPassword(userAndAuth.User.ID, newPasswordHash)
 		if err != nil {
 			h.app.Logger.Err(err).Msg(err.Error())
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

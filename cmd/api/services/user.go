@@ -10,7 +10,7 @@ func (s Services) GetUserProfileInformation(userID int64) (models.Profile, error
 	var profile models.Profile
 	var err error
 
-	profile.User, err = s.Repositories.User.GetUserById(int(userID))
+	profile.User, err = s.Repositories.User.GetUserById(userID)
 	if err != nil {
 		s.Logger.Err(err).Msg("Error is from getting user by ID")
 		s.Logger.Err(err).Msg(err.Error())

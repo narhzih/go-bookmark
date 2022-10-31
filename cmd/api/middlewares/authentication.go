@@ -58,7 +58,7 @@ func AuthRequired(app internal.Application, jwtSecret string) gin.HandlerFunc {
 			}
 
 			// see if user still exists
-			loggedInUser, err := app.Repositories.User.GetUserById(int(userId))
+			loggedInUser, err := app.Repositories.User.GetUserById(userId)
 			if err != nil {
 				if err == postgres.ErrNoRecord {
 					c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
