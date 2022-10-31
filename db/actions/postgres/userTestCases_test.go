@@ -217,3 +217,17 @@ var updatedUserTestCases = map[string]struct {
 		wantErr:  ErrDuplicateEmail,
 	},
 }
+
+var updateUserDeviceTokens = map[string]struct {
+	inputUserId           int64
+	inputUserDeviceTokens []string
+	wantUserDeviceTokens  []string
+	wantErr               error
+}{
+	"success": {
+		inputUserId:           1,
+		inputUserDeviceTokens: []string{"123", "456", "789"},
+		wantUserDeviceTokens:  []string{"123", "456", "789"},
+		wantErr:               nil,
+	},
+}
