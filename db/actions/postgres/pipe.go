@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"database/sql"
+	"github.com/lib/pq"
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
@@ -45,6 +46,11 @@ func (p pipeActions) CreatePipe(pipe models.Pipe) (models.Pipe, error) {
 	)
 
 	if err != nil {
+		if dbErr, ok := err.(*pq.Error); ok {
+			if dbErr.Code == "23505" {
+				return models.Pipe{}, ErrRecordExists
+			}
+		}
 		return models.Pipe{}, err
 	}
 
