@@ -49,3 +49,106 @@ var createPipeTestCases = map[string]struct {
 		wantErr:  ErrRecordExists,
 	},
 }
+
+var getPipeTestCases = map[string]struct {
+	inputPipeId int64
+	inputUserId int64
+	wantPipe    models.Pipe
+	wantErr     error
+}{
+	"success": {
+		inputUserId: 1,
+		inputPipeId: 1,
+		wantPipe: models.Pipe{
+			UserID:    1,
+			ID:        1,
+			Name:      "Youtube Shorts",
+			Bookmarks: 2,
+			Creator:   "user1",
+		},
+		wantErr: nil,
+	},
+	"invalid pipe id": {
+		inputUserId: 1,
+		inputPipeId: 10,
+		wantPipe:    models.Pipe{},
+		wantErr:     ErrNoRecord,
+	},
+	"invalid user id": {
+		inputUserId: 5,
+		inputPipeId: 1,
+		wantPipe:    models.Pipe{},
+		wantErr:     ErrNoRecord,
+	},
+}
+
+var getPipeByNameTestCases = map[string]struct {
+	inputPipeName string
+	inputUserId   int64
+	wantPipe      models.Pipe
+	wantErr       error
+}{
+	"success": {
+		inputPipeName: "Youtube Shorts",
+		inputUserId:   1,
+		wantPipe: models.Pipe{
+			UserID:    1,
+			ID:        1,
+			Name:      "Youtube Shorts",
+			Bookmarks: 2,
+			Creator:   "user1",
+		},
+		wantErr: nil,
+	},
+	"invalid pipe name": {
+		inputUserId:   1,
+		inputPipeName: "Youtube Shorts Invalid",
+		wantPipe:      models.Pipe{},
+		wantErr:       ErrNoRecord,
+	},
+	"invalid user name": {
+		inputUserId:   10,
+		inputPipeName: "Youtube Shorts",
+		wantPipe:      models.Pipe{},
+		wantErr:       ErrNoRecord,
+	},
+}
+
+var getPipeAndResourceTestCases = map[string]struct {
+	inputPipeId int64
+	inputUserId int64
+	wantResult  models.PipeAndResource
+	wantErr     error
+}{
+	"success": {
+		inputUserId: 1,
+		inputPipeId: 1,
+		wantResult: models.PipeAndResource{
+			Pipe: models.Pipe{
+				Name:    "Youtube Shorts",
+				Creator: "user1",
+				UserID:  1,
+				ID:      1,
+			},
+			Bookmarks: []models.Bookmark{
+				{Url: "https://youtu.be/Acgk_Jl95es", Platform: "youtube", PipeID: 1, UserID: 1},
+			},
+		},
+		wantErr: nil,
+	},
+}
+
+var getPipesTestCases = map[string]struct {
+	inputUserId int64
+	wantPipes   []models.Pipe
+	wantErr     error
+}{
+	"success": {
+		inputUserId: 1,
+		wantPipes: []models.Pipe{
+			{Name: "Youtube Shorts", ID: 1, UserID: 1, Creator: "user1"},
+			{Name: "TikTok", ID: 2, UserID: 1, Creator: "user1"},
+		},
+		wantErr: nil,
+	},
+}

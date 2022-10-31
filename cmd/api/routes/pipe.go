@@ -20,7 +20,6 @@ func setupPipeRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	pipe.PUT("/:id", h.UpdatePipe)
 	pipe.DELETE("/:id", h.DeletePipe)
 	pipe.GET("/all", h.GetPipes)
-	pipe.GET("/all/steroids", h.GetPipeWithResource)
 	pipe.GET("/preview", pipeShareH.PreviewPipe)
 	pipe.POST("/add-pipe", pipeShareH.AddPipe)
 

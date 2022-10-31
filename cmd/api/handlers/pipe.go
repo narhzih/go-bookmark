@@ -21,7 +21,6 @@ type PipeHandler interface {
 	UpdatePipe(c *gin.Context)
 	DeletePipe(c *gin.Context)
 	GetPipes(c *gin.Context)
-	GetPipeWithResource(c *gin.Context)
 }
 
 type pipeHandler struct {
@@ -174,23 +173,6 @@ func (h pipeHandler) GetPipe(c *gin.Context) {
 	})
 }
 
-func (h pipeHandler) GetPipeWithResource(c *gin.Context) {
-	userID := c.GetInt64(middlewares.KeyUserId)
-	pipes, err := h.app.Repositories.Pipe.GetPipesOnSteroid(userID)
-	if err != nil {
-		h.app.Logger.Err(err).Msg(err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "An error occurred while trying to fetch pipes",
-		})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"message": "pipes fetched succesfully",
-		"data": map[string]interface{}{
-			"pipes": pipes,
-		},
-	})
-}
 func (h pipeHandler) GetPipes(c *gin.Context) {
 	userID := c.GetInt64(middlewares.KeyUserId)
 	pipes, err := h.app.Repositories.Pipe.GetPipes(userID)
