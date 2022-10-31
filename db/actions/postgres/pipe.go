@@ -233,6 +233,7 @@ func (p pipeActions) GetPipes(userID int64) ([]models.Pipe, error) {
 	return pipes, nil
 }
 
+// GetPipesCount gets the total number of pipes owned by a particular user
 func (p pipeActions) GetPipesCount(userID int64) (int, error) {
 	var pipesCount int
 	query := "SELECT COUNT(id) FROM pipes WHERE user_id=$1"

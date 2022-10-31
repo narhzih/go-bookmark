@@ -134,3 +134,23 @@ func Test_pipe_GetPipes(t *testing.T) {
 		})
 	}
 }
+
+func Test_pipe_GetPipesCount(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	testCases := getPipesCountTestCases
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := newTestDb(t)
+			pa := NewPipeActions(db, logger)
+			gotPipes, gotErr := pa.GetPipesCount(tc.inputUserID)
+			assert.Equal(t, tc.wantErr, gotErr)
+
+			if nil == gotErr {
+				assert.Equal(t, tc.wantPipeCount, gotPipes)
+			}
+		})
+	}
+}

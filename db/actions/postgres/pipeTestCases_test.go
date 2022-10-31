@@ -152,3 +152,15 @@ var getPipesTestCases = map[string]struct {
 		wantErr: nil,
 	},
 }
+
+var getPipesCountTestCases = map[string]struct {
+	inputUserID   int64
+	wantPipeCount int
+	wantErr       error
+}{
+	"success": {
+		inputUserID:   1,
+		wantPipeCount: 2,
+		wantErr:       nil,
+	},
+}
