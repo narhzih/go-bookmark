@@ -293,9 +293,17 @@ func (p pipeActions) UpdatePipe(userID int64, pipeID int64, updatedBody models.P
 }
 
 func (p pipeActions) DeletePipe(userID, pipeID int64) (bool, error) {
-	deleteQuery := "DELETE FROM pipes WHERE id=$1 AND user_id=$2"
-	_, err := p.Db.Exec(deleteQuery, pipeID, userID)
+	deleteQuery := `DELETE FROM pipes WHERE id=$1 AND user_id=$2`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	_, err := p.Db.ExecContext(ctx, deleteQuery, pipeID, userID)
 	if err != nil {
+		p.Logger.Err(err).Msg("An error occurred while updating pipe")
+		if err == sql.ErrNoRows {
+			return false, ErrNoRecord
+		}
 		return false, err
 	}
 	return true, nil

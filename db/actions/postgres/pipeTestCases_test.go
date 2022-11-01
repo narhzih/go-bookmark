@@ -209,3 +209,17 @@ var updatedPipeTestCases = map[string]struct {
 		wantErr:  ErrRecordExists,
 	},
 }
+
+var deletePipeTestCases = map[string]struct {
+	inputUserId  int64
+	inputPipeId  int64
+	wantResponse bool
+	wantErr      error
+}{
+	"success": {
+		inputUserId:  1,
+		inputPipeId:  1,
+		wantResponse: true,
+		wantErr:      nil,
+	},
+}

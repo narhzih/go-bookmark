@@ -174,3 +174,21 @@ func Test_pipe_UpdatePipe(t *testing.T) {
 		})
 	}
 }
+
+func Test_pipe_DeletePipe(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	testCases := deletePipeTestCases
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			db := newTestDb(t)
+			pa := NewPipeActions(db, logger)
+			gotResponse, gotErr := pa.DeletePipe(tc.inputUserId, tc.inputPipeId)
+			logger.Err(gotErr)
+			//assert.Equal(t, gotErr, tc.wantErr)
+			assert.Equal(t, tc.wantResponse, gotResponse)
+		})
+	}
+}
