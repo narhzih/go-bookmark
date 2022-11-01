@@ -61,11 +61,6 @@ func serveApp(db *sql.DB, logger zerolog.Logger) {
 	routes.BootRoutes(app, rg)
 
 	// Start application server
-	_, err = strconv.Atoi(os.Getenv("PORT"))
-	if err != nil {
-		logger.Err(err).Msg("Unable to bind port")
-	}
-
 	appPort, err := strconv.Atoi(os.Getenv("PORT"))
 	if err != nil {
 		logger.Err(err).Msg("Unable to bind port")

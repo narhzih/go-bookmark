@@ -40,6 +40,7 @@ run/api:
 .PHONY: run/test/e2e
 run/test/e2e:
 	@echo "Running e2e tests"
+	@go test -race -vet=off ./cmd/api/tests/...
 
 ## run/test/all: run all tests through test files present in the codebase
 .PHONY: run/test/all
