@@ -164,3 +164,48 @@ var getPipesCountTestCases = map[string]struct {
 		wantErr:       nil,
 	},
 }
+
+var updatedPipeTestCases = map[string]struct {
+	inputUserId      int64
+	inputPipeId      int64
+	inputUpdatedBody models.Pipe
+	wantPipe         models.Pipe
+	wantErr          error
+}{
+	"success": {
+		inputUserId: 1,
+		inputPipeId: 1,
+		inputUpdatedBody: models.Pipe{
+			Name:       "Youtube Shortss",
+			CoverPhoto: "https://images.unsplash.com/photo-1611162616475-46b635cb6868?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8eW91dHViZSUyMGxvZ298ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60",
+		},
+		wantPipe: models.Pipe{
+			ID:         1,
+			UserID:     1,
+			Name:       "Youtube Shortss",
+			CoverPhoto: "https://images.unsplash.com/photo-1611162616475-46b635cb6868?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8eW91dHViZSUyMGxvZ298ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60",
+		},
+		wantErr: nil,
+	},
+	"invalid user or pipe id": {
+		inputUserId: 10,
+		inputPipeId: 10,
+		wantPipe:    models.Pipe{},
+		inputUpdatedBody: models.Pipe{
+			Name:       "Youtube Shortss",
+			CoverPhoto: "https://images.unsplash.com/photo-1611162616475-46b635cb6868?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8eW91dHViZSUyMGxvZ298ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60",
+		},
+		wantErr: ErrNoRecord,
+	},
+
+	"duplicated pipe name": {
+		inputUserId: 1,
+		inputPipeId: 1,
+		inputUpdatedBody: models.Pipe{
+			Name:       "TikTok",
+			CoverPhoto: "https://images.unsplash.com/photo-1611162616475-46b635cb6868?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxzZWFyY2h8MXx8eW91dHViZSUyMGxvZ298ZW58MHx8MHx8&auto=format&fit=crop&w=500&q=60",
+		},
+		wantPipe: models.Pipe{},
+		wantErr:  ErrRecordExists,
+	},
+}

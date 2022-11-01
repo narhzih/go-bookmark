@@ -247,56 +247,49 @@ func (p pipeActions) GetPipesCount(userID int64) (int, error) {
 
 func (p pipeActions) UpdatePipe(userID int64, pipeID int64, updatedBody models.Pipe) (models.Pipe, error) {
 	var pipe models.Pipe
-	selectQuery := "SELECT id, name, cover_photo FROM pipes WHERE id=$1 AND user_id=$2 LIMIT 1"
-	err := p.Db.QueryRow(selectQuery, pipeID, userID).Scan(
+	query := `
+	UPDATE pipes 
+	SET 
+	    name=$3, 
+		cover_photo=$4,
+		modified_at=now()
+	WHERE id=$1 AND user_id=$2
+	RETURNING id, user_id, name, cover_photo, created_at, modified_at`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(
+		ctx,
+		query,
+		pipeID,
+		userID,
+		updatedBody.Name,
+		updatedBody.CoverPhoto,
+	).Scan(
 		&pipe.ID,
+		&pipe.UserID,
 		&pipe.Name,
 		&pipe.CoverPhoto,
+		&pipe.CreatedAt,
+		&pipe.ModifiedAt,
 	)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.Pipe{}, ErrNoRecord
 		}
-		return models.Pipe{}, err
-	}
-
-	if len(updatedBody.Name) <= 0 && len(updatedBody.CoverPhoto) <= 0 {
-		return pipe, nil
-	} else {
-		if len(updatedBody.Name) > 0 && len(updatedBody.CoverPhoto) > 0 {
-			query := "UPDATE pipes SET name=$1,cover_photo=$2, modified_at=$3 WHERE id=$4 AND user_id=$5 RETURNING id, name, cover_photo, modified_at"
-			err = p.Db.QueryRow(query, updatedBody.Name, updatedBody.CoverPhoto, time.Now(), pipeID, userID).Scan(
-				&pipe.ID,
-				&pipe.Name,
-				&pipe.CoverPhoto,
-				&pipe.ModifiedAt,
-			)
-		} else if len(updatedBody.Name) > 0 {
-			query := "UPDATE pipes SET name=$1, modified_at=$2 WHERE id=$3 AND user_id=$4 RETURNING id, name, cover_photo, modified_at"
-			err = p.Db.QueryRow(query, updatedBody.Name, time.Now(), pipeID, userID).Scan(
-				&pipe.ID,
-				&pipe.Name,
-				&pipe.CoverPhoto,
-				&pipe.ModifiedAt,
-			)
-		} else if len(updatedBody.CoverPhoto) > 0 {
-			query := "UPDATE pipes SET cover_photo=$1, modified_at=$2 WHERE id=$3 AND user_id=$4 RETURNING id, name, cover_photo, modified_at"
-			err = p.Db.QueryRow(query, updatedBody.CoverPhoto, time.Now(), pipeID, userID).Scan(
-				&pipe.ID,
-				&pipe.Name,
-				&pipe.CoverPhoto,
-				&pipe.ModifiedAt,
-			)
+		if dbErr, ok := err.(*pq.Error); ok {
+			if dbErr.Code == "23505" {
+				return models.Pipe{}, ErrRecordExists
+			}
 		}
 
-		if err != nil {
-
-			return pipe, err
-		}
-
-		return pipe, nil
-
+		return pipe, err
 	}
+
+	return pipe, nil
+
 }
 
 func (p pipeActions) DeletePipe(userID, pipeID int64) (bool, error) {

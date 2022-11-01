@@ -1,7 +1,10 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/mypipeapp/mypipeapi/cmd/api/helpers"
 	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 	"github.com/mypipeapp/mypipeapi/cmd/api/middlewares"
 	"github.com/mypipeapp/mypipeapi/cmd/api/services"
@@ -194,8 +197,21 @@ func (h pipeHandler) GetPipes(c *gin.Context) {
 	})
 }
 func (h pipeHandler) UpdatePipe(c *gin.Context) {
+	req := struct {
+		Name string `form:"name" json:"name,omitempty"`
+	}{}
+
+	if err := c.ShouldBind(&req); err != nil {
+		errMessage := helpers.ParseErrorMessage(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": errMessage,
+			"err":     err.Error(),
+		})
+		return
+	}
 
 	var pipe models.Pipe
+
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
@@ -204,26 +220,36 @@ func (h pipeHandler) UpdatePipe(c *gin.Context) {
 		})
 		return
 	}
-	pipeName := c.PostForm("name")
-	if len(pipeName) > 0 {
-		pipeAlreadyExists, err := h.app.Repositories.Pipe.PipeAlreadyExists(pipeName, c.GetInt64(middlewares.KeyUserId))
-		if err != nil {
-			h.app.Logger.Err(err).Msg(err.Error())
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "An error occurred during validation",
-				"err":     err.Error(),
-			})
-			return
-		}
-		if pipeAlreadyExists == true {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "You already have a pipe with this name",
+
+	pipe, err = h.app.Repositories.Pipe.GetPipe(pipeId, c.GetInt64(middlewares.KeyUserId))
+	if err != nil {
+		if err == postgres.ErrNoRecord {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+				"message": "invalid pipe",
 			})
 			return
 		}
 
-		pipe.Name = pipeName
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "our server encountered an error",
+			"err":     err.Error(),
+		})
+		return
 	}
+
+	// creat pipe
+	pipeBytes, _ := json.Marshal(&pipe)
+	reqBytes, _ := json.Marshal(&req)
+	updatedBodyBytes, err := jsonpatch.MergePatch(pipeBytes, reqBytes)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			"message": "our server encountered an error",
+			"err":     err.Error(),
+		})
+		return
+	}
+
+	_ = json.Unmarshal(updatedBodyBytes, &pipe)
 
 	file, _, err := c.Request.FormFile("cover_photo")
 	if err != nil {
