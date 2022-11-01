@@ -11,10 +11,10 @@ VALUES
 INSERT into user_auth
     (user_id, origin, hashed_password)
 VALUES
-    (1, 'DEFAULT', '$2y$15$salteadoususuueyryy28u48viMdUKIwgSc.ETLYvODrrv3MFczPq'), -- $passw01
-    (2, 'DEFAULT', '$2y$15$salteadoususuueyryy28u48viMdUKIwgSc.ETLYvODrrv3MFczPq'), -- $passw01
-    (3, 'DEFAULT', '$2y$15$salteadoususuueyryy28u48viMdUKIwgSc.ETLYvODrrv3MFczPq'), -- $passw01
-    (4, 'DEFAULT', '$2y$15$salteadoususuueyryy28u48viMdUKIwgSc.ETLYvODrrv3MFczPq'); -- $passw01
+    (1, 'DEFAULT', '$2a$14$A/CXTnm0.WSb0CoWcH31VeKv.CitRdGTiWHj/06I3cUvwgrj.UwBu'), -- password
+    (2, 'DEFAULT', '$2a$14$A/CXTnm0.WSb0CoWcH31VeKv.CitRdGTiWHj/06I3cUvwgrj.UwBu'), -- $passw01
+    (3, 'DEFAULT', '$2a$14$A/CXTnm0.WSb0CoWcH31VeKv.CitRdGTiWHj/06I3cUvwgrj.UwBu'), -- $passw01
+    (4, 'DEFAULT', '$2a$14$A/CXTnm0.WSb0CoWcH31VeKv.CitRdGTiWHj/06I3cUvwgrj.UwBu'); -- $passw01
 
 -- populate pipes table
 INSERT into pipes

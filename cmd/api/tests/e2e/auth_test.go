@@ -55,3 +55,60 @@ func TestEmailSignUp(t *testing.T) {
 	})
 
 }
+
+func TestUserLogin(t *testing.T) {
+	if testing.Short() {
+		t.Skip(skipMessage)
+	}
+
+	t.Run("/v1/sign-in", func(t *testing.T) {
+		newTestDb(t)
+		t.Run("successful login", func(t *testing.T) {
+			loginResData := struct {
+				Message string `json:"message"`
+				Data    struct {
+					Token        string `json:"token"`
+					RefreshToken string `json:"refresh_token"`
+					ExpiresAt    string `json:"expires_at"`
+					User         struct {
+						Id       int    `json:"id"`
+						Username string `json:"username"`
+						Email    string `json:"email"`
+					} `json:"user"`
+				} `json:"data"`
+			}{}
+			loginReqBody := []byte(`{"email": "user1@gmail.com", "password": "password"}`)
+			loginReq, err := http.NewRequest(http.MethodPost, "/v1/sign-in", bytes.NewBuffer(loginReqBody))
+			if err != nil {
+				t.Errorf("could not build request %s", err)
+			}
+			loginRes := executeRequest(loginReq)
+			loginResBody, err := io.ReadAll(loginRes.Body)
+			if err != nil {
+				t.Errorf("could not read login response body %s", err)
+			}
+			err = json.Unmarshal(loginResBody, &loginResData)
+			if err != nil {
+				t.Errorf("could not unmarshal login response body: %s", err)
+			}
+			t.Log(loginResData.Message)
+			checkResponseCode(t, http.StatusOK, loginRes.Code)
+
+			// properly inspect the response we got
+			// assert that the returned user credentials matches
+			assert.Equal(t, loginResData.Data.User.Username, "user1")
+			assert.Equal(t, loginResData.Data.User.Email, "user1@gmail.com")
+			assert.Equal(t, loginResData.Data.User.Id, 1)
+
+			// further make sure that we can make a valid authenticated request
+			// with the jwt token returned from the request
+			authTestReq, err := http.NewRequest(http.MethodGet, "/v1/user/profile", nil)
+			if err != nil {
+				t.Errorf("could not build request %s", err)
+			}
+			authTestReq.Header.Set("Authorization", "Bearer "+loginResData.Data.Token)
+			authTestRes := executeRequest(authTestReq)
+			checkResponseCode(t, http.StatusOK, authTestRes.Code)
+		})
+	})
+}
