@@ -29,22 +29,25 @@ func TestEmailSignUp(t *testing.T) {
 			reqBody := []byte(`{"username": "user5", "email": "user5@gmail.com", "password": "Password123", "profile_name": "user5"}`)
 			req, err := http.NewRequest(http.MethodPost, "/v1/sign-up", bytes.NewBuffer(reqBody))
 			if err != nil {
-				t.Errorf("could not create request %s", err)
+				t.Fatalf("could not create request %s", err)
 			}
 			res := executeRequest(req)
 			checkResponseCode(t, http.StatusCreated, res.Code)
 			// further check for the data returned and see if it matches
 			resBody, err := io.ReadAll(res.Body)
 			if err != nil {
-				t.Errorf(fmt.Sprintf("could not read response body"))
+				t.Fatal("could not parse response body")
 			}
 			err = json.Unmarshal(resBody, &signUpRes)
 			if err != nil {
-				t.Errorf(fmt.Sprintf(err.Error()))
+				t.Fatal(fmt.Sprintf(err.Error()))
 			}
-			assert.Assert(t, signUpRes.Data.VToken != "")
 			verificationToken = signUpRes.Data.VToken
 		})
+
+		if verificationToken == "" {
+			t.Fatal("the verification token is empty, cannot proceed to test other things...")
+		}
 
 		t.Run("account verification after sign-up", func(t *testing.T) {
 			reqUrl := fmt.Sprintf("/v1/verify-account/%v", verificationToken)
@@ -80,16 +83,16 @@ func TestUserLogin(t *testing.T) {
 			loginReqBody := []byte(`{"email": "user1@gmail.com", "password": "password"}`)
 			loginReq, err := http.NewRequest(http.MethodPost, "/v1/sign-in", bytes.NewBuffer(loginReqBody))
 			if err != nil {
-				t.Errorf("could not build request %s", err)
+				t.Fatalf("could not build request %s", err)
 			}
 			loginRes := executeRequest(loginReq)
 			loginResBody, err := io.ReadAll(loginRes.Body)
 			if err != nil {
-				t.Errorf("could not read login response body %s", err)
+				t.Fatalf("could not read login response body %s", err)
 			}
 			err = json.Unmarshal(loginResBody, &loginResData)
 			if err != nil {
-				t.Errorf("could not unmarshal login response body: %s", err)
+				t.Fatalf("could not unmarshal login response body: %s", err)
 			}
 			t.Log(loginResData.Message)
 			checkResponseCode(t, http.StatusOK, loginRes.Code)
@@ -104,7 +107,7 @@ func TestUserLogin(t *testing.T) {
 			// with the jwt token returned from the request
 			authTestReq, err := http.NewRequest(http.MethodGet, "/v1/user/profile", nil)
 			if err != nil {
-				t.Errorf("could not build request %s", err)
+				t.Fatalf("could not build request %s", err)
 			}
 			authTestReq.Header.Set("Authorization", "Bearer "+loginResData.Data.Token)
 			authTestRes := executeRequest(authTestReq)
