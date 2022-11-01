@@ -17,17 +17,13 @@ import (
 	"testing"
 )
 
+const (
+	skipMessage = "postgres: skipping integration test"
+)
+
 func newTestDb(t *testing.T) {
 	var err error
 	t.Helper()
-
-	// establish a connection to the test database
-
-	dsn := os.Getenv("DB_DSN_TEST")
-	db, err = sql.Open("postgres", dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// run up migrations for creating tables
 	m, err := migrate.New("file://../../../../migrations/", dsn)
@@ -50,8 +46,6 @@ func newTestDb(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		db.Close()
 	})
 }
 
@@ -121,7 +115,7 @@ func checkResponseCode(t *testing.T, expected, actual int) {
 	}
 }
 
-func createApplicationInstance() {
+func createApplicationInstance() internal.Application {
 	jwtConfig, err := initJWTConfig()
 	if err != nil {
 		logger.Err(err).Msg("jwt config")
@@ -138,7 +132,8 @@ func createApplicationInstance() {
 		Tag:                 postgres.NewTagActions(db, logger),
 		Search:              postgres.NewSearchActions(db, logger),
 	}
-	app = internal.Application{
+
+	appInstance := internal.Application{
 		Repositories: repositories,
 		Services: services.Services{
 			Repositories: repositories,
@@ -148,4 +143,5 @@ func createApplicationInstance() {
 		},
 		Logger: logger,
 	}
+	return appInstance
 }

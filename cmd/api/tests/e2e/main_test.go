@@ -21,6 +21,7 @@ import (
 var (
 	handler *http.Server
 	db      *sql.DB
+	dsn     string
 	app     internal.Application
 	logger  = zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 )
@@ -32,7 +33,15 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	createApplicationInstance()
+	// create application instance and store
+	// it globally
+	dsn = os.Getenv("DB_DSN_TEST")
+	db, err = sql.Open("postgres", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	app = createApplicationInstance()
 
 	// setup router
 	router := gin.Default()
@@ -50,6 +59,7 @@ func TestMain(m *testing.M) {
 		Handler: router,
 	}
 	code := m.Run()
+	db.Close()
 	os.Exit(code)
 }
 
