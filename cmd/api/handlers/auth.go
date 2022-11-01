@@ -107,7 +107,7 @@ func (h authHandler) EmailSignUp(c *gin.Context) {
 	if err != nil {
 		h.app.Logger.Err(err).Msg("An error occurred while trying to send email")
 	}
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusCreated, gin.H{
 		"message": "Account created successfully. Please check your email for verification code",
 		"data": map[string]interface{}{
 			"v_token": accountVerification.Token,
@@ -255,7 +255,6 @@ func (h authHandler) EmailLogin(c *gin.Context) {
 			},
 		})
 	} else {
-		//h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": verifyErr.Error(),
 		})
@@ -331,11 +330,7 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 			"newUser":       isNewUser,
 			"token":         authToken.AccessToken,
 			"refresh_token": authToken.RefreshToken,
-			"user": map[string]interface{}{
-				"id":       user.ID,
-				"username": user.Username,
-				"email":    user.Email,
-			},
+			"user":          user,
 		},
 	})
 

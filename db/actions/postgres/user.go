@@ -30,7 +30,9 @@ func NewUserActions(db *sql.DB, logger zerolog.Logger) repository.UserRepository
 // CreateUserByEmail - creates a basic user record in users table
 // and also adds a record for that user in user_auth table
 func (u userActions) CreateUserByEmail(user models.User, password string, authOrigin string) (models.User, error) {
-	tx, err := u.Db.Begin()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	tx, err := u.Db.BeginTx(ctx, nil)
 	if err != nil {
 		return models.User{}, err
 	}
@@ -41,9 +43,6 @@ func (u userActions) CreateUserByEmail(user models.User, password string, authOr
 	VALUES ($1, $2, $3) 
 	RETURNING id, username, email, profile_name, cover_photo, twitter_id, email_verified, created_at, modified_at
 	`
-
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
 
 	err = tx.QueryRowContext(ctx, query, user.Email, user.Username, user.ProfileName).Scan(
 		&newUser.ID,
