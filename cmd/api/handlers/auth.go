@@ -330,11 +330,7 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 			"newUser":       isNewUser,
 			"token":         authToken.AccessToken,
 			"refresh_token": authToken.RefreshToken,
-			"user": map[string]interface{}{
-				"id":       user.ID,
-				"username": user.Username,
-				"email":    user.Email,
-			},
+			"user":          user,
 		},
 	})
 
