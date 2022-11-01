@@ -284,7 +284,12 @@ func (h pipeHandler) UpdatePipe(c *gin.Context) {
 
 	pipe, err = h.app.Repositories.Pipe.UpdatePipe(c.GetInt64(middlewares.KeyUserId), pipeId, pipe)
 	if err != nil {
-		h.app.Logger.Err(err).Msg(err.Error())
+		if err == postgres.ErrRecordExists {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"message": "You already have a pipe with this name",
+			})
+			return
+		}
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying to update pipe",
 			"err":     err.Error(),

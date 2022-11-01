@@ -4,7 +4,7 @@ import "time"
 
 type Pipe struct {
 	ID         int64     `json:"id"`
-	Name       string    `json:"name"`
+	Name       string    `json:"name,omitempty"`
 	UserID     int64     `json:"user_id"`
 	CoverPhoto string    `json:"cover_photo"`
 	CreatedAt  time.Time `json:"created_at"`
