@@ -111,7 +111,7 @@ func executeRequest(req *http.Request) *httptest.ResponseRecorder {
 
 func checkResponseCode(t *testing.T, expected, actual int) {
 	if expected != actual {
-		t.Errorf("Expected response code %d. Got %d\n", expected, actual)
+		t.Fatalf("Expected response code %d. Got %d\n", expected, actual)
 	}
 }
 
