@@ -36,17 +36,19 @@ run/api:
 	@echo "Running api directly..."
 	APP_ENV=dev go run ./cmd/api
 
-## run/test/e2e: run e2e tests alone
-.PHONY: run/test/e2e
-run/test/e2e:
-	@echo "Running e2e tests"
+# --- TEST COMMANDS ---
+
+## test/api/e2e: run e2e tests alone
+.PHONY: test/api/e2e
+test/api:
+	@echo "Running e2e tests on ./cmd/api..."
 	APP_ENV=test go test -race -vet=off ./cmd/api/tests/...
 
-## run/test/all: run all tests through test files present in the codebase
-.PHONY: run/test/all
-run/test/all:
-	@echo "Running all tests in the codebase"
-	@go test -race -vet=off ./...
+## test/db: run unit tests for database operations
+.PHONY: test/db
+test/db:
+	@echo "Running database tests alone"
+	APP_ENV=test go test -race -vet=off ./db/...
 
 # --- QUALITY CONTROL ---
 ## audit: tidy and vendor dependencies and format, vet and test codebase

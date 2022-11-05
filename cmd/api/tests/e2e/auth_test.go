@@ -247,7 +247,7 @@ TestTwitterConnectionFlow tests the twitter authentication flow.
 func TestTwitterConnectionFlow(t *testing.T) {
 	t.Run("twitter auth flow", func(t *testing.T) {
 		t.Run("/v1/auth/twitter/connect-account", func(t *testing.T) {
-			// this will eventually try to connect a user's twitter account
+			// this test is on hold because of how to go about twitter authentication flow
 		})
 	})
 }
