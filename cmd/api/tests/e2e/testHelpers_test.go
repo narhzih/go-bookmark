@@ -1,15 +1,18 @@
 package e2e
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/golang-jwt/jwt"
-	"github.com/golang-migrate/migrate/v4"
 	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 	"github.com/mypipeapp/mypipeapi/cmd/api/services"
 	"github.com/mypipeapp/mypipeapi/cmd/api/services/mailer"
 	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
 	"github.com/mypipeapp/mypipeapi/db/repository"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -21,48 +24,19 @@ const (
 	skipMessage = "postgres: skipping integration test"
 )
 
-func newTestDb(t *testing.T) {
-	var err error
-	t.Helper()
-
-	// run up migrations for creating tables
-	m, err := migrate.New("file://../../../../migrations/", dsn)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = m.Up()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// populate tables
-	execSqlScript(t, db, "../../../../db/actions/postgres/mock/mock.sql")
-
-	// register a cleanup function for when the test is completed
-	t.Cleanup(func() {
-		// reset all database changes and close the connection
-		err = m.Drop()
-		if err != nil {
-			t.Fatal(err)
-		}
-	})
-}
-
 // execSqlScript is a helper function to execute SQL commands in the file at the given scriptPath.
-func execSqlScript(t *testing.T, db *sql.DB, scriptPath string) {
-	t.Helper()
-
+func execSqlScript(db *sql.DB, scriptPath string) {
 	script, err := os.ReadFile(scriptPath)
 	if err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 
 	_, err = db.Exec(string(script))
 	if err != nil {
-		t.Fatal(err)
+		log.Fatal(err)
 	}
 }
+
 func initJWTConfig() (services.JWTConfig, error) {
 	var expiresIn int
 	var key string
@@ -144,4 +118,60 @@ func createApplicationInstance() internal.Application {
 		Logger: logger,
 	}
 	return appInstance
+}
+
+func createGlobalUserAndLogin() {
+	// Create the account
+	signUpRes := struct {
+		Message string `json:"message"`
+		Data    struct {
+			VToken string `json:"v_token"`
+		} `json:"data"`
+	}{}
+	reqBody := []byte(`{"username": "dummy", "email": "dummy@gmail.com", "password": "password", "profile_name": "dummy pn"}`)
+	req, _ := http.NewRequest(http.MethodPost, "/v1/sign-up", bytes.NewBuffer(reqBody))
+
+	res := executeRequest(req)
+	resBody, _ := io.ReadAll(res.Body)
+	err := json.Unmarshal(resBody, &signUpRes)
+	if err != nil {
+		log.Fatal(fmt.Sprintf(err.Error()))
+	}
+	verificationToken := signUpRes.Data.VToken
+
+	// verify account
+	reqUrl := fmt.Sprintf("/v1/verify-account/%v", verificationToken)
+	req, _ = http.NewRequest(http.MethodPost, reqUrl, nil)
+	res = executeRequest(req)
+
+	// log user in
+	loginResData := struct {
+		Message string `json:"message"`
+		Data    struct {
+			Token        string `json:"token"`
+			RefreshToken string `json:"refresh_token"`
+			ExpiresAt    string `json:"expires_at"`
+			User         struct {
+				Id       int    `json:"id"`
+				Username string `json:"username"`
+				Email    string `json:"email"`
+			} `json:"user"`
+		} `json:"data"`
+	}{}
+	loginReqBody := []byte(`{"email": "dummy@gmail.com", "password": "password"}`)
+	loginReq, _ := http.NewRequest(http.MethodPost, "/v1/sign-in", bytes.NewBuffer(loginReqBody))
+
+	loginRes := executeRequest(loginReq)
+	loginResBody, err := io.ReadAll(loginRes.Body)
+	if err != nil {
+		log.Fatalf("could not read login response body %s", err)
+	}
+	err = json.Unmarshal(loginResBody, &loginResData)
+	if err != nil {
+		log.Fatalf("could not unmarshal login response body: %s", err)
+	}
+
+	globalAccessToken = loginResData.Data.Token
+	globalUserEmail = loginResData.Data.User.Email
+	globalUserID = loginResData.Data.User.Id
 }

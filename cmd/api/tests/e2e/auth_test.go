@@ -24,7 +24,6 @@ func TestEmailSignUpFlow(t *testing.T) {
 	}
 
 	t.Run("email sign-up flow", func(t *testing.T) {
-		newTestDb(t)
 		var verificationToken string
 
 		t.Run("/v1/sign-up", func(t *testing.T) {
@@ -79,7 +78,6 @@ func TestUserLoginFlow(t *testing.T) {
 	}
 
 	t.Run("login flow", func(t *testing.T) {
-		newTestDb(t)
 		t.Run("/v1/login - success", func(t *testing.T) {
 			loginResData := struct {
 				Message string `json:"message"`
@@ -144,7 +142,6 @@ func TestForgotPassword(t *testing.T) {
 	}
 
 	t.Run("forgot password flow", func(t *testing.T) {
-		newTestDb(t)
 		var resetToken string
 		t.Run("/v1/forgot-password", func(t *testing.T) {
 			resetResData := struct {
@@ -235,6 +232,22 @@ func TestForgotPassword(t *testing.T) {
 			}
 			res := executeRequest(req)
 			checkResponseCode(t, http.StatusOK, res.Code)
+		})
+	})
+}
+
+/*
+TestTwitterConnectionFlow tests the twitter authentication flow.
+--------------------
+# Tested endpoints:
+---| /v1/twitter/connect-account
+---| /v1/twitter/connected-account
+---| /v1/twitter/disconnect-account
+*/
+func TestTwitterConnectionFlow(t *testing.T) {
+	t.Run("twitter auth flow", func(t *testing.T) {
+		t.Run("/v1/auth/twitter/connect-account", func(t *testing.T) {
+			// this will eventually try to connect a user's twitter account
 		})
 	})
 }
