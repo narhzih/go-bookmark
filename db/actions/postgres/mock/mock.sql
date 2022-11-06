@@ -62,3 +62,10 @@ VALUES
     (6, 2);
 
 -- populate notifications table
+INSERT INTO notifications
+    (user_id, message)
+VALUES
+    (1, 'First test on the notification'),
+    (1, 'Second test on the notification'),
+    (1, 'Third test on the notification'),
+    (1, 'Fourth test on the notification');
