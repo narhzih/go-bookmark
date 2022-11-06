@@ -38,3 +38,39 @@ var getNotificationsTestCases = map[string]struct {
 		wantErr: nil,
 	},
 }
+
+var getNotificationTestCases = map[string]struct {
+	inputUserID         int64
+	inputNotificationID int64
+	wantNotification    models.Notification
+	wantErr             error
+}{
+	"success": {
+		inputUserID:         1,
+		inputNotificationID: 1,
+		wantNotification: models.Notification{
+			UserID:  1,
+			Message: "First test on the notification",
+		},
+		wantErr: nil,
+	},
+	"invalid notification id": {
+		inputUserID:         1,
+		inputNotificationID: 10000,
+		wantNotification:    models.Notification{},
+		wantErr:             ErrNoRecord,
+	},
+}
+
+var markNotificationAsReadTestCases = map[string]struct {
+	inputNotification models.Notification
+	wantErr           error
+}{
+	"success": {
+		inputNotification: models.Notification{
+			ID:     1,
+			UserID: 1,
+		},
+		wantErr: nil,
+	},
+}
