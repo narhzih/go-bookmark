@@ -16,6 +16,14 @@ VALUES
     (3, 'DEFAULT', '$2a$14$A/CXTnm0.WSb0CoWcH31VeKv.CitRdGTiWHj/06I3cUvwgrj.UwBu'), -- $passw01
     (4, 'DEFAULT', '$2a$14$A/CXTnm0.WSb0CoWcH31VeKv.CitRdGTiWHj/06I3cUvwgrj.UwBu'); -- $passw01
 
+-- populate account_verifications table
+INSERT INTO account_verifications
+    (user_id, used, token)
+VALUES
+    (1, false, 'Random_Token_1'),
+    (1, true, 'Random_Token_2'),
+    (1, false, 'Random_Token_3');
+
 -- populate pipes table
 INSERT into pipes
     (user_id, name, cover_photo)
