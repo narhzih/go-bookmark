@@ -159,7 +159,10 @@ func (b bookmarkActions) ParseTags(bookmark models.Bookmark) (models.Bookmark, e
 	WHERE bookmark_id=$1
     `
 
-	rows, err := b.Db.Query(query, bookmark.ID)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	rows, err := b.Db.QueryContext(ctx, query, bookmark.ID)
 	if err != nil {
 		b.Logger.Err(err).Msg("there was an error parsing tags on bookmark")
 		return bookmark, err
