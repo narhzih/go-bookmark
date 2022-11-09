@@ -36,17 +36,19 @@ run/api:
 	@echo "Running api directly..."
 	APP_ENV=dev go run ./cmd/api
 
-## run/test/e2e: run e2e tests alone
-.PHONY: run/test/e2e
-run/test/e2e:
-	@echo "Running e2e tests"
-	@go test -race -vet=off ./cmd/api/tests/...
+# --- TEST COMMANDS ---
 
-## run/test/all: run all tests through test files present in the codebase
-.PHONY: run/test/all
-run/test/all:
-	@echo "Running all tests in the codebase"
-	@go test -race -vet=off ./...
+## test/api/e2e: run e2e tests alone
+.PHONY: test/api/e2e
+test/api:
+	@echo "Running e2e tests on ./cmd/api..."
+	APP_ENV=test go test -race -vet=off ./cmd/api/tests/...
+
+## test/db: run unit tests for database operations
+.PHONY: test/db
+test/db:
+	@echo "Running database tests alone"
+	APP_ENV=test go test -race -vet=off ./db/...
 
 # --- QUALITY CONTROL ---
 ## audit: tidy and vendor dependencies and format, vet and test codebase
@@ -66,32 +68,32 @@ audit:
 PG_URL ?= postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${POSTGRES_DB_HOST}:${POSTGRES_DB_PORT}/${POSTGRES_DB}?sslmode=${DB_SSL_MODE}
 MIGRATIONS_PATH ?= $(shell pwd)/sql
 
-## db/migration/version: get current migration version
-.PHONY: db/migration/version
-db/migration/version:
+## db/migrations/version: get current migration version
+.PHONY: db/migrations/version
+db/migrations/version:
 	@echo "Retrieving current migration version"
 	@migrate -database ${PG_URL} -path ./migrations version
 
-## db/migration/rollback v=$1: rollback to a specific version of the database migration
-.PHONY: db/migration/rollback
-db/migration/rollback: confirm
+## db/migrations/rollback v=$1: rollback to a specific version of the database migration
+.PHONY: db/migrations/rollback
+db/migrations/rollback: confirm
 	@echo "migrating database to version ${v}..."
 	@migrate -database ${PG_URL} -path ./migrations force $(v)
 
-## db/migration/up: apply all up migrations
-.PHONY: db/migration/up
-db/migration/up: confirm
+## db/migrations/up: apply all up migrations
+.PHONY: db/migrations/up
+db/migrations/up: confirm
 	@echo "applying all up migrations..."
 	@migrate -database ${PG_URL} -path ./migrations up
 
-## db/migration/down: apply all down migrations
-.PHONY: db/migration/down
-db/migration/down: confirm
+## db/migrations/down: apply all down migrations
+.PHONY: db/migrations/down
+db/migrations/down: confirm
 	@echo "applying all down migrations..."
 	@migrate -database ${PG_URL} -path ./migrations down
 
-## db/migration/crete name=$name: create a new migration file set named $name
-.PHONY: db/migration/create
-db/migration/create: confirm
+## db/migrations/crete name=$name: create a new migration file set named $name
+.PHONY: db/migrations/create
+db/migrations/create: confirm
 	@echo "Creating migration file ${name}"
 	@migrate create -ext sql -dir ./migrations -seq $(name)

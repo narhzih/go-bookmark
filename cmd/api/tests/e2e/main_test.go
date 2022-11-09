@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
@@ -19,11 +20,14 @@ import (
 )
 
 var (
-	handler *http.Server
-	db      *sql.DB
-	dsn     string
-	app     internal.Application
-	logger  = zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+	handler           *http.Server
+	db                *sql.DB
+	dsn               string
+	app               internal.Application
+	logger            = zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+	globalAccessToken string
+	globalUserID      int
+	globalUserEmail   string
 )
 
 func TestMain(m *testing.M) {
@@ -40,6 +44,19 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	// run up migrations for creating tables
+	mig, err := migrate.New("file://../../../../migrations/", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = mig.Up()
+	if err != nil {
+		log.Fatal(err)
+	}
+	// populate tables
+	execSqlScript(db, "../../../../db/actions/postgres/mock/mock.sql")
 
 	app = createApplicationInstance()
 
@@ -58,13 +75,17 @@ func TestMain(m *testing.M) {
 		Addr:    addr,
 		Handler: router,
 	}
+	createGlobalUserAndLogin()
 	code := m.Run()
+	err = mig.Drop()
+	if err != nil {
+		log.Fatal(err)
+	}
 	db.Close()
 	os.Exit(code)
 }
 
 func TestHealthZ(t *testing.T) {
-	newTestDb(t)
 	req := httptest.NewRequest(http.MethodGet, "/v1/healthz", nil)
 	res := executeRequest(req)
 	checkResponseCode(t, http.StatusOK, res.Code)

@@ -379,14 +379,23 @@ func (h authHandler) ForgotPassword(c *gin.Context) {
 	if err != nil {
 		h.app.Logger.Err(err).Msg("An error occurred while trying to send password reset token")
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Something went wrong",
+			"message": "our server encountered an error",
 			"err":     err.Error(),
 		})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Please check your email for instructions on how to reset your password",
-	})
+
+	// for testing/development purposes, return the token as part of the response
+	if os.Getenv("APP_ENV") != "prod" {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Please check your email for instructions on how to reset your password",
+			"token":   token,
+		})
+	} else {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "Please check your email for instructions on how to reset your password",
+		})
+	}
 }
 
 func (h authHandler) VerifyPasswordResetToken(c *gin.Context) {
@@ -486,7 +495,7 @@ func (h authHandler) ResetPassword(c *gin.Context) {
 
 	if passwordReset.Validated != true {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid token provided because it's not validated",
+			"message": "Invalid token provided",
 		})
 		return
 	}

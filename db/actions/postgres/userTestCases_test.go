@@ -143,7 +143,7 @@ var getUserAndAuthTestCases = map[string]struct {
 	"success": {
 		inputUserId: 1,
 		wantUser: models.UserAuth{
-			HashedPassword: "$2y$15$salteadoususuueyryy28u48viMdUKIwgSc.ETLYvODrrv3MFczPq",
+			HashedPassword: "$2a$14$A/CXTnm0.WSb0CoWcH31VeKv.CitRdGTiWHj/06I3cUvwgrj.UwBu",
 			Origin:         "DEFAULT",
 			User: models.User{
 				ID:       1,

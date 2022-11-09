@@ -4,5 +4,5 @@ CREATE TABLE IF NOT EXISTS notifications
     user_id INT NOT NULL,
     message TEXT NOT NULL,
     read BOOLEAN DEFAULT false,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 )
