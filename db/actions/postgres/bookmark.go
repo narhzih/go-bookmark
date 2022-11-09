@@ -1,10 +1,12 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
+	"time"
 )
 
 type bookmarkActions struct {
@@ -19,16 +21,26 @@ func NewBookmarkActions(db *sql.DB, logger zerolog.Logger) repository.BookmarkRe
 	}
 }
 
+// CreateBookmark creates a single bookmark record for a user
 func (b bookmarkActions) CreateBookmark(bm models.Bookmark) (models.Bookmark, error) {
 	var newBm models.Bookmark
 
-	query := "INSERT INTO bookmarks (user_id, pipe_id, platform, url) VALUES($1, $2, $3, $4) RETURNING id, user_id, pipe_id, platform, url"
-	err := b.Db.QueryRow(query, bm.UserID, bm.PipeID, bm.Platform, bm.Url).Scan(
+	query := `
+	INSERT INTO bookmarks 
+	    (user_id, pipe_id, platform, url) 
+	VALUES($1, $2, $3, $4) 
+	RETURNING id, user_id, pipe_id, platform, url, created_at`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := b.Db.QueryRowContext(ctx, query, bm.UserID, bm.PipeID, bm.Platform, bm.Url).Scan(
 		&newBm.ID,
 		&newBm.UserID,
 		&newBm.PipeID,
 		&newBm.Platform,
 		&newBm.Url,
+		&newBm.CreatedAt,
 	)
 
 	if err != nil {
@@ -38,11 +50,20 @@ func (b bookmarkActions) CreateBookmark(bm models.Bookmark) (models.Bookmark, er
 	return newBm, nil
 }
 
+// GetBookmark retrieve a single bookmark by ID and a designated User
 func (b bookmarkActions) GetBookmark(bmID, userID int64) (models.Bookmark, error) {
 	var bookmark models.Bookmark
 
-	query := "SELECT id, user_id, pipe_id, platform, url, created_at FROM bookmarks WHERE id=$1 AND user_id=$2 LIMIT 1"
-	err := b.Db.QueryRow(query, bmID, userID).Scan(
+	query := `
+	SELECT id, user_id, pipe_id, platform, url, created_at 
+	FROM bookmarks 
+	WHERE id=$1 AND user_id=$2 
+	LIMIT 1
+	`
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := b.Db.QueryRowContext(ctx, query, bmID, userID).Scan(
 		&bookmark.ID,
 		&bookmark.UserID,
 		&bookmark.PipeID,
@@ -50,17 +71,30 @@ func (b bookmarkActions) GetBookmark(bmID, userID int64) (models.Bookmark, error
 		&bookmark.Url,
 		&bookmark.CreatedAt,
 	)
+
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.Bookmark{}, ErrNoRecord
+		}
 		return models.Bookmark{}, err
 	}
 	bookmark, _ = b.ParseTags(bookmark)
 	return bookmark, nil
 }
 
+// GetBookmarks retrieves all bookmarks for a user and a designated pipe
 func (b bookmarkActions) GetBookmarks(userID, pipeID int64) ([]models.Bookmark, error) {
 	var bookmarks []models.Bookmark
-	query := "SELECT id, user_id, pipe_id, url, platform, created_at FROM bookmarks WHERE user_id=$1 AND pipe_id=$2"
-	rows, err := b.Db.Query(query, userID, pipeID)
+	query := `
+	SELECT id, user_id, pipe_id, url, platform, created_at 
+	FROM bookmarks 
+	WHERE user_id=$1 AND pipe_id=$2
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	rows, err := b.Db.QueryContext(ctx, query, userID, pipeID)
 	if err != nil {
 		return bookmarks, err
 	}
@@ -88,10 +122,15 @@ func (b bookmarkActions) GetBookmarks(userID, pipeID int64) ([]models.Bookmark, 
 	return bookmarks, nil
 }
 
+// GetBookmarksCount gets the total amount of bookmarks that belongs to a user
 func (b bookmarkActions) GetBookmarksCount(userID int64) (int, error) {
 	var bmCount int
-	query := "SELECT COUNT(id) FROM bookmarks WHERE user_id=$1"
-	err := b.Db.QueryRow(query, userID).Scan(&bmCount)
+	query := `SELECT COUNT(id) FROM bookmarks WHERE user_id=$1`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := b.Db.QueryRowContext(ctx, query, userID).Scan(&bmCount)
 	if err != nil {
 		return bmCount, err
 	}
@@ -100,8 +139,12 @@ func (b bookmarkActions) GetBookmarksCount(userID int64) (int, error) {
 }
 
 func (b bookmarkActions) DeleteBookmark(bmID, userID int64) (bool, error) {
-	deleteQuery := "DELETE FROM bookmarks WHERE id=$1 AND user_id=$2"
-	_, err := b.Db.Exec(deleteQuery, bmID, userID)
+	deleteQuery := `DELETE FROM bookmarks WHERE id=$1 AND user_id=$2`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	_, err := b.Db.ExecContext(ctx, deleteQuery, bmID, userID)
 	if err != nil {
 		return false, err
 	}
