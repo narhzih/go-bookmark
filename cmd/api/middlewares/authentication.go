@@ -48,7 +48,6 @@ func AuthRequired(app internal.Application, jwtSecret string) gin.HandlerFunc {
 			claims := token.Claims.(jwt.MapClaims)
 			username := claims["username"].(string)
 			userId := int64(claims["sub"].(float64))
-			app.Logger.Info().Msg(fmt.Sprintf("parsed username as: %v and userId as %v", username, userId))
 
 			if username == "" || userId == 0 {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{

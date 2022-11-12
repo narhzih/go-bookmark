@@ -167,11 +167,7 @@ func (h pipeHandler) GetPipe(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "pipe fetched successfully",
 		"data": map[string]interface{}{
-			"pipe": map[string]interface{}{
-				"id":          pipe.ID,
-				"name":        pipe.Name,
-				"cover_photo": pipe.CoverPhoto,
-			},
+			"pipe": pipe,
 		},
 	})
 }
@@ -297,18 +293,17 @@ func (h pipeHandler) UpdatePipe(c *gin.Context) {
 		return
 	}
 
+	pipe, _ = h.app.Repositories.Pipe.GetPipe(pipe.ID, pipe.UserID)
+
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Pipe updated successfully",
 		"data": map[string]interface{}{
-			"pipe": map[string]interface{}{
-				"id":          pipe.ID,
-				"name":        pipe.Name,
-				"cover_photo": pipe.CoverPhoto,
-			},
+			"pipe": pipe,
 		},
 	})
 
 }
+
 func (h pipeHandler) DeletePipe(c *gin.Context) {
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

@@ -93,7 +93,7 @@ func (h authHandler) EmailSignUp(c *gin.Context) {
 	var accountVerification models.AccountVerification
 	accountVerification.UserID = user.ID
 	accountVerification.Token = helpers.RandomToken(7)
-	accountVerification.ExpiresAt = time.Now().Add(7200 * time.Second).Format(time.RFC3339Nano)
+	accountVerification.ExpiresAt = time.Now().Add(7200 * time.Second)
 	accountVerification, err = h.app.Repositories.AccountVerification.CreateVerification(accountVerification)
 	if err != nil {
 		h.app.Logger.Err(err).Msg("An error occurred while trying to generate token details ")
@@ -140,8 +140,8 @@ func (h authHandler) VerifyAccount(c *gin.Context) {
 		return
 	}
 
-	parsedTime, _ := time.Parse(time.RFC3339Nano, tokenFromDB.CreatedAt)
-	if tokenFromDB.Used == true || time.Now().Sub(parsedTime).Hours() > 2 {
+	//parsedTime, _ := time.Parse(time.RFC3339Nano, tokenFromDB.CreatedAt)
+	if tokenFromDB.Used == true || time.Now().Sub(tokenFromDB.CreatedAt).Hours() > 2 {
 		/** TODO: Generate a new token and send to user email and make sure that
 		 * the user tha token is to be generated for is not previously verified
 		 */

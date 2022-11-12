@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: "narhzih:dev"
+    image: "mypipe:dev"
     restart: unless-stopped
     ports:
       - "5555:5555"

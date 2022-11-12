@@ -245,6 +245,7 @@ func (p pipeActions) GetPipesCount(userID int64) (int, error) {
 	return pipesCount, nil
 }
 
+// UpdatePipe updates a specific pipe
 func (p pipeActions) UpdatePipe(userID int64, pipeID int64, updatedBody models.Pipe) (models.Pipe, error) {
 	var pipe models.Pipe
 	query := `
@@ -292,6 +293,7 @@ func (p pipeActions) UpdatePipe(userID int64, pipeID int64, updatedBody models.P
 
 }
 
+// DeletePipe removes a single pipe that belongs to a particular user and pipeID
 func (p pipeActions) DeletePipe(userID, pipeID int64) (bool, error) {
 	deleteQuery := `DELETE FROM pipes WHERE id=$1 AND user_id=$2`
 
