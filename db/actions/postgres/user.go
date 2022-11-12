@@ -350,13 +350,18 @@ func (u userActions) UpdateUser(updatedBody models.User) (models.User, error) {
 
 // VerifyUser sets a user's email_verified field to true
 func (u userActions) VerifyUser(user models.User) (models.User, error) {
-	query := `UPDATE users SET email_verified=true WHERE id=$1 RETURNING id, email, username, profile_name, cover_photo`
+	query := `
+	UPDATE users 
+	SET email_verified=true, modified_at=now()
+	WHERE id=$1 RETURNING id, email, username, profile_name, cover_photo, created_at, modified_at`
 	err := u.Db.QueryRow(query, user.ID).Scan(
 		&user.ID,
 		&user.Email,
 		&user.Username,
 		&user.ProfileName,
 		&user.CovertPhoto,
+		&user.CreatedAt,
+		&user.ModifiedAt,
 	)
 
 	if err != nil {
