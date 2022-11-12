@@ -674,7 +674,7 @@ func (h authHandler) GetConnectedTwitterAccount(c *gin.Context) {
 	}
 
 	// Fetch user information from Twitter
-	url := fmt.Sprintf("https://api.twitter.com/2/users/%v", authenticatedUser.TwitterId)
+	url := fmt.Sprintf("https://api.twitter.com/2/users/%v?user.fields=profile_image_url", authenticatedUser.TwitterId)
 	twitterHttp, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -706,9 +706,10 @@ func (h authHandler) GetConnectedTwitterAccount(c *gin.Context) {
 		"loggedInUser": authenticatedUser,
 		"twitterAccount": map[string]interface{}{
 			"details": map[string]interface{}{
-				"username": twitterUserResponse.Data.Username,
-				"name":     twitterUserResponse.Data.Name,
-				"id":       twitterUserResponse.Data.Id,
+				"username":        twitterUserResponse.Data.Username,
+				"name":            twitterUserResponse.Data.Name,
+				"id":              twitterUserResponse.Data.Id,
+				"profile_picture": twitterUserResponse.Data.ProfileImageUrl,
 			},
 		},
 	})
