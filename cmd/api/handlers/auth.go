@@ -573,6 +573,7 @@ func (h authHandler) ConnectTwitterAccount(c *gin.Context) {
 		return
 	}
 
+	h.app.Logger.Info().Msg(req.AccessToken)
 	user, err := h.app.Repositories.User.GetUserById(c.GetInt64(middlewares.KeyUserId))
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
