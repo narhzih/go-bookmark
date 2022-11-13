@@ -100,6 +100,46 @@ func (s searchActions) SearchThroughTags(name string, userId int64) ([]models.Bo
 	return bookmarks, nil
 }
 
+func (s searchActions) SearchThroughPlatform(name string, userId int64) ([]models.Bookmark, error) {
+	query := `
+	SELECT
+    	bt.bookmark_id, b.user_id, b.pipe_id, b.platform, b.url, b.created_at
+	FROM bookmark_tag bt
+		INNER JOIN bookmarks b on b.id = bt.bookmark_id
+		INNER JOIN tags t on bt.tag_id = t.id
+    WHERE
+        b.user_id = $1
+        AND b.id = bt.bookmark_id
+        AND b.platform ILIKE '%' || $2 || '%'
+    `
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	rows, err := s.Db.QueryContext(ctx, query, userId, name)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return []models.Bookmark{}, ErrNoRecord
+		}
+		return []models.Bookmark{}, err
+	}
+	ba := NewBookmarkActions(s.Db, s.Logger)
+	bookmarks := make([]models.Bookmark, 0)
+	for rows.Next() {
+		bookmark := models.Bookmark{}
+		_ = rows.Scan(
+			&bookmark.ID,
+			&bookmark.UserID,
+			&bookmark.PipeID,
+			&bookmark.Platform,
+			&bookmark.Url,
+			&bookmark.CreatedAt,
+		)
+		bookmark, _ = ba.ParseTags(bookmark)
+		bookmarks = append(bookmarks, bookmark)
+	}
+
+	return bookmarks, nil
+}
+
 func (s searchActions) SearchAll(name string, userId int64) ([]interface{}, error) {
 	//TODO implement me
 	panic("implement me")

@@ -57,6 +57,7 @@ func (h searchHandler) Search(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
+			"type":  "pipe",
 			"query": req.Type,
 			"result": map[string]interface{}{
 				"pipes": pipes,
@@ -82,6 +83,7 @@ func (h searchHandler) Search(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
+			"type":  "bookmark",
 			"query": req.Type,
 			"result": map[string]interface{}{
 				"bookmarks": bookmarks,
@@ -89,6 +91,31 @@ func (h searchHandler) Search(c *gin.Context) {
 			},
 		})
 
+	case models.SearchTypePlatform:
+		bookmarks, err := h.app.Repositories.Search.SearchThroughPlatform(req.Name, c.GetInt64(middlewares.KeyUserId))
+		if err != nil {
+			if err == postgres.ErrNoRecord {
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"message": fmt.Sprintf("no results found for %v", req.Name),
+				})
+				return
+			}
+
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "an error occurred",
+				"err":     err.Error(),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"type":  "bookmark",
+			"query": req.Type,
+			"result": map[string]interface{}{
+				"bookmarks": bookmarks,
+				"total":     len(bookmarks),
+			},
+		})
 	case models.SearchTypeAll:
 		bookmarks, err := h.app.Repositories.Search.SearchThroughTags(req.Name, c.GetInt64(middlewares.KeyUserId))
 		if err != nil {
@@ -121,7 +148,24 @@ func (h searchHandler) Search(c *gin.Context) {
 			return
 		}
 
+		platform, err := h.app.Repositories.Search.SearchThroughPlatform(req.Name, c.GetInt64(middlewares.KeyUserId))
+		if err != nil {
+			if err == postgres.ErrNoRecord {
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+					"message": fmt.Sprintf("no results found for %v", req.Name),
+				})
+				return
+			}
+
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "an error occurred",
+				"err":     err.Error(),
+			})
+			return
+		}
+
 		c.JSON(http.StatusOK, gin.H{
+			"type": "all",
 			"data": map[string]interface{}{
 				"pipes": map[string]interface{}{
 					"result": pipes,
@@ -131,7 +175,11 @@ func (h searchHandler) Search(c *gin.Context) {
 					"result": bookmarks,
 					"total":  len(bookmarks),
 				},
-				"total": len(bookmarks) + len(pipes),
+				"platform": map[string]interface{}{
+					"result": platform,
+					"total":  len(platform),
+				},
+				"total": len(bookmarks) + len(pipes) + len(platform),
 			},
 		})
 
