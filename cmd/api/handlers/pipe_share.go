@@ -56,6 +56,7 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 	case models.PipeShareTypePublic:
 		sharedPipe, err := h.app.Services.SharePipePublicly(pipeId, sharerId)
 		if err != nil {
+			h.app.Logger.Err(err).Msg("an error occurred while sharing pipe publicly")
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Our system encountered an error while trying to finalize share. Please try again soon",
 				"err":     err.Error(),
@@ -88,6 +89,7 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 		}
 		_, err = h.app.Services.SharePipePrivately(pipeId, sharerId, receiver.Username)
 		if err != nil {
+			h.app.Logger.Err(err).Msg("an error occurred while sharing pipe publicly")
 			if err == postgres.ErrPipeShareToNotFound || err == postgres.ErrCannotSharePipeToSelf {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 					"message": err.Error(),
