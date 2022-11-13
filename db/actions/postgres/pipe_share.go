@@ -1,12 +1,14 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
 	"os"
+	"time"
 )
 
 var (
@@ -26,20 +28,33 @@ func NewPipeShareActions(db *sql.DB, logger zerolog.Logger) repository.PipeShare
 	}
 }
 
+// CreatePipeShareRecord creates a pipe share record for a user
 func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe, receiver string) (models.SharedPipe, error) {
 	var query string
 	var err error
 	uActions := NewUserActions(p.Db, p.Logger)
-	if pipeShareData.Type == "public" {
-		query = "INSERT INTO shared_pipes (sharer_id, pipe_id, type, code) VALUES ($1, $2, $3, $4) RETURNING id, sharer_id, pipe_id, type, code"
-		err = p.Db.QueryRow(query, pipeShareData.SharerID, pipeShareData.PipeID, pipeShareData.Type, pipeShareData.Code).Scan(
+	switch pipeShareData.Type {
+	case models.PipeShareTypePublic:
+		query = `
+		INSERT INTO shared_pipes 
+		    (sharer_id, pipe_id, type, code) 
+		VALUES ($1, $2, $3, $4) 
+		RETURNING id, sharer_id, pipe_id, type, code, created_at, modified_at
+		`
+
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		err = p.Db.QueryRowContext(ctx, query, pipeShareData.SharerID, pipeShareData.PipeID, pipeShareData.Type, pipeShareData.Code).Scan(
 			&pipeShareData.ID,
 			&pipeShareData.SharerID,
 			&pipeShareData.PipeID,
 			&pipeShareData.Type,
 			&pipeShareData.Code,
+			&pipeShareData.CreatedAt,
+			&pipeShareData.ModifiedAt,
 		)
-	} else if pipeShareData.Type == "private" {
+	case models.PipeShareTypePrivate:
 		pipeShareReceiver, err := uActions.GetUserByUsername(receiver)
 		if err != nil {
 			p.Logger.Err(err).Msg("An error occurred while trying to fetch user to share pipe to")
@@ -57,25 +72,35 @@ func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe,
 		query = `
 				INSERT INTO shared_pipes (sharer_id, pipe_id, type, code) 
 				VALUES ($1, $2, $3, $4) 
-				RETURNING id, sharer_id, pipe_id, type, code
+				RETURNING id, sharer_id, pipe_id, type, code, created_at, modified_at
 		
 		`
-		err = p.Db.QueryRow(query, pipeShareData.SharerID, pipeShareData.PipeID, pipeShareData.Type, pipeShareData.Code).Scan(
+
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		err = p.Db.QueryRowContext(ctx, query, pipeShareData.SharerID, pipeShareData.PipeID, pipeShareData.Type, pipeShareData.Code).Scan(
 			&pipeShareData.ID,
 			&pipeShareData.SharerID,
 			&pipeShareData.PipeID,
 			&pipeShareData.Type,
 			&pipeShareData.Code,
+			&pipeShareData.CreatedAt,
+			&pipeShareData.ModifiedAt,
 		)
+
+		if err != nil {
+			return models.SharedPipe{}, err
+		}
 		_, err = p.CreatePipeReceiver(models.SharedPipeReceiver{
 			SharerId:     pipeShareData.SharerID,
 			SharedPipeId: pipeShareData.PipeID,
 			ReceiverID:   pipeShareReceiver.ID,
 		})
 		if err != nil {
-			return models.SharedPipe{}, nil
+			return models.SharedPipe{}, err
 		}
-	} else {
+	default:
 		return pipeShareData, fmt.Errorf("invalid pipe type share: %v", pipeShareData.Type)
 	}
 

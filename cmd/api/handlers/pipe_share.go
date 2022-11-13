@@ -242,7 +242,6 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 					"message": "Our system encountered an error while trying to add pipe your collection. Try again soon!",
 				})
 				return
-
 			}
 		}
 
