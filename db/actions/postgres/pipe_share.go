@@ -70,10 +70,9 @@ func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe,
 		}
 		//var sharedTo model.SharedPipeReceiver
 		query = `
-				INSERT INTO shared_pipes (sharer_id, pipe_id, type, code) 
-				VALUES ($1, $2, $3, $4) 
-				RETURNING id, sharer_id, pipe_id, type, code, created_at, modified_at
-		
+		INSERT INTO shared_pipes (sharer_id, pipe_id, type, code) 
+		VALUES ($1, $2, $3, $4) 
+		RETURNING id, sharer_id, pipe_id, type, code, created_at, modified_at
 		`
 
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
