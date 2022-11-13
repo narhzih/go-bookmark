@@ -10,6 +10,7 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type PipeShareHandler interface {
@@ -27,31 +28,37 @@ func NewPipeShareHandler(app internal.Application) PipeShareHandler {
 }
 
 func (h pipeShareHandler) SharePipe(c *gin.Context) {
-	shareType := c.Query("type")
-	if len(shareType) <= 0 {
+	// Validate inputs integrity
+	req := struct {
+		Type     string `form:"type" json:"type" binding:"required"`
+		Username string `form:"username" json:"username"`
+	}{}
+	if err := c.ShouldBindQuery(&req); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Please specify how you want to share your pipe",
+			"message": "Please specify a valid share type",
 		})
 		return
 	}
 
-	loggedInUser := c.GetInt64(middlewares.KeyUserId)
-	pipeID, _ := strconv.Atoi(c.Param("id"))
-	_, err := h.app.Repositories.Pipe.GetPipe(int64(pipeID), loggedInUser)
+	sharerId := c.GetInt64(middlewares.KeyUserId)
+	id, _ := strconv.Atoi(c.Param("id"))
+	pipeId := int64(id)
+	_, err := h.app.Repositories.Pipe.GetPipe(pipeId, sharerId)
 	if err != nil {
 		h.app.Logger.Err(err)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "Our system encountered an error while trying to finalize share. Please try again soon",
+			"message": "Invalid pipe ID",
 		})
 		return
 	}
 
-	if shareType == "public" {
-		sharedPipe, err := h.app.Services.SharePublicPipe(int64(pipeID), loggedInUser)
+	switch req.Type {
+	case models.PipeShareTypePublic:
+		sharedPipe, err := h.app.Services.SharePipePublicly(pipeId, sharerId)
 		if err != nil {
-			h.app.Logger.Err(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Our system encountered an error while trying to finalize share. Please try again soon",
+				"err":     err.Error(),
 			})
 			return
 		}
@@ -62,24 +69,24 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 				"share_code": sharedPipe.Code,
 			},
 		})
-	} else if shareType == "private" {
-		shareReq := struct {
-			Username string `json:"username" binding:"required"`
-		}{}
-		if err := c.ShouldBindJSON(&shareReq); err != nil {
+		return
+
+	case models.PipeShareTypePrivate:
+		// validate that a valid username was sent alongside the request
+		if strings.TrimSpace(req.Username) == "" {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "Please provide a user to share pipe with",
+				"message": "For a private pipe share, you have to specify a username you want to share to",
 			})
+			return
 		}
-		shareTo := shareReq.Username
-		userToShareTo, err := h.app.Repositories.User.GetUserByUsername(shareTo)
+		receiver, err := h.app.Repositories.User.GetUserByUsername(req.Username)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"message": "The specified user not found",
 			})
 			return
 		}
-		_, err = h.app.Services.SharePrivatePipe(int64(pipeID), loggedInUser, shareTo)
+		_, err = h.app.Services.SharePipePrivately(pipeId, sharerId, receiver.Username)
 		if err != nil {
 			if err == postgres.ErrPipeShareToNotFound || err == postgres.ErrCannotSharePipeToSelf {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -87,25 +94,28 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 				})
 				return
 			}
-			h.app.Logger.Err(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Our system encountered an error while trying to finalize share. Please try again soon",
+				"err":     err.Error(),
 			})
 			return
 		}
 
-		err = h.app.Services.CreatePrivatePipeShareNotification(int64(pipeID), loggedInUser, userToShareTo.ID)
+		err = h.app.Services.CreatePrivatePipeShareNotification(pipeId, sharerId, receiver.ID)
 		if err != nil {
 			h.app.Logger.Err(err).Msg("An error occurred while creating share notification")
 		}
 		c.JSON(http.StatusCreated, gin.H{
-			"message": fmt.Sprintf("Pipe has been shared to %v successfully", shareTo),
+			"message": fmt.Sprintf("Pipe has been shared with %v successfully", receiver.Username),
 		})
-	} else {
+
+	default:
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid pipe share type",
+			"message": "Share types can either be public or private",
 		})
+		return
 	}
+
 }
 
 func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
@@ -187,6 +197,7 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 
 func (h pipeShareHandler) AddPipe(c *gin.Context) {
 	code := c.Query("code")
+
 	// See if the pipe is an actual pipe
 	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
@@ -211,6 +222,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "You cannot add pipe to collection because it's yours!",
 		})
+		return
 	}
 
 	switch pipeToAdd.Type {
@@ -281,7 +293,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		pipeShareRecord, err := h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.PipeID, c.GetInt64(middlewares.KeyUserId))
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "an error occurred while addding pipe to your collection",
+				"message": "an error occurred while adding pipe to your collection",
 				"err":     err.Error(),
 			})
 			return
@@ -291,11 +303,12 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 			c.AbortWithStatusJSON(http.StatusConflict, gin.H{
 				"message": "this pipe is already in your collection",
 			})
+			return
 		}
 		_, err = h.app.Repositories.PipeShare.AcceptPrivateShare(pipeShareRecord)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "an error occurred while addding pipe to your collection",
+				"message": "an error occurred while adding pipe to your collection",
 				"err":     err.Error(),
 			})
 			return
@@ -305,6 +318,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusConflict, gin.H{
 			"message": "Operation not allowed for pipe sharing",
 		})
+		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
