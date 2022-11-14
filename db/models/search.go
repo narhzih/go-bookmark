@@ -1,9 +1,10 @@
 package models
 
 const (
-	SearchTypePipes = "pipes"
-	SearchTypeTags  = "tags"
-	SearchTypeAll   = "all"
+	SearchTypePipes    = "pipes"
+	SearchTypeTags     = "tags"
+	SearchTypePlatform = "platform"
+	SearchTypeAll      = "all"
 )
 
 type AllSearchResult struct {

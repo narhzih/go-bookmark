@@ -7,46 +7,46 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 )
 
-func (s Services) SharePublicPipe(pipeId, userId int64) (models.SharedPipe, error) {
-	var sharedPipeModel models.SharedPipe
+func (s Services) SharePipePublicly(pipeId, userId int64) (models.SharedPipe, error) {
+	var sharedPipeRecord models.SharedPipe
 	var pipeToBeShared models.Pipe
 	var err error
 
 	pipeToBeShared, err = s.Repositories.Pipe.GetPipe(pipeId, userId)
 	if err != nil {
-		return sharedPipeModel, err
+		return sharedPipeRecord, err
 	}
-	sharedPipeModel.PipeID = pipeToBeShared.ID
-	sharedPipeModel.SharerID = pipeToBeShared.UserID
-	sharedPipeModel.Type = "public"
-	sharedPipeModel.Code = helpers.RandomToken(15)
+	sharedPipeRecord.PipeID = pipeToBeShared.ID
+	sharedPipeRecord.SharerID = pipeToBeShared.UserID
+	sharedPipeRecord.Type = "public"
+	sharedPipeRecord.Code = helpers.RandomToken(15)
 	// Parse an empty string to the receiver since it's a public pipe sharer
-	sharedPipeModel, err = s.Repositories.PipeShare.CreatePipeShareRecord(sharedPipeModel, "")
+	sharedPipeRecord, err = s.Repositories.PipeShare.CreatePipeShareRecord(sharedPipeRecord, "")
 	if err != nil {
-		return sharedPipeModel, err
+		return sharedPipeRecord, err
 	}
-	return sharedPipeModel, nil
+	return sharedPipeRecord, nil
 }
 
-func (s Services) SharePrivatePipe(pipeId, userId int64, shareTo string) (models.SharedPipe, error) {
-	var sharedPipeModel models.SharedPipe
+func (s Services) SharePipePrivately(pipeId, userId int64, shareTo string) (models.SharedPipe, error) {
+	var sharedPipeRecord models.SharedPipe
 	var pipeToBeShared models.Pipe
 	var err error
 
 	pipeToBeShared, err = s.Repositories.Pipe.GetPipe(pipeId, userId)
 	if err != nil {
-		return sharedPipeModel, err
+		return sharedPipeRecord, err
 	}
-	sharedPipeModel.PipeID = pipeToBeShared.ID
-	sharedPipeModel.SharerID = pipeToBeShared.UserID
-	sharedPipeModel.Type = "private"
-	sharedPipeModel.Code = helpers.RandomToken(15)
+	sharedPipeRecord.PipeID = pipeToBeShared.ID
+	sharedPipeRecord.SharerID = pipeToBeShared.UserID
+	sharedPipeRecord.Type = "private"
+	sharedPipeRecord.Code = helpers.RandomToken(15)
 	// Parse an empty string to the receiver since it's a public pipe sharer
-	sharedPipeModel, err = s.Repositories.PipeShare.CreatePipeShareRecord(sharedPipeModel, shareTo)
+	sharedPipeRecord, err = s.Repositories.PipeShare.CreatePipeShareRecord(sharedPipeRecord, shareTo)
 	if err != nil {
-		return sharedPipeModel, err
+		return sharedPipeRecord, err
 	}
-	return sharedPipeModel, nil
+	return sharedPipeRecord, nil
 }
 
 func (s Services) CanPreviewAndCanAdd(pipe models.Pipe, userId int64) (bool, error) {
