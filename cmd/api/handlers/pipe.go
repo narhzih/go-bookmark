@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -96,7 +97,7 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 	h.app.Logger.Info().Msg("Actual pipe creation has started")
 	pipe := models.Pipe{
 		UserID:     c.GetInt64(middlewares.KeyUserId),
-		Name:       pipeName,
+		Name:       strings.TrimSpace(strings.ToLower(pipeName)),
 		CoverPhoto: photoUrl,
 	}
 	newPipe, err := h.app.Repositories.Pipe.CreatePipe(pipe)
@@ -278,6 +279,7 @@ func (h pipeHandler) UpdatePipe(c *gin.Context) {
 		pipe.CoverPhoto = photoUrl
 	}
 
+	pipe.Name = strings.TrimSpace(strings.ToLower(pipe.Name))
 	pipe, err = h.app.Repositories.Pipe.UpdatePipe(c.GetInt64(middlewares.KeyUserId), pipeId, pipe)
 	if err != nil {
 		if err == postgres.ErrRecordExists {
