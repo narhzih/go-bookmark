@@ -57,6 +57,7 @@ func (h twitterBotHandler) BotAddToPipe(c *gin.Context) {
 	}
 	refinedPipeNames := strings.TrimSpace(req.PipeName)
 	pipeNames := strings.Split(refinedPipeNames, ",")
+	var encounteredError = true
 	for _, name := range pipeNames {
 		h.app.Logger.Info().Msg(fmt.Sprintf("adding bookmark to %s", name))
 		pipe, err = h.app.Repositories.Pipe.GetPipeByName(strings.ToLower(name), user.ID)
@@ -64,6 +65,9 @@ func (h twitterBotHandler) BotAddToPipe(c *gin.Context) {
 			if err == postgres.ErrNoRecord {
 				h.app.Logger.Info().Msg(fmt.Sprintf("pipe name %s doesn't exist, moving on...", name))
 				// Just skip the process for this particular pipe if it doesn't exist
+				if encounteredError != false {
+					encounteredError = true
+				}
 				continue
 			} else {
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -86,6 +90,7 @@ func (h twitterBotHandler) BotAddToPipe(c *gin.Context) {
 			})
 			return
 		}
+		encounteredError = false
 	}
 
 	//if bookmark.Url != "" {
@@ -94,7 +99,12 @@ func (h twitterBotHandler) BotAddToPipe(c *gin.Context) {
 	//		h.app.Logger.Err(err).Msg("An error occurred while creating notification for twitter pipe share")
 	//	}
 	//}
-
+	if encounteredError != false {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "No pipe with the specified name exists",
+		})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Bookmark created added to desired pipes successfully",
 	})
