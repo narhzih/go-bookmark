@@ -28,17 +28,25 @@ func NewPipeShareHandler(app internal.Application) PipeShareHandler {
 }
 
 func (h pipeShareHandler) SharePipe(c *gin.Context) {
-	// Validate inputs integrity
-	req := struct {
-		Type     string `form:"type" json:"type" binding:"required"`
-		Username string `form:"username" json:"username"`
-	}{}
-	if err := c.ShouldBindQuery(&req); err != nil {
+	reqType := c.Query("type")
+	if strings.TrimSpace(reqType) == "" {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Please specify a valid share type",
 		})
 		return
 	}
+
+	// Validate inputs integrity
+	req := struct {
+		Username string `form:"username" json:"username"`
+	}{}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": err.Error(),
+		})
+		return
+	}
+	h.app.Logger.Info().Msg(fmt.Sprintf("username -> %s", req.Username))
 
 	sharerId := c.GetInt64(middlewares.KeyUserId)
 	id, _ := strconv.Atoi(c.Param("id"))
@@ -52,7 +60,7 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 		return
 	}
 
-	switch req.Type {
+	switch reqType {
 	case models.PipeShareTypePublic:
 		sharedPipe, err := h.app.Services.SharePipePublicly(pipeId, sharerId)
 		if err != nil {
