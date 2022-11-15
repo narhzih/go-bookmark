@@ -77,3 +77,17 @@ VALUES
     (1, 'Second test on the notification'),
     (1, 'Third test on the notification'),
     (1, 'Fourth test on the notification');
+
+-- populate pipe share table
+INSERT INTO shared_pipes
+    (sharer_id, pipe_id, type, code, created_at, modified_at)
+VALUES
+    (1, 1, 'private', 'MG78k9lig67', now(), now()),
+    (1, 2, 'public', 'MG78k9lig68', now(), now());
+
+-- populate shared pipe receivers table
+INSERT INTO shared_pipe_receivers
+    (sharer_id, shared_pipe_id, receiver_id, created_at, modified_at, is_accepted)
+VALUES
+    (1, 2, 2, now(), now(), true),
+    (1, 1, 2, now(), now(), false);
