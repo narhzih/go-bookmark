@@ -89,4 +89,5 @@ VALUES
 INSERT INTO shared_pipe_receivers
     (sharer_id, shared_pipe_id, receiver_id, created_at, modified_at, is_accepted)
 VALUES
-    (1, 1, 2, now(), now(), true);
+    (1, 2, 2, now(), now(), true),
+    (1, 1, 2, now(), now(), false);

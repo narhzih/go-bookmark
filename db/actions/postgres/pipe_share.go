@@ -7,7 +7,6 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
-	"os"
 	"time"
 )
 
@@ -138,10 +137,20 @@ func (p pipeShareActions) CreatePipeReceiver(receiver models.SharedPipeReceiver)
 	return receiver, nil
 }
 
+// GetSharedPipe retrieves a pipe share record for a particular pipe
 func (p pipeShareActions) GetSharedPipe(pipeId int64) (models.SharedPipe, error) {
 	var sharedPipe models.SharedPipe
-	query := "SELECT id, sharer_id, pipe_id, type, code, created_at FROM shared_pipes WHERE pipe_id=$1 LIMIT 1"
-	err := p.Db.QueryRow(query, pipeId).Scan(
+	query := `
+	SELECT id, sharer_id, pipe_id, type, code, created_at 
+	FROM shared_pipes 
+	WHERE pipe_id=$1 
+	LIMIT 1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(ctx, query, pipeId).Scan(
 		&sharedPipe.ID,
 		&sharedPipe.SharerID,
 		&sharedPipe.PipeID,
@@ -149,8 +158,9 @@ func (p pipeShareActions) GetSharedPipe(pipeId int64) (models.SharedPipe, error)
 		&sharedPipe.Code,
 		&sharedPipe.CreatedAt,
 	)
+
 	if err != nil {
-		if err == ErrNoRecord {
+		if err == sql.ErrNoRows {
 			return models.SharedPipe{}, ErrNoRecord
 		}
 		return models.SharedPipe{}, err
@@ -158,10 +168,20 @@ func (p pipeShareActions) GetSharedPipe(pipeId int64) (models.SharedPipe, error)
 	return sharedPipe, nil
 }
 
+// GetSharedPipeByCode retrieves a shared pipe record by share code
 func (p pipeShareActions) GetSharedPipeByCode(code string) (models.SharedPipe, error) {
 	var sharedPipe models.SharedPipe
-	query := "SELECT id,sharer_id, pipe_id, type, code, created_at FROM shared_pipes WHERE code=$1 LIMIT 1"
-	err := p.Db.QueryRow(query, code).Scan(
+	query := `
+	SELECT id,sharer_id, pipe_id, type, code, created_at 
+	FROM shared_pipes 
+	WHERE code=$1 
+	LIMIT 1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(ctx, query, code).Scan(
 		&sharedPipe.ID,
 		&sharedPipe.SharerID,
 		&sharedPipe.PipeID,
@@ -178,37 +198,51 @@ func (p pipeShareActions) GetSharedPipeByCode(code string) (models.SharedPipe, e
 	return sharedPipe, nil
 }
 
+// GetReceivedPipeRecord retrieves a received pipe record by pipe id and a designated user id
 func (p pipeShareActions) GetReceivedPipeRecord(pipeId, userId int64) (models.SharedPipeReceiver, error) {
-	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
 
 	var sharedPipe models.SharedPipeReceiver
-	query := "SELECT id, shared_pipe_id, receiver_id FROM shared_pipe_receivers WHERE shared_pipe_id=$1 AND receiver_id=$2 LIMIT 1"
-	err := p.Db.QueryRow(query, pipeId, userId).Scan(
+	query := `
+	SELECT id, sharer_id, shared_pipe_id, receiver_id, is_accepted
+	FROM shared_pipe_receivers 
+	WHERE shared_pipe_id=$1 AND receiver_id=$2 
+	LIMIT 1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(ctx, query, pipeId, userId).Scan(
 		&sharedPipe.ID,
+		&sharedPipe.SharerId,
 		&sharedPipe.SharedPipeId,
 		&sharedPipe.ReceiverID,
+		&sharedPipe.IsAccepted,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return models.SharedPipeReceiver{}, ErrNoRecord
 		}
-		logger.Info().Msg("There's a specific error somewhere")
-		logger.Err(err)
+		p.Logger.Err(err)
 		return models.SharedPipeReceiver{}, err
 	}
 	return sharedPipe, nil
 }
 
+// AcceptPrivateShare accept a private share
 func (p pipeShareActions) AcceptPrivateShare(receiver models.SharedPipeReceiver) (models.SharedPipeReceiver, error) {
 	query := `
 	UPDATE shared_pipe_receivers 
 	SET 
-	    is_accepted=true 
+	    is_accepted=true, modified_at=now()
 	WHERE receiver_id=$1 AND shared_pipe_id=$2
 	RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
 	`
 
-	err := p.Db.QueryRow(query, receiver.ReceiverID, receiver.SharedPipeId).Scan(
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(ctx, query, receiver.ReceiverID, receiver.SharedPipeId).Scan(
 		&receiver.ID,
 		&receiver.SharerId,
 		&receiver.SharedPipeId,
