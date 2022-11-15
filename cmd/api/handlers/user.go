@@ -5,17 +5,14 @@ import (
 	"errors"
 	"fmt"
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/gin-gonic/gin"
 	"github.com/mypipeapp/mypipeapi/cmd/api/helpers"
 	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 	"github.com/mypipeapp/mypipeapi/cmd/api/middlewares"
 	"github.com/mypipeapp/mypipeapi/cmd/api/services"
 	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
 	"github.com/mypipeapp/mypipeapi/db/models"
-	"github.com/rs/zerolog"
 	"net/http"
-	"os"
-
-	"github.com/gin-gonic/gin"
 )
 
 type UserHandler interface {
@@ -187,9 +184,9 @@ func (h userHandler) EditProfile(c *gin.Context) {
 }
 
 func (h userHandler) UploadCoverPhoto(c *gin.Context) {
-	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+	var user models.User
 	uploadInformation := services.FileUploadInformation{
-		Logger:        logger,
+		Logger:        h.app.Logger,
 		Ctx:           c,
 		FileInputName: "cover_photo",
 		Type:          "user",
@@ -207,11 +204,9 @@ func (h userHandler) UploadCoverPhoto(c *gin.Context) {
 		})
 		return
 	}
-	updatedUserModel := models.User{
-		ID:          c.GetInt64(middlewares.KeyUserId),
-		CovertPhoto: photoUrl,
-	}
-	user, err := h.app.Repositories.User.UpdateUser(updatedUserModel)
+	user, _ = h.app.Repositories.User.GetUserById(c.GetInt64(middlewares.KeyUserId))
+	user.CovertPhoto = photoUrl
+	user, err = h.app.Repositories.User.UpdateUser(user)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 			"message": "An error occurred while trying update user profile",
@@ -219,7 +214,7 @@ func (h userHandler) UploadCoverPhoto(c *gin.Context) {
 		})
 		return
 	}
-	logger.Info().Msg(photoUrl)
+	h.app.Logger.Info().Msg(photoUrl)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Image uploaded successfully",
 		"data": map[string]interface{}{
