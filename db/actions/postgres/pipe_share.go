@@ -109,13 +109,21 @@ func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe,
 	return pipeShareData, nil
 }
 
+// CreatePipeReceiver creates a receiver for a pipe share
+// receiver record for public pipe share is automatically marked as accepted
+// while private pipe shares needs to be accepted by the receiver in another step
 func (p pipeShareActions) CreatePipeReceiver(receiver models.SharedPipeReceiver) (models.SharedPipeReceiver, error) {
 	query := `
-			INSERT INTO shared_pipe_receivers (sharer_id, shared_pipe_id, receiver_id, is_accepted)
-			VALUES ($1, $2, $3, $4)
-			RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
+	INSERT INTO shared_pipe_receivers 
+	    (sharer_id, shared_pipe_id, receiver_id, is_accepted)
+	VALUES ($1, $2, $3, $4)
+	RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
 	`
-	err := p.Db.QueryRow(query, receiver.SharerId, receiver.SharedPipeId, receiver.ReceiverID, receiver.IsAccepted).Scan(
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(ctx, query, receiver.SharerId, receiver.SharedPipeId, receiver.ReceiverID, receiver.IsAccepted).Scan(
 		&receiver.ID,
 		&receiver.SharerId,
 		&receiver.SharedPipeId,
