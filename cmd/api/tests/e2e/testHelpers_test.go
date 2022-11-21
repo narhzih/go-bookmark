@@ -175,3 +175,8 @@ func createGlobalUserAndLogin() {
 	globalUserEmail = loginResData.Data.User.Email
 	globalUserID = loginResData.Data.User.Id
 }
+
+func attachAuthHeader(req *http.Request) *http.Request {
+	req.Header.Add("Authorization", "Bearer "+globalAccessToken)
+	return req
+}

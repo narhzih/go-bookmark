@@ -10,9 +10,7 @@ import (
 	"github.com/mypipeapp/mypipeapi/cmd/api/services"
 	"github.com/mypipeapp/mypipeapi/db/actions/postgres"
 	"github.com/mypipeapp/mypipeapi/db/models"
-	"github.com/rs/zerolog"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -36,18 +34,22 @@ func NewPipeHandler(app internal.Application) PipeHandler {
 }
 
 func (h pipeHandler) CreatePipe(c *gin.Context) {
-	pipeName := c.PostForm("name")
-	var photoUrl = ""
-	if len(pipeName) <= 0 {
-		c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
-			"message": "Please specify a pipe name",
-		})
-		return
-	}
+	req := struct {
+		Name string `form:"name" json:"name" binding:"required"`
+	}{}
 
-	pipeAlreadyExists, err := h.app.Repositories.Pipe.PipeAlreadyExists(pipeName, c.GetInt64(middlewares.KeyUserId))
+	if err := c.ShouldBind(&req); err != nil {
+		errMessage := helpers.ParseErrorMessage(err.Error())
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": errMessage,
+		})
+	}
+	authenticatedUser := middlewares.GetLoggedInUser(c)
+
+	// TODO: refine db call to remove extra step of first checking if pipe
+	//		 already exists
+	pipeAlreadyExists, err := h.app.Repositories.Pipe.PipeAlreadyExists(req.Name, authenticatedUser.ID)
 	if err != nil {
-		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "An error occurred during validation",
 			"err":     err.Error(),
@@ -60,9 +62,10 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 		})
 		return
 	}
-	logger := zerolog.New(os.Stderr).With().Caller().Timestamp().Logger()
+
 	// Check if a file was added
-	_, _, err = c.Request.FormFile("cover_photo")
+	var photoUrl = ""
+	file, _, err := c.Request.FormFile("cover_photo")
 	if err != nil {
 		if err != http.ErrMissingFile {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -70,9 +73,12 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 			})
 			return
 		}
-	} else {
+	}
+
+	if file != nil {
+		// Upload image to cloudinary
 		uploadInformation := services.FileUploadInformation{
-			Logger:        logger,
+			Logger:        h.app.Logger,
 			Ctx:           c,
 			FileInputName: "cover_photo",
 			Type:          "pipe",
@@ -80,13 +86,6 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 		photoUrl, err = services.UploadToCloudinary(uploadInformation)
 		if err != nil {
 			h.app.Logger.Err(err).Msg(err.Error())
-			if err == http.ErrMissingFile {
-				c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{
-					"message": "No file was uploaded. Please select a file to upload as your pipe cover",
-					"err":     err.Error(),
-				})
-				return
-			}
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "An error occurred when trying to process pipe image",
 				"err":     err.Error(),
@@ -94,13 +93,14 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 			return
 		}
 	}
-	h.app.Logger.Info().Msg("Actual pipe creation has started")
+
 	pipe := models.Pipe{
-		UserID:     c.GetInt64(middlewares.KeyUserId),
-		Name:       strings.TrimSpace(strings.ToLower(pipeName)),
+		UserID:     authenticatedUser.ID,
+		Name:       strings.TrimSpace(strings.ToLower(req.Name)),
 		CoverPhoto: photoUrl,
 	}
-	newPipe, err := h.app.Repositories.Pipe.CreatePipe(pipe)
+
+	pipe, err = h.app.Repositories.Pipe.CreatePipe(pipe)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -112,7 +112,7 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 	// The only error expected to come up when trying to create a pipe
 	// is if there's already a pipe with the same name existing for the
 	// user that's trying to create the pipe. This error will be handled later
-	fetchedPipe, err := h.app.Repositories.Pipe.GetPipe(newPipe.ID, newPipe.UserID)
+	pipe, err = h.app.Repositories.Pipe.GetPipe(pipe.ID, pipe.UserID)
 	if err != nil {
 		h.app.Logger.Err(err).Msg(err.Error())
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
@@ -125,19 +125,11 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Pipe created successfully",
 		"data": map[string]interface{}{
-			"pipe": map[string]interface{}{
-				"id":          fetchedPipe.ID,
-				"user_id":     fetchedPipe.UserID,
-				"bookmarks":   fetchedPipe.Bookmarks,
-				"name":        fetchedPipe.Name,
-				"created_at":  fetchedPipe.CreatedAt,
-				"modified_at": fetchedPipe.ModifiedAt,
-				"creator":     fetchedPipe.Creator,
-			},
+			"pipe": pipe,
 		},
 	})
-
 }
+
 func (h pipeHandler) GetPipe(c *gin.Context) {
 	userID := c.GetInt64(middlewares.KeyUserId)
 	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)

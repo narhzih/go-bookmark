@@ -122,6 +122,7 @@ func (h userHandler) EditProfile(c *gin.Context) {
 		}
 
 	}
+
 	if file != nil {
 		// This means a file was uploaded with the request
 		// Try uploading it to Cloudinary

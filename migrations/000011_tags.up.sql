@@ -3,4 +3,4 @@ CREATE TABLE IF NOT EXISTS tags (
     name VARCHAR(255),
     created_at TIMESTAMPTZ DEFAULT now(),
     modified_at TIMESTAMPTZ DEFAULT now()
-)
+);
