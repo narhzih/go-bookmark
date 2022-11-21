@@ -139,12 +139,14 @@ var acceptPrivateShareTestCases = map[string]struct {
 }{
 	"success": {
 		inputReceiver: models.SharedPipeReceiver{
+			ID:           2,
 			SharedPipeId: 2,
 			SharerId:     1,
 			ReceiverID:   2,
 			IsAccepted:   false,
 		},
 		wantReceiver: models.SharedPipeReceiver{
+			ID:           2,
 			SharedPipeId: 2,
 			SharerId:     1,
 			ReceiverID:   2,

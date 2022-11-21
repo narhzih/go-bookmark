@@ -235,14 +235,14 @@ func (p pipeShareActions) AcceptPrivateShare(receiver models.SharedPipeReceiver)
 	UPDATE shared_pipe_receivers 
 	SET 
 	    is_accepted=true, modified_at=now()
-	WHERE receiver_id=$1 AND shared_pipe_id=$2
+	WHERE id=$1
 	RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	err := p.Db.QueryRowContext(ctx, query, receiver.ReceiverID, receiver.SharedPipeId).Scan(
+	err := p.Db.QueryRowContext(ctx, query, receiver.ID).Scan(
 		&receiver.ID,
 		&receiver.SharerId,
 		&receiver.SharedPipeId,
@@ -251,6 +251,7 @@ func (p pipeShareActions) AcceptPrivateShare(receiver models.SharedPipeReceiver)
 		&receiver.CreatedAt,
 		&receiver.ModifiedAt,
 	)
+
 	if err != nil {
 		return receiver, err
 	}
