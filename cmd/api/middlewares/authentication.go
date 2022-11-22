@@ -85,7 +85,7 @@ func AuthRequired(app internal.Application, jwtSecret string) gin.HandlerFunc {
 			}
 
 		} else {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
 				"message": "You're not logged in!. Please login to perform this operation.",
 			})
 			return

@@ -140,11 +140,7 @@ func (h authHandler) VerifyAccount(c *gin.Context) {
 		return
 	}
 
-	//parsedTime, _ := time.Parse(time.RFC3339Nano, tokenFromDB.CreatedAt)
 	if tokenFromDB.Used == true || time.Now().Sub(tokenFromDB.CreatedAt).Hours() > 2 {
-		/** TODO: Generate a new token and send to user email and make sure that
-		 * the user tha token is to be generated for is not previously verified
-		 */
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "Token has expired",
 		})
@@ -260,8 +256,6 @@ func (h authHandler) EmailLogin(c *gin.Context) {
 		})
 		return
 	}
-
-	// Validate the password provided by the user
 
 }
 

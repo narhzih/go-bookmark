@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS users
     profile_name VARCHAR(205) DEFAULT '',
     email VARCHAR(100) DEFAULT '' UNIQUE,
     email_verified BOOLEAN DEFAULT  FALSE,
+    device_tokens TEXT ARRAY DEFAULT '{}',
+    twitter_id VARCHAR(255) DEFAULT '',
     cover_photo VARCHAR(500) DEFAULT '',
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT now(),
+    modified_at TIMESTAMPTZ DEFAULT now()
 );

@@ -298,6 +298,9 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 			})
 			return
 		}
+		c.JSON(http.StatusCreated, gin.H{
+			"message": "Pipe has been added to your collection successfully",
+		})
 	case models.PipeShareTypePrivate:
 		pipeShareRecord, err := h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.PipeID, c.GetInt64(middlewares.KeyUserId))
 		if err != nil {
@@ -322,6 +325,9 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 			})
 			return
 		}
+		c.JSON(http.StatusCreated, gin.H{
+			"message": "Pipe has been added to your collection successfully",
+		})
 
 	default:
 		c.AbortWithStatusJSON(http.StatusConflict, gin.H{
@@ -330,9 +336,6 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Pipe has been added to your collection successfully",
-	})
 }
 
 func (h pipeShareHandler) RemoveShareAccessFromPipe(c *gin.Context) {}

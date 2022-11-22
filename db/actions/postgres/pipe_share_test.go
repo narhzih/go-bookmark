@@ -122,6 +122,7 @@ func Test_pipe_share_AcceptPrivateShare(t *testing.T) {
 			if nil == gotErr {
 				assert.WithinDuration(t, time.Now(), gotReceiver.ModifiedAt, 15*time.Second)
 				assert.Equal(t, gotReceiver.IsAccepted, tc.wantReceiver.IsAccepted)
+				assert.Equal(t, gotReceiver.SharerId, tc.wantReceiver.SharerId)
 			}
 		})
 	}
