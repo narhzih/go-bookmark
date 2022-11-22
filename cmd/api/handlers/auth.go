@@ -303,6 +303,14 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 				})
 				return
 			}
+			user, err = h.app.Repositories.User.VerifyUser(user)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "An error occurred while verifying user account",
+					"err":     err.Error(),
+				})
+				return
+			}
 		} else {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 				"message": "Error occurred while trying to register user",

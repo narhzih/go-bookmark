@@ -353,7 +353,9 @@ func (u userActions) VerifyUser(user models.User) (models.User, error) {
 	query := `
 	UPDATE users 
 	SET email_verified=true, modified_at=now()
-	WHERE id=$1 RETURNING id, email, username, profile_name, cover_photo, created_at, modified_at`
+	WHERE id=$1 
+	RETURNING id, email, username, profile_name, cover_photo, created_at, modified_at
+	`
 	err := u.Db.QueryRow(query, user.ID).Scan(
 		&user.ID,
 		&user.Email,
