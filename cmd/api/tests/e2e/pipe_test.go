@@ -2,7 +2,11 @@ package e2e
 
 import (
 	"bytes"
+	"encoding/json"
+	"io"
+	"mime/multipart"
 	"net/http"
+	"net/textproto"
 	"testing"
 )
 
@@ -19,13 +23,46 @@ func TestPipeCreationFlow(t *testing.T) {
 
 	t.Run("/v1/pipe", func(t *testing.T) {
 		t.Run("create pipe without cover photo", func(t *testing.T) {
-			reqBody := []byte(`{"name": "testpipea"}`)
-			req, err := http.NewRequest(http.MethodPost, "/v1/pipe/", bytes.NewBuffer(reqBody))
+
+			resJSON := struct {
+				Message string `json:"message"`
+			}{}
+			reqBody := []byte(`{"name": "testpipe1"}`)
+
+			// create an empty buffer and a writer to the empty buffer
+			buff := &bytes.Buffer{}
+			buffWriter := multipart.NewWriter(buff)
+
+			// create a multipart header for just the name input since
+			// we're testing pipe creation without a cover_photo
+			reqHeader := textproto.MIMEHeader{}
+			reqHeader.Set("Content-Type", "application/json; charset=UTF-8")
+			namePart, err := buffWriter.CreatePart(reqHeader)
+			if err != nil {
+				t.Fatalf("an error occurred %s", err)
+			}
+			_, err = namePart.Write(reqBody)
+			if err != nil {
+				t.Fatalf("an error occurred %s", err)
+			}
+			// close writer
+			err = buffWriter.Close()
+			if err != nil {
+				t.Fatalf("could not close writer: %s", err)
+			}
+
+			// proceed to create the actual request to create the pipe
+			req, err := http.NewRequest(http.MethodPost, "/v1/pipe/", bytes.NewReader(buff.Bytes()))
 			if err != nil {
 				t.Fatalf("could not create request %s", err)
 			}
+			req.Header.Add("Content-Type", "multipart/related; boundary="+buffWriter.Boundary())
 			req = attachAuthHeader(req)
 			res := executeRequest(req)
+			resBody, _ := io.ReadAll(res.Body)
+			json.Unmarshal(resBody, &resJSON)
+			t.Log(resJSON.Message)
+
 			checkResponseCode(t, http.StatusCreated, res.Code)
 		})
 

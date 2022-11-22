@@ -38,11 +38,12 @@ func (h pipeHandler) CreatePipe(c *gin.Context) {
 		Name string `form:"name" json:"name" binding:"required"`
 	}{}
 
-	if err := c.ShouldBind(&req); err != nil {
+	if err := c.Bind(&req); err != nil {
 		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 		})
+		return
 	}
 	authenticatedUser := middlewares.GetLoggedInUser(c)
 
