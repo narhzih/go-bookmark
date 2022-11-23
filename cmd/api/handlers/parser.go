@@ -3,7 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
-	helpers2 "github.com/mypipeapp/mypipeapi/cmd/api/helpers"
+	"github.com/mypipeapp/mypipeapi/cmd/api/helpers"
 	"github.com/mypipeapp/mypipeapi/cmd/api/internal"
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"net/http"
@@ -29,7 +29,7 @@ func (h parserHandler) TwitterLinkParser(c *gin.Context) {
 		Link string `json:"link"`
 	}{}
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
@@ -37,7 +37,7 @@ func (h parserHandler) TwitterLinkParser(c *gin.Context) {
 		return
 	}
 
-	parsedLink, err := helpers2.ParseTwitterLink(reqBody.Link)
+	parsedLink, err := helpers.ParseTwitterLink(reqBody.Link)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "An error occurred while parsing twitter link",
@@ -53,14 +53,14 @@ func (h parserHandler) YoutubeLinkParser(c *gin.Context) {
 		Link string `json:"link"`
 	}{}
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
 		})
 		return
 	}
-	parsedLink, err := helpers2.ParseYoutubeLink(reqBody.Link)
+	parsedLink, err := helpers.ParseYoutubeLink(reqBody.Link)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "An error occurred while parsing youtube link",
@@ -78,14 +78,14 @@ func (h parserHandler) ParseLink(c *gin.Context) {
 		Link string `json:"link"`
 	}{}
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
 		})
 		return
 	}
-	parsedLink, err := helpers2.ParseLink(reqBody.Link)
+	parsedLink, err := helpers.ParseLink(reqBody.Link)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": "An error occurred while parsing youtube link",
@@ -101,14 +101,14 @@ func (h parserHandler) GetCompleteThreadOfATweet(c *gin.Context) {
 		Link string `json:"link"`
 	}{}
 	if err := c.ShouldBindJSON(&reqBody); err != nil {
-		errMessage := helpers2.ParseErrorMessage(err.Error())
+		errMessage := helpers.ParseErrorMessage(err.Error())
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 			"message": errMessage,
 			"err":     err.Error(),
 		})
 		return
 	}
-	chatId := helpers2.GetTwitterChatId(reqBody.Link)
+	chatId := helpers.GetTwitterChatId(reqBody.Link)
 	expandedResponse, err := h.app.Services.ExpandTweet(chatId)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{

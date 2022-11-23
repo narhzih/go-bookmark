@@ -57,9 +57,8 @@ func (h searchHandler) Search(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"type":  "pipe",
-			"query": req.Type,
-			"result": map[string]interface{}{
+			"type": "pipe",
+			"data": map[string]interface{}{
 				"pipes": pipes,
 				"total": len(pipes),
 			},
@@ -83,9 +82,8 @@ func (h searchHandler) Search(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"type":  "bookmark",
-			"query": req.Type,
-			"result": map[string]interface{}{
+			"type": "bookmark",
+			"data": map[string]interface{}{
 				"bookmarks": bookmarks,
 				"total":     len(bookmarks),
 			},
@@ -109,9 +107,8 @@ func (h searchHandler) Search(c *gin.Context) {
 		}
 
 		c.JSON(http.StatusOK, gin.H{
-			"type":  "bookmark",
-			"query": req.Type,
-			"result": map[string]interface{}{
+			"type": "bookmark",
+			"data": map[string]interface{}{
 				"bookmarks": bookmarks,
 				"total":     len(bookmarks),
 			},

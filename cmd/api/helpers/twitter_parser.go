@@ -38,7 +38,9 @@ func ParseTwitterLink(twitterLink string) (string, error) {
 }
 
 func GetTwitterChatId(twitterLink string) string {
-	linkSlice := strings.Split(twitterLink, "/")
+	baseLink := strings.Split(twitterLink, "?")[0]
+	baseLink = strings.Trim(baseLink, "/")
+	linkSlice := strings.Split(baseLink, "/")
 	chatId := linkSlice[len(linkSlice)-1]
 	return chatId
 }
