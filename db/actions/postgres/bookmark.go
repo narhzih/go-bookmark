@@ -86,9 +86,19 @@ func (b bookmarkActions) GetBookmark(bmID, userID int64) (models.Bookmark, error
 func (b bookmarkActions) GetBookmarks(userID, pipeID int64) ([]models.Bookmark, error) {
 	var bookmarks []models.Bookmark
 	query := `
-	SELECT id, user_id, pipe_id, url, platform, created_at 
-	FROM bookmarks 
-	WHERE user_id=$1 AND pipe_id=$2
+	SELECT id, user_id, pipe_id, url, platform, created_at
+	FROM bookmarks
+	WHERE
+	    (user_id=$1 AND pipe_id=$2) OR
+	    (
+	        pipe_id IN
+	        (
+	            SELECT spr.shared_pipe_id
+	            FROM shared_pipe_receivers spr
+	            WHERE shared_pipe_id=$2 AND receiver_id=$1 AND is_accepted=true
+             )
+        )
+
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)

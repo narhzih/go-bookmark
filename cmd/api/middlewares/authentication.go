@@ -73,7 +73,7 @@ func AuthRequired(app internal.Application, jwtSecret string) gin.HandlerFunc {
 				return
 			}
 
-			if loggedInUser.Username == username && loggedInUser.ID == userId {
+			if loggedInUser.ID == userId {
 				c.Set(KeyUsername, username)
 				c.Set(KeyUserId, userId)
 				c.Next()
