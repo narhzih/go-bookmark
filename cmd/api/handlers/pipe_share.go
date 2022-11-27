@@ -62,16 +62,30 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 
 	switch reqType {
 	case models.PipeShareTypePublic:
-		sharedPipe, err := h.app.Services.SharePipePublicly(pipeId, sharerId)
+		// see if pipe has already been shared publicly
+		var sharedPipe models.SharedPipe
+		sharedPipe, err = h.app.Repositories.PipeShare.GetSharedPipe(pipeId)
 		if err != nil {
-			h.app.Logger.Err(err).Msg("an error occurred while sharing pipe publicly")
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"message": "Our system encountered an error while trying to finalize share. Please try again soon",
-				"err":     err.Error(),
-			})
-			return
-		}
+			if err == postgres.ErrNoRecord {
+				sharedPipe, err = h.app.Services.SharePipePublicly(pipeId, sharerId)
+				if err != nil {
+					h.app.Logger.Err(err).Msg("an error occurred while sharing pipe publicly")
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+						"message": "Our system encountered an error while trying to finalize share. Please try again soon",
+						"err":     err.Error(),
+					})
+					return
+				}
 
+			} else {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+					"message": "Our system encountered an error while trying to finalize share. Please try again soon",
+					"err":     err.Error(),
+				})
+				return
+			}
+
+		}
 		c.JSON(http.StatusCreated, gin.H{
 			"message": "Public pipe share created successfully. Get the code and share it to whomever you want to share your pipe with",
 			"data": map[string]interface{}{
@@ -95,29 +109,49 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 			})
 			return
 		}
-		_, err = h.app.Services.SharePipePrivately(pipeId, sharerId, receiver.Username)
+
+		_, err = h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeId, receiver.ID)
 		if err != nil {
-			h.app.Logger.Err(err).Msg("an error occurred while sharing pipe publicly")
-			if err == postgres.ErrPipeShareToNotFound || err == postgres.ErrCannotSharePipeToSelf {
+			if err == postgres.ErrNoRecord {
+				// it means this pipe has never been shared with this user before
+				// go ahead and create the record
+
+				_, err = h.app.Services.SharePipePrivately(pipeId, sharerId, receiver.Username)
+				if err != nil {
+					h.app.Logger.Err(err).Msg("an error occurred while sharing pipe publicly")
+					if err == postgres.ErrPipeShareToNotFound || err == postgres.ErrCannotSharePipeToSelf {
+						c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+							"message": err.Error(),
+						})
+						return
+					}
+					c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+						"message": "Our system encountered an error while trying to finalize share. Please try again soon",
+						"err":     err.Error(),
+					})
+					return
+				}
+
+				err = h.app.Services.CreatePrivatePipeShareNotification(pipeId, sharerId, receiver.ID)
+				if err != nil {
+					h.app.Logger.Err(err).Msg("An error occurred while creating share notification")
+				}
+				c.JSON(http.StatusCreated, gin.H{
+					"message": fmt.Sprintf("Pipe has been shared with %v successfully", receiver.Username),
+				})
+				return
+			} else {
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-					"message": err.Error(),
+					"message": "An error occurred while sharing pipe",
+					"err":     err.Error(),
 				})
 				return
 			}
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-				"message": "Our system encountered an error while trying to finalize share. Please try again soon",
-				"err":     err.Error(),
-			})
-			return
 		}
-
-		err = h.app.Services.CreatePrivatePipeShareNotification(pipeId, sharerId, receiver.ID)
-		if err != nil {
-			h.app.Logger.Err(err).Msg("An error occurred while creating share notification")
-		}
-		c.JSON(http.StatusCreated, gin.H{
-			"message": fmt.Sprintf("Pipe has been shared with %v successfully", receiver.Username),
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"message": "This pipe has already been shared to " + receiver.Username + " previously",
 		})
+		return
 
 	default:
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -207,6 +241,7 @@ func (h pipeShareHandler) PreviewPipe(c *gin.Context) {
 
 func (h pipeShareHandler) AddPipe(c *gin.Context) {
 	code := c.Query("code")
+	h.app.Logger.Info().Msg("received share code is -> " + code)
 
 	// See if the pipe is an actual pipe
 	pipeToAdd, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(code)
