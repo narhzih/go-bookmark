@@ -23,7 +23,7 @@ func (s Services) CreateTwitterPipeShareNotification(tweetUrl, pipeName string, 
 
 }
 
-func (s Services) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sharedToId int64) error {
+func (s Services) CreatePrivatePipeShareNotification(sharedPipeCode string, sharedPipeId, sharerId, sharedToId int64) error {
 	sharedPipe, err := s.Repositories.Pipe.GetPipe(sharedPipeId, sharerId)
 	if err != nil {
 		return err
@@ -32,14 +32,10 @@ func (s Services) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sha
 	if err != nil {
 		return err
 	}
-	pipeShareRecord, err := s.Repositories.PipeShare.GetSharedPipe(sharedPipeId)
-	if err != nil {
-		return err
-	}
 	metadata := models.MDPrivatePipeShare{
 		Pipe:   sharedPipe,
 		Sharer: sharer,
-		Code:   pipeShareRecord.Code,
+		Code:   sharedPipeCode,
 	}
 	mdToJson, _ := json.Marshal(metadata)
 	message := sharer.Username + " shared a pipe with you"
