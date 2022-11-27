@@ -116,7 +116,7 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 				// it means this pipe has never been shared with this user before
 				// go ahead and create the record
 
-				_, err = h.app.Services.SharePipePrivately(pipeId, sharerId, receiver.Username)
+				sr, err := h.app.Services.SharePipePrivately(pipeId, sharerId, receiver.Username)
 				if err != nil {
 					h.app.Logger.Err(err).Msg("an error occurred while sharing pipe publicly")
 					if err == postgres.ErrPipeShareToNotFound || err == postgres.ErrCannotSharePipeToSelf {
@@ -132,7 +132,7 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 					return
 				}
 
-				err = h.app.Services.CreatePrivatePipeShareNotification(pipeId, sharerId, receiver.ID)
+				err = h.app.Services.CreatePrivatePipeShareNotification(sr.Code, pipeId, sharerId, receiver.ID)
 				if err != nil {
 					h.app.Logger.Err(err).Msg("An error occurred while creating share notification")
 				}
