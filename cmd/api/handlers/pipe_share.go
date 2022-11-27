@@ -235,8 +235,10 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		return
 	}
 
+	h.app.Logger.Info().Msg("Pipe share type to add is ->" + pipeToAdd.Type)
 	switch pipeToAdd.Type {
 	case models.PipeShareTypePublic:
+		h.app.Logger.Info().Msg("adding pipe publicly")
 		// Perform actions for public share type
 		_, err := h.app.Repositories.PipeShare.GetSharedPipeByCode(c.Query("code"))
 		if err != nil {
@@ -301,7 +303,9 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		c.JSON(http.StatusCreated, gin.H{
 			"message": "Pipe has been added to your collection successfully",
 		})
+		return
 	case models.PipeShareTypePrivate:
+		h.app.Logger.Info().Msg("adding pipe privately")
 		pipeShareRecord, err := h.app.Repositories.PipeShare.GetReceivedPipeRecord(pipeToAdd.PipeID, c.GetInt64(middlewares.KeyUserId))
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -328,6 +332,7 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 		c.JSON(http.StatusCreated, gin.H{
 			"message": "Pipe has been added to your collection successfully",
 		})
+		return
 
 	default:
 		c.AbortWithStatusJSON(http.StatusConflict, gin.H{
