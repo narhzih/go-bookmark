@@ -22,6 +22,7 @@ func (s Services) CreateTwitterPipeShareNotification(tweetUrl, pipeName string, 
 	return nil
 
 }
+
 func (s Services) CreatePrivatePipeShareNotification(sharedPipeId, sharerId, sharedToId int64) error {
 	sharedPipe, err := s.Repositories.Pipe.GetPipe(sharedPipeId, sharerId)
 	if err != nil {
@@ -76,21 +77,7 @@ func (s Services) SendPushNotification(title, message string, deviceTokens []str
 	if err != nil {
 		return err
 	}
-	//msg := &fcm.Message{
-	//	To: deviceTokens[0],
-	//	Data: map[string]interface{}{
-	//		"message": message,
-	//	},
-	//	Notification: &fcm.Notification{
-	//		Title: "My pipe notification",
-	//		Body:  "Notification body",
-	//	},
-	//}
-	//client, err := fcm.NewClient(os.Getenv("GFCM_SERVER_KEY"))
-	//if err != nil {
-	//	return err
-	//}
-	//response, err := client.Send(msg)
+
 	response, err := firebaseClient.SendMulticast(context.Background(), &messaging.MulticastMessage{
 		Notification: &messaging.Notification{
 			Title: title,
@@ -100,6 +87,7 @@ func (s Services) SendPushNotification(title, message string, deviceTokens []str
 	})
 
 	if err != nil {
+		s.Logger.Err(err).Msg("An error occurred while sending push notification")
 		return err
 	}
 
