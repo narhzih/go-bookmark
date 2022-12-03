@@ -87,7 +87,7 @@ VALUES
 
 -- populate shared pipe receivers table
 INSERT INTO shared_pipe_receivers
-    (sharer_id, shared_pipe_id, receiver_id, created_at, modified_at, is_accepted)
+    (sharer_id, shared_pipe_id, receiver_id, code, created_at, modified_at, is_accepted)
 VALUES
-    (1, 2, 2, now(), now(), true),
-    (1, 1, 2, now(), now(), false);
+    (1, 2, 2, 'MG78k9lig68', now(), now(), true),
+    (1, 1, 2, 'MG78k9lig67', now(), now(), false);

@@ -40,6 +40,7 @@ func Test_pipe_share_CreatePipeReceiver(t *testing.T) {
 			assert.Equal(t, gotErr, tc.wantErr)
 			if nil == gotErr {
 				assert.Equal(t, gotReceiver.ReceiverID, tc.wantReceiver.ReceiverID)
+				assert.Equal(t, gotReceiver.Code, tc.wantReceiver.Code)
 				assert.WithinDuration(t, time.Now(), gotReceiver.CreatedAt, 15*time.Second)
 			}
 		})
@@ -56,7 +57,7 @@ func Test_pipe_share_GetSharedPipe(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			db := newTestDb(t)
 			psa := NewPipeShareActions(db, logger)
-			gotSharedPipe, gotErr := psa.GetSharedPipe(tc.inputPipeId)
+			gotSharedPipe, gotErr := psa.GetSharedPipe(tc.inputPipeId, "")
 			assert.Equal(t, gotErr, tc.wantErr)
 			if nil == gotErr {
 				assert.Equal(t, gotSharedPipe.SharerID, tc.wantSharedPipe.SharerID)
@@ -100,6 +101,7 @@ func Test_pipe_share_GetReceivedPipeRecord(t *testing.T) {
 			assert.Equal(t, gotErr, tc.wantErr)
 			if nil == gotErr {
 				assert.Equal(t, gotReceiverRecord.SharerId, tc.wantReceivedPipeRecord.SharerId)
+				assert.Equal(t, gotReceiverRecord.Code, tc.wantReceivedPipeRecord.Code)
 				assert.Equal(t, gotReceiverRecord.ReceiverID, tc.wantReceivedPipeRecord.ReceiverID)
 			}
 		})
@@ -122,6 +124,7 @@ func Test_pipe_share_AcceptPrivateShare(t *testing.T) {
 			if nil == gotErr {
 				assert.WithinDuration(t, time.Now(), gotReceiver.ModifiedAt, 15*time.Second)
 				assert.Equal(t, gotReceiver.IsAccepted, tc.wantReceiver.IsAccepted)
+				assert.Equal(t, gotReceiver.Code, tc.wantReceiver.Code)
 				assert.Equal(t, gotReceiver.SharerId, tc.wantReceiver.SharerId)
 			}
 		})
