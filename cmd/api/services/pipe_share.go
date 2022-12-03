@@ -7,12 +7,12 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 )
 
-func (s Services) SharePipePublicly(pipeId, userId int64) (models.SharedPipe, error) {
+func (s Services) SharePipePublicly(pipeId, sharerId int64) (models.SharedPipe, error) {
 	var sharedPipeRecord models.SharedPipe
 	var pipeToBeShared models.Pipe
 	var err error
 
-	pipeToBeShared, err = s.Repositories.Pipe.GetPipe(pipeId, userId)
+	pipeToBeShared, err = s.Repositories.Pipe.GetPipe(pipeId, sharerId)
 	if err != nil {
 		return sharedPipeRecord, err
 	}
@@ -28,12 +28,12 @@ func (s Services) SharePipePublicly(pipeId, userId int64) (models.SharedPipe, er
 	return sharedPipeRecord, nil
 }
 
-func (s Services) SharePipePrivately(pipeId, userId int64, shareTo string) (models.SharedPipe, error) {
+func (s Services) SharePipePrivately(shareRecord models.SharedPipe, shareTo string) (models.SharedPipe, error) {
 	var sharedPipeRecord models.SharedPipe
 	var pipeToBeShared models.Pipe
 	var err error
 
-	pipeToBeShared, err = s.Repositories.Pipe.GetPipe(pipeId, userId)
+	pipeToBeShared, err = s.Repositories.Pipe.GetPipe(shareRecord.PipeID, shareRecord.SharerID)
 	if err != nil {
 		return sharedPipeRecord, err
 	}
@@ -49,8 +49,8 @@ func (s Services) SharePipePrivately(pipeId, userId int64, shareTo string) (mode
 	return sharedPipeRecord, nil
 }
 
-func (s Services) CanPreviewAndCanAdd(pipe models.Pipe, userId int64) (bool, error) {
-	pipeToAdd, err := s.Repositories.PipeShare.GetSharedPipe(pipe.ID)
+func (s Services) CanPreviewAndCanAdd(code string, userId int64) (bool, error) {
+	pipeToAdd, err := s.Repositories.PipeShare.GetSharedPipeByCode(code)
 	if err != nil {
 		return false, err
 	}

@@ -7,6 +7,7 @@ import (
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"github.com/mypipeapp/mypipeapi/db/repository"
 	"github.com/rs/zerolog"
+	"strings"
 	"time"
 )
 
@@ -94,6 +95,7 @@ func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe,
 			SharerId:     pipeShareData.SharerID,
 			SharedPipeId: pipeShareData.PipeID,
 			ReceiverID:   pipeShareReceiver.ID,
+			Code:         pipeShareData.Code,
 		})
 		if err != nil {
 			return models.SharedPipe{}, err
@@ -114,19 +116,26 @@ func (p pipeShareActions) CreatePipeShareRecord(pipeShareData models.SharedPipe,
 func (p pipeShareActions) CreatePipeReceiver(receiver models.SharedPipeReceiver) (models.SharedPipeReceiver, error) {
 	query := `
 	INSERT INTO shared_pipe_receivers 
-	    (sharer_id, shared_pipe_id, receiver_id, is_accepted)
-	VALUES ($1, $2, $3, $4)
-	RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
+	    (sharer_id, shared_pipe_id, receiver_id, code, is_accepted)
+	VALUES ($1, $2, $3, $4, $5)
+	RETURNING id, sharer_id, shared_pipe_id, receiver_id, code, is_accepted, created_at, modified_at
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	err := p.Db.QueryRowContext(ctx, query, receiver.SharerId, receiver.SharedPipeId, receiver.ReceiverID, receiver.IsAccepted).Scan(
+	err := p.Db.QueryRowContext(ctx, query,
+		receiver.SharerId,
+		receiver.SharedPipeId,
+		receiver.ReceiverID,
+		receiver.Code,
+		receiver.IsAccepted,
+	).Scan(
 		&receiver.ID,
 		&receiver.SharerId,
 		&receiver.SharedPipeId,
 		&receiver.ReceiverID,
+		&receiver.Code,
 		&receiver.IsAccepted,
 		&receiver.CreatedAt,
 		&receiver.ModifiedAt,
@@ -138,19 +147,22 @@ func (p pipeShareActions) CreatePipeReceiver(receiver models.SharedPipeReceiver)
 }
 
 // GetSharedPipe retrieves a pipe share record for a particular pipe
-func (p pipeShareActions) GetSharedPipe(pipeId int64) (models.SharedPipe, error) {
+func (p pipeShareActions) GetSharedPipe(pipeId int64, shareType string) (models.SharedPipe, error) {
+	if strings.TrimSpace(shareType) == "" {
+		shareType = models.PipeShareTypePrivate
+	}
 	var sharedPipe models.SharedPipe
 	query := `
 	SELECT id, sharer_id, pipe_id, type, code, created_at 
 	FROM shared_pipes 
-	WHERE pipe_id=$1 
+	WHERE pipe_id=$1 AND type=$2
 	LIMIT 1
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	err := p.Db.QueryRowContext(ctx, query, pipeId).Scan(
+	err := p.Db.QueryRowContext(ctx, query, pipeId, shareType).Scan(
 		&sharedPipe.ID,
 		&sharedPipe.SharerID,
 		&sharedPipe.PipeID,
@@ -203,7 +215,7 @@ func (p pipeShareActions) GetReceivedPipeRecord(pipeId, userId int64) (models.Sh
 
 	var sharedPipe models.SharedPipeReceiver
 	query := `
-	SELECT id, sharer_id, shared_pipe_id, receiver_id, is_accepted
+	SELECT id, sharer_id, shared_pipe_id, receiver_id, code, is_accepted
 	FROM shared_pipe_receivers 
 	WHERE shared_pipe_id=$1 AND receiver_id=$2 
 	LIMIT 1
@@ -217,6 +229,39 @@ func (p pipeShareActions) GetReceivedPipeRecord(pipeId, userId int64) (models.Sh
 		&sharedPipe.SharerId,
 		&sharedPipe.SharedPipeId,
 		&sharedPipe.ReceiverID,
+		&sharedPipe.Code,
+		&sharedPipe.IsAccepted,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.SharedPipeReceiver{}, ErrNoRecord
+		}
+		p.Logger.Err(err)
+		return models.SharedPipeReceiver{}, err
+	}
+	return sharedPipe, nil
+}
+
+// GetReceivedPipeRecordByCode retrieves a received pipe record by pipe id and a designated user id
+func (p pipeShareActions) GetReceivedPipeRecordByCode(code string, userId int64) (models.SharedPipeReceiver, error) {
+
+	var sharedPipe models.SharedPipeReceiver
+	query := `
+	SELECT id, sharer_id, shared_pipe_id, receiver_id, code, is_accepted
+	FROM shared_pipe_receivers 
+	WHERE code=$1 AND receiver_id=$2 
+	LIMIT 1
+	`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	err := p.Db.QueryRowContext(ctx, query, code, userId).Scan(
+		&sharedPipe.ID,
+		&sharedPipe.SharerId,
+		&sharedPipe.SharedPipeId,
+		&sharedPipe.ReceiverID,
+		&sharedPipe.Code,
 		&sharedPipe.IsAccepted,
 	)
 	if err != nil {
@@ -236,7 +281,7 @@ func (p pipeShareActions) AcceptPrivateShare(receiver models.SharedPipeReceiver)
 	SET 
 	    is_accepted=true, modified_at=now()
 	WHERE id=$1
-	RETURNING id, sharer_id, shared_pipe_id, receiver_id, is_accepted, created_at, modified_at
+	RETURNING id, sharer_id, shared_pipe_id, receiver_id, code, is_accepted, created_at, modified_at
 	`
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -247,6 +292,7 @@ func (p pipeShareActions) AcceptPrivateShare(receiver models.SharedPipeReceiver)
 		&receiver.SharerId,
 		&receiver.SharedPipeId,
 		&receiver.ReceiverID,
+		&receiver.Code,
 		&receiver.IsAccepted,
 		&receiver.CreatedAt,
 		&receiver.ModifiedAt,

@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS shared_pipe_receivers
     shared_pipe_id INT NOT NULL,
     receiver_id INT NOT NULL,
     is_accepted BOOLEAN DEFAULT false,
+    code VARCHAR(20) DEFAULT  '',
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     modified_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 )
