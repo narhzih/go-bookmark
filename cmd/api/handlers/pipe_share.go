@@ -187,6 +187,9 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 				}
 
 				err = h.app.Services.CreatePrivatePipeShareNotification(newPrivatePipeShareRecord.Code, newPrivatePipeShareRecord.PipeID, newPrivatePipeShareRecord.SharerID, receiver.ID)
+				if err != nil {
+					h.app.Logger.Err(err).Msg("Error occurred during push notification")
+				}
 				c.JSON(http.StatusOK, gin.H{
 					"message": "Pipe has been successfully shared with " + receiver.Username,
 				})
