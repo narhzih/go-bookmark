@@ -290,9 +290,9 @@ func (h authHandler) SignInWithGoogle(c *gin.Context) {
 			h.app.Logger.Info().Msg(fmt.Sprintf("username is %+v and email is %+v", claims.GivenName, claims.Email))
 			isNewUser = true
 			userCred := models.User{
-				Username:    strings.TrimSpace(claims.GivenName),
+				Username:    strings.ToLower(strings.TrimSpace(claims.GivenName)),
 				Email:       claims.Email,
-				ProfileName: strings.TrimSpace(claims.GivenName) + " " + strings.TrimSpace(claims.FamilyName),
+				ProfileName: strings.ToLower(strings.TrimSpace(claims.GivenName)) + " " + strings.ToLower(strings.TrimSpace(claims.FamilyName)),
 			}
 			user, err = h.app.Repositories.User.CreateUserByEmail(userCred, "", "GOOGLE")
 			if err != nil {
