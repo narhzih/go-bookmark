@@ -185,6 +185,8 @@ func (h pipeShareHandler) SharePipe(c *gin.Context) {
 						"err":     err.Error(),
 					})
 				}
+
+				err = h.app.Services.CreatePrivatePipeShareNotification(newPrivatePipeShareRecord.Code, newPrivatePipeShareRecord.PipeID, newPrivatePipeShareRecord.SharerID, receiver.ID)
 				c.JSON(http.StatusOK, gin.H{
 					"message": "Pipe has been successfully shared with " + receiver.Username,
 				})
@@ -395,7 +397,6 @@ func (h pipeShareHandler) AddPipe(c *gin.Context) {
 					"err":     err.Error(),
 				})
 				return
-				// HuCrrgGzdygZOPY
 			}
 		}
 		if !receiverRecord.IsAccepted {
