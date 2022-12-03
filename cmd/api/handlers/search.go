@@ -59,8 +59,10 @@ func (h searchHandler) Search(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"type": "pipe",
 			"data": map[string]interface{}{
-				"pipes": pipes,
-				"total": len(pipes),
+				"pipes": map[string]interface{}{
+					"result": pipes,
+					"total":  len(pipes),
+				},
 			},
 		})
 
@@ -84,8 +86,10 @@ func (h searchHandler) Search(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"type": "bookmark",
 			"data": map[string]interface{}{
-				"bookmarks": bookmarks,
-				"total":     len(bookmarks),
+				"bookmarks": map[string]interface{}{
+					"result": bookmarks,
+					"total":  len(bookmarks),
+				},
 			},
 		})
 
@@ -109,8 +113,10 @@ func (h searchHandler) Search(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"type": "bookmark",
 			"data": map[string]interface{}{
-				"bookmarks": bookmarks,
-				"total":     len(bookmarks),
+				"bookmarks": map[string]interface{}{
+					"result": bookmarks,
+					"total":  len(bookmarks),
+				},
 			},
 		})
 	case models.SearchTypeAll:
