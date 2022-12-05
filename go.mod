@@ -6,6 +6,7 @@ go 1.17
 require (
 	firebase.google.com/go v3.13.0+incompatible
 	github.com/cloudinary/cloudinary-go v1.4.0
+	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/golang-jwt/jwt v3.2.2+incompatible
@@ -15,6 +16,7 @@ require (
 	github.com/lib/pq v1.10.7
 	github.com/platformsh/config-reader-go/v2 v2.3.1
 	github.com/rs/zerolog v1.25.0
+	github.com/stretchr/testify v1.8.1
 	golang.org/x/crypto v0.1.0
 	google.golang.org/api v0.101.0
 	gotest.tools v2.2.0+incompatible
@@ -30,7 +32,6 @@ require (
 	cloud.google.com/go/storage v1.27.0 // indirect
 	github.com/creasty/defaults v1.5.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-playground/locales v0.14.0 // indirect
 	github.com/go-playground/universal-translator v0.18.0 // indirect
@@ -51,7 +52,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/ugorji/go/codec v1.2.6 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect

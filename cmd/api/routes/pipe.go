@@ -14,8 +14,10 @@ func setupPipeRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 
 	pipe := routeGroup.Group("/pipe")
 	pipe.Use(middlewares.AuthRequired(app, app.Services.JWTConfig.Key))
+
 	pipe.POST("/", h.CreatePipe)
 	pipe.GET("/:id", h.GetPipe)
+	pipe.POST("/bookmark", bookmarkH.CreateBookmark)
 	pipe.POST("/:id/share", pipeShareH.SharePipe)
 	pipe.PUT("/:id", h.UpdatePipe)
 	pipe.DELETE("/:id", h.DeletePipe)
@@ -24,7 +26,6 @@ func setupPipeRoutes(app internal.Application, routeGroup *gin.RouterGroup) {
 	pipe.POST("/add-pipe", pipeShareH.AddPipe)
 
 	pipe.GET("/:id/bookmarks", bookmarkH.GetBookmarks)
-	pipe.POST("/:id/bookmark", bookmarkH.CreateBookmark)
 	pipe.GET("/:id/bookmark/:bmId", bookmarkH.GetBookmark)
 	pipe.DELETE("/:id/bookmark/:bmId", bookmarkH.DeleteBookmark)
 }
