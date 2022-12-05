@@ -1,4 +1,4 @@
-include .env.prod
+include .env
 
 # --- HELPERS ---
 ## help: display this help message
