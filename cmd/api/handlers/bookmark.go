@@ -29,8 +29,9 @@ func NewBookmarkHandler(app internal.Application) BookmarkHandler {
 
 func (h bookmarkHandler) CreateBookmark(c *gin.Context) {
 	bmRequest := struct {
-		Url  string `json:"url" binding:"required"`
-		Tags string `json:"tags"`
+		Url   string  `json:"url" binding:"required"`
+		Tags  string  `json:"tags"`
+		Pipes []int64 `json:"pipes"`
 	}{}
 	if err := c.ShouldBindJSON(&bmRequest); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -41,65 +42,54 @@ func (h bookmarkHandler) CreateBookmark(c *gin.Context) {
 	var detectedPlatform string
 	detectedPlatform, _ = h.app.Services.GetPlatformFromLink(bmRequest.Url)
 	var bookmark models.Bookmark
-	pipeId, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		h.app.Logger.Err(err).Msg(err.Error())
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid pipe ID",
-		})
-		return
-	}
-	pipeExits, err := h.app.Services.PipeExists(pipeId, c.GetInt64(middlewares.KeyUserId))
-	if !pipeExits {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"message": "Invalid pipe to create bookmark",
-		})
-		return
-	}
-	if _, err := h.app.Services.UserOwnsPipe(pipeId, c.GetInt64(middlewares.KeyUserId)); err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"message": err.Error(),
-		})
-		return
-	}
-	bookmark = models.Bookmark{
-		UserID:   c.GetInt64(middlewares.KeyUserId),
-		PipeID:   pipeId,
-		Platform: detectedPlatform,
-		Url:      bmRequest.Url,
-	}
-	bookmark, err = h.app.Repositories.Bookmark.CreateBookmark(bookmark)
-	if err != nil {
-		if err == postgres.ErrRecordExists {
-			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"message": "You have already bookmarked this url",
+
+	for _, pid := range bmRequest.Pipes {
+		var err error
+		if _, err = h.app.Services.UserOwnsPipe(pid, c.GetInt64(middlewares.KeyUserId)); err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"message": err.Error(),
 			})
 			return
 		}
-		h.app.Logger.Err(err).Msg(err.Error())
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"message": "An error occurred when trying to create your bookmark",
-		})
-		return
-	}
-
-	// add tags to bookmark
-	if strings.TrimSpace(bmRequest.Tags) != "" {
-		parsedTags := strings.Split(bmRequest.Tags, ",")
-		var tagsSlice []models.Tag
-		for _, tagString := range parsedTags {
-			tagData := models.Tag{Name: strings.TrimSpace(tagString)}
-			tagsSlice = append(tagsSlice, tagData)
+		bookmark = models.Bookmark{
+			UserID:   c.GetInt64(middlewares.KeyUserId),
+			PipeID:   pid,
+			Platform: detectedPlatform,
+			Url:      bmRequest.Url,
 		}
-
-		err = h.app.Repositories.Tag.AddTagsToBookmark(bookmark.ID, tagsSlice)
+		bookmark, err = h.app.Repositories.Bookmark.CreateBookmark(bookmark)
 		if err != nil {
-			h.app.Logger.Err(err).Msg("error occurred while trying to save tags")
+			if err == postgres.ErrRecordExists {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"message": "You have already bookmarked this url",
+				})
+				return
+			}
+			h.app.Logger.Err(err).Msg(err.Error())
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"message": "An error occurred when trying to create your bookmark",
+			})
+			return
 		}
-	}
 
-	// don't really care if there's any error for now
-	bookmark, _ = h.app.Repositories.Bookmark.ParseTags(bookmark)
+		// add tags to bookmark
+		if strings.TrimSpace(bmRequest.Tags) != "" {
+			parsedTags := strings.Split(bmRequest.Tags, ",")
+			var tagsSlice []models.Tag
+			for _, tagString := range parsedTags {
+				tagData := models.Tag{Name: strings.TrimSpace(tagString)}
+				tagsSlice = append(tagsSlice, tagData)
+			}
+
+			err = h.app.Repositories.Tag.AddTagsToBookmark(bookmark.ID, tagsSlice)
+			if err != nil {
+				h.app.Logger.Err(err).Msg("error occurred while trying to save tags")
+			}
+		}
+
+		// don't really care if there's any error for now
+		bookmark, _ = h.app.Repositories.Bookmark.ParseTags(bookmark)
+	}
 
 	// parse the tags as part of the bookmarks and send it back
 
