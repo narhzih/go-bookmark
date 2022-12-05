@@ -63,8 +63,8 @@ func (s Services) SendPushNotification(title, message string, deviceTokens []str
 	if err != nil {
 		panic("Unable to load serviceAccountKeys.json file")
 	}
-	opts := []option.ClientOption{option.WithCredentialsFile(serviceAccountKeyFilePath)}
-	app, err := firebase.NewApp(context.Background(), nil, opts...)
+	opts := option.WithCredentialsFile(serviceAccountKeyFilePath)
+	app, err := firebase.NewApp(context.Background(), nil, opts)
 	if err != nil {
 		return err
 	}
