@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	firebase "firebase.google.com/go"
@@ -10,7 +9,7 @@ import (
 	"fmt"
 	"github.com/mypipeapp/mypipeapi/db/models"
 	"google.golang.org/api/option"
-	"os"
+	"path/filepath"
 )
 
 func (s Services) CreateTwitterPipeShareNotification(tweetUrl, pipeName string, userId int64) error {
@@ -46,6 +45,7 @@ func (s Services) CreatePrivatePipeShareNotification(sharedPipeCode string, shar
 
 	// try to send push notification
 	userDeviceTokens, err := s.Repositories.User.GetUserDeviceTokens(sharedToId)
+	s.Logger.Info().Msg(fmt.Sprintf("user device tokens -> %+v", userDeviceTokens))
 	switch {
 	case errors.Is(err, nil):
 		pnErr := s.SendPushNotification("Pipe share", message, userDeviceTokens)
@@ -59,11 +59,11 @@ func (s Services) CreatePrivatePipeShareNotification(sharedPipeCode string, shar
 }
 
 func (s Services) SendPushNotification(title, message string, deviceTokens []string) error {
-	decodedKey, err := getDecodedFireBaseKey()
+	serviceAccountKeyFilePath, err := filepath.Abs("./fbServiceAccount.json")
 	if err != nil {
-		return err
+		panic("Unable to load serviceAccountKeys.json file")
 	}
-	opts := []option.ClientOption{option.WithCredentialsJSON(decodedKey)}
+	opts := []option.ClientOption{option.WithCredentialsFile(serviceAccountKeyFilePath)}
 	app, err := firebase.NewApp(context.Background(), nil, opts...)
 	if err != nil {
 		return err
@@ -88,17 +88,6 @@ func (s Services) SendPushNotification(title, message string, deviceTokens []str
 	}
 
 	s.Logger.Info().Msg(fmt.Sprintf("%#v\n", response))
+	s.Logger.Info().Msg(fmt.Sprintf("successfully sent push notification..."))
 	return nil
-}
-
-func getDecodedFireBaseKey() ([]byte, error) {
-
-	fireBaseAuthKey := os.Getenv("GFCM_SERVER_KEY")
-
-	decodedKey, err := base64.StdEncoding.DecodeString(fireBaseAuthKey)
-	if err != nil {
-		return nil, err
-	}
-
-	return decodedKey, nil
 }
