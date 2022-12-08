@@ -78,6 +78,7 @@ func (s Services) generateTokenPair(user models.User) (accessToken, refreshToken
 }
 
 func (s Services) ValidateGoogleJWT(tokenString, device string) (models.GoogleClaim, error) {
+
 	//claimStruct := GoogleClaims{}
 	//token, err := jwt.ParseWithClaims(
 	//	tokenString,
@@ -102,6 +103,7 @@ func (s Services) ValidateGoogleJWT(tokenString, device string) (models.GoogleCl
 		googleClientId = os.Getenv("GOOGLE_CLIENT_ID_ANDROID")
 	}
 	s.Logger.Info().Msg(fmt.Sprintf("app google client id is %v", googleClientId))
+	s.Logger.Info().Msg(fmt.Sprintf("google tokenString -> %s", tokenString))
 	claims, err := idtoken.Validate(context.Background(), tokenString, "")
 	if err != nil {
 		s.Logger.Err(err).Msg("Could not run idtoken.Validate")
