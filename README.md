@@ -1,5 +1,5 @@
 # Requirements 
-To be able to run the MyPipe API locally, you'll need the following installed on your computer: 
+To be able to run this bookmarking Api locally, you'll need the following installed on your computer: 
 ### Go (Version 1.18)
 This installation is quite optional, but you'll need it if you don't want to start up the server with docker
 You can find instructions on how to install Go on your machine [here](https://go.dev/doc/install)
